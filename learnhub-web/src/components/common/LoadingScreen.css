@@ -1,0 +1,14 @@
+
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  width: 100%;
+  animation: loading-screen-enter 180ms ease-out both;
+}
+
+@keyframes loading-screen-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

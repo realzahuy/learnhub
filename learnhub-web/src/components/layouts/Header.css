@@ -1,0 +1,447 @@
+
+.logo-hover {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  cursor: pointer;
+}
+
+.logo-hover:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.nav-link-hover {
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.nav-link-hover::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--notion-blue);
+  transition: width 0.3s ease;
+}
+
+.nav-link-hover:hover {
+  color: var(--notion-blue) !important;
+}
+
+.nav-link-hover:hover::after {
+  width: 100%;
+}
+
+.nav-link-hover.active {
+  color: var(--notion-blue) !important;
+}
+
+.nav-link-hover.active::after {
+  width: 100%;
+}
+
+.mobile-menu-item.active {
+  color: var(--notion-blue);
+  font-weight: 600;
+  background-color: var(--notion-blue-light);
+  border-left: 3px solid var(--notion-blue);
+  padding-left: 0.75rem;
+}
+
+.cart-hover {
+  transition: all 0.3s ease;
+}
+
+.cart-hover:hover {
+  transform: scale(1.08);
+}
+
+.cart-hover:hover .cart-icon {
+  color: var(--notion-blue) !important;
+}
+
+.cart-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+  text-align: center;
+
+  transform: translateY(-1px);
+  transition: color 0.3s ease;
+}
+
+.cart-icon::before {
+  display: block;
+  line-height: 1;
+  vertical-align: 0;
+}
+
+.header-actions {
+  gap: 0.75rem;
+}
+
+.header-actions > .notification-bell,
+.header-actions > .cart-link,
+.header-actions .dropdown-toggle-no-caret,
+.header-actions .account-menu-trigger {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.header-actions > .dropdown {
+  min-height: 32px;
+}
+
+.header-actions > .dropdown > .dropdown-menu {
+  top: 100%;
+}
+
+.header-actions .nav-link {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.header-login-button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--notion-blue);
+  border-radius: 8px;
+  background-color: var(--notion-blue);
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease,
+    box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.header-login-button:hover {
+  border-color: var(--notion-blue-hover);
+  background-color: var(--notion-blue-hover);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.1);
+}
+
+.header-login-button:focus-visible {
+  outline: 3px solid rgba(35, 131, 226, 0.18);
+  outline-offset: 2px;
+}
+
+.header-login-button:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.cart-link {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.header-actions > .notification-bell,
+.header-actions > .cart-link {
+  margin-inline: -6px;
+}
+
+.cart-link.active {
+  background-color: var(--notion-blue-light);
+}
+
+.cart-link.active .cart-icon {
+  color: var(--notion-blue) !important;
+}
+
+.cart-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(35%, -25%);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e53935;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  pointer-events: none;
+}
+
+.cart-badge-inline {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e53935;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+}
+
+.search-form-desktop {
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+}
+
+.search-form-desktop .form-control {
+  padding-right: 45px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.search-form-desktop .form-control:focus {
+  border-color: var(--notion-blue);
+  box-shadow: 0 0 0 0.2rem rgba(35, 131, 226, 0.15);
+}
+
+.btn-search {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  z-index: 10;
+  color: #6c757d;
+  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 6px;
+}
+
+.btn-search:hover {
+  color: var(--notion-blue);
+  background: var(--notion-blue-light);
+}
+
+.search-icon {
+  transition: transform 0.3s ease;
+}
+
+.btn-search:hover .search-icon {
+  transform: scale(1.1);
+}
+
+.dropdown-toggle-no-caret {
+  text-decoration: none;
+}
+
+.account-menu-button {
+  padding: 0.2rem 0.35rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #212529;
+  text-decoration: none;
+  opacity: 1;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.account-menu-button:hover,
+.account-menu-button:focus,
+.account-menu-button:active {
+  background-color: #f2f4f7;
+  color: #212529;
+  text-decoration: none;
+  opacity: 1;
+}
+
+.account-menu-button:focus-visible {
+  outline: 2px solid rgba(35, 131, 226, 0.35);
+  outline-offset: 2px;
+}
+
+.account-menu-trigger {
+  gap: 0.3rem;
+}
+
+.header-account-avatar {
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 30px !important;
+}
+
+.account-menu-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-menu {
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.account-dropdown-menu .dropdown-item {
+  color: #344054;
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.account-dropdown-menu .dropdown-item:hover,
+.account-dropdown-menu .dropdown-item:focus-visible {
+  background-color: var(--notion-blue-light) !important;
+  color: var(--notion-blue) !important;
+  text-decoration: none;
+}
+
+.account-dropdown-menu .dropdown-item.text-danger:hover,
+.account-dropdown-menu .dropdown-item.text-danger:focus-visible {
+  background-color: #fff1f2 !important;
+  color: #dc3545 !important;
+}
+
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 80%;
+  max-width: 300px;
+  height: 100vh;
+  background: white;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  transform: translateX(105%);
+  visibility: hidden;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.32s ease;
+  z-index: 1050;
+  overflow-y: auto;
+}
+
+.mobile-menu.show {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.mobile-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 72px;
+  padding: 0 1rem;
+}
+
+.mobile-menu-content {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.mobile-menu-item {
+  display: block;
+  padding: 0.75rem 0;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid #f0f0f0;
+  transition: color 0.2s ease;
+}
+
+.mobile-menu-item:hover {
+  color: var(--notion-blue);
+}
+
+.mobile-menu-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-user-section {
+  border-top: 2px solid #e0e0e0;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.mobile-user-dropdown {
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.mobile-user-dropdown .mobile-menu-item {
+  border-bottom: none;
+  padding: 0.5rem 0;
+}
+
+@media (max-width: 991px) {
+  .mobile-menu {
+    display: block;
+  }
+}
+
+.user-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  border: 0;
+  background: transparent;
+  color: #344054;
+}
+
+.user-menu-toggle:hover,
+.user-menu-toggle:focus-visible {
+  border: 0;
+  background: transparent;
+  color: var(--notion-blue);
+  box-shadow: none;
+  outline: none;
+}
+
+.user-menu-toggle-icon {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s ease;
+}
+
+.user-menu-toggle.is-open .user-menu-toggle-icon {
+  transform: rotate(0deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu,
+  .user-menu-toggle-icon {
+    transition: none;
+  }
+}
+
+.admin-gear-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.admin-gear-link:hover {
+  color: var(--notion-blue);
+}

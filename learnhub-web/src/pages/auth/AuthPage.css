@@ -1,0 +1,110 @@
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-page-main {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  background-color: #f5f7fa;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 2rem;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1), 0 12px 32px rgba(16, 24, 40, 0.14);
+}
+
+.auth-card-title {
+  margin: 0 0 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #101828;
+  text-align: center;
+}
+
+.auth-card .form-control-lg {
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.auth-card .form-control:focus {
+  border-color: var(--notion-blue);
+  box-shadow: 0 0 0 0.2rem rgba(35, 131, 226, 0.15);
+}
+
+.auth-login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 10px;
+  background-color: var(--notion-blue);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.auth-login-button:hover:not(:disabled),
+.auth-login-button:focus-visible {
+  background-color: var(--notion-blue-hover);
+  color: #fff;
+}
+
+.auth-login-button:focus-visible {
+  outline: 3px solid rgba(35, 131, 226, 0.2);
+  outline-offset: 2px;
+}
+
+.auth-login-button:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.auth-login-button:disabled {
+  background-color: #cfd4dc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.auth-hint {
+  display: block;
+  margin: 0.35rem 0 0 0.15rem;
+  color: #667085;
+  font-size: 0.8125rem;
+}
+
+.auth-forgot {
+  color: var(--notion-blue);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.auth-forgot:hover {
+  color: var(--notion-blue-hover);
+}
+
+.auth-switch {
+  margin: 1.25rem 0 0;
+  color: #667085;
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+.auth-switch a {
+  color: var(--notion-blue);
+  font-weight: 600;
+}

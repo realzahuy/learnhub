@@ -1,0 +1,90 @@
+.App {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.App > * {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.route-transition {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.route-transition > * {
+  flex: 1;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+footer {
+  flex-shrink: 0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+a,
+a:hover,
+a:focus,
+.btn-link,
+.btn-link:hover,
+.btn-link:focus {
+  text-decoration: none;
+}
+
+a,
+.btn-link {
+  transition: color 0.3s ease;
+}
+
+a:hover,
+.btn-link:hover {
+  color: var(--notion-blue-hover);
+}
+
+.text-notion {
+  color: var(--notion-blue) !important;
+}
+
+.btn-notion {
+  background-color: var(--notion-blue);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-notion:hover {
+  background-color: var(--notion-blue-hover);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(35, 131, 226, 0.3);
+}
+
+.btn-outline-notion {
+  border: 2px solid var(--notion-blue);
+  background: #fff;
+  color: var(--notion-blue);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-notion:hover {
+  background-color: var(--notion-blue);
+  border-color: var(--notion-blue);
+  color: #fff;
+  transform: translateY(-2px);
+}

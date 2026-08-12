@@ -1,0 +1,188 @@
+
+.course-edit-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.course-edit-main {
+  flex: 1 0 auto;
+  background-color: #f5f7fa;
+}
+
+.course-edit-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.course-edit-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #101828;
+}
+
+.course-edit-status {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.course-edit-status-draft {
+  background-color: #eceff3;
+  color: #667085;
+}
+
+.course-edit-status-pending {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.course-edit-status-published {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.course-edit-status-rejected {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.course-edit-card {
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1), 0 12px 32px rgba(16, 24, 40, 0.14);
+}
+
+.course-edit-side {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.course-edit-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #f2f4f7;
+}
+
+.course-edit-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.course-edit-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #98a2b3;
+  font-size: 0.9rem;
+}
+
+.course-edit-hint {
+  color: var(--notion-blue);
+  font-size: 0.82rem;
+}
+
+.course-edit-locked {
+  display: block;
+  margin-top: 0.25rem;
+  color: #b45309;
+  font-size: 0.8rem;
+}
+
+.course-edit-page .form-label {
+  font-weight: 600;
+  color: #344054;
+}
+
+.course-edit-dropdown {
+  display: block;
+  width: 100%;
+}
+
+.course-edit-page .form-control:focus,
+.course-edit-page .form-select:focus {
+  border-color: var(--notion-blue);
+  box-shadow: 0 0 0 0.2rem rgba(35, 131, 226, 0.15);
+}
+
+.course-edit-page .form-control:disabled,
+.course-edit-page .form-select:disabled {
+  background-color: #f2f4f7;
+  color: #667085;
+}
+
+.course-edit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #eef1f5;
+}
+
+.btn-course-edit-primary,
+.btn-course-edit-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-course-edit-primary {
+  border: none;
+  background-color: var(--notion-blue);
+  color: #fff;
+}
+
+.btn-course-edit-primary:hover:not(:disabled) {
+  background-color: var(--notion-blue-hover);
+  transform: translateY(-2px);
+}
+
+.btn-course-edit-primary:disabled {
+  background-color: #cfd4dc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-course-edit-outline {
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  color: #344054;
+}
+
+.btn-course-edit-outline:hover:not(:disabled) {
+  border-color: var(--notion-blue);
+  color: var(--notion-blue);
+}
+
+.btn-course-edit-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 991.98px) {
+
+  .course-edit-side {
+    position: static;
+  }
+}

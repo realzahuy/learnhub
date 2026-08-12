@@ -1,0 +1,129 @@
+
+.course-preview-modal {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.course-preview-content {
+  border: none;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.course-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.course-preview-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.course-preview-eyebrow {
+  display: block;
+  color: var(--notion-blue);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.course-preview-lesson {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--gray-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-preview-close {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.course-preview-close:hover {
+  background-color: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.course-preview-frame {
+  aspect-ratio: 16 / 9;
+  background: var(--black);
+}
+
+.course-preview-player {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.course-preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0;
+  max-height: 12rem;
+  overflow-y: auto;
+  border-top: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+}
+
+.course-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  color: var(--gray-600);
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.course-preview-item:hover {
+  background-color: var(--gray-100);
+  color: var(--notion-blue-hover);
+}
+
+.course-preview-item.is-active {
+  color: var(--notion-blue);
+  font-weight: var(--font-weight-semibold);
+}
+
+.course-preview-item-icon {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.course-preview-item-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-preview-item-duration {
+  flex: 0 0 auto;
+  color: var(--gray-500);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}

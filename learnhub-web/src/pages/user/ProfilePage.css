@@ -1,0 +1,30 @@
+
+.profile-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-main {
+  flex: 1 0 auto;
+  background-color: #f8f9fa;
+  position: relative;
+}
+
+.profile-main > .back-button {
+  position: absolute;
+  top: var(--spacing-xl);
+  left: var(--spacing-xl);
+  z-index: 1;
+}
+
+.profile-page .text-notion {
+  color: var(--notion-blue) !important;
+}
+
+@media (max-width: 767px) {
+  .profile-main > .back-button {
+    position: static;
+    margin: var(--spacing-md) 0 0 var(--spacing-md);
+  }
+}

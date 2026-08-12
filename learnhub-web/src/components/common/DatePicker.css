@@ -1,0 +1,231 @@
+.app-datepicker {
+  position: relative;
+  display: inline-block;
+}
+
+.app-datepicker-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #344054;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.app-datepicker-toggle:hover {
+  border-color: #cfd4dc;
+}
+
+.app-datepicker-toggle.is-open,
+.app-datepicker-toggle:focus-visible {
+  outline: none;
+  border-color: var(--notion-blue);
+  box-shadow: 0 0 0 0.2rem rgba(35, 131, 226, 0.15);
+}
+
+.app-datepicker-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-datepicker-value.is-empty {
+  color: #98a2b3;
+}
+
+.app-datepicker-icon {
+  flex: 0 0 auto;
+  color: #98a2b3;
+  font-size: 0.9rem;
+}
+
+.app-datepicker-panel {
+  position: absolute;
+  z-index: var(--z-popover);
+  top: calc(100% + 0.35rem);
+  right: 0;
+  width: 19rem;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+}
+
+.app-datepicker-panel.is-drop-up {
+  top: auto;
+  bottom: calc(100% + 0.35rem);
+  box-shadow: 0 -8px 24px rgba(16, 24, 40, 0.12);
+}
+
+.app-datepicker-panel.is-align-left {
+  right: auto;
+  left: 0;
+}
+
+.app-datepicker-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.625rem;
+}
+
+.app-datepicker-select.is-month {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.app-datepicker-select.is-year {
+  flex: 0 0 5.5rem;
+}
+
+.app-datepicker-select .app-dropdown-toggle {
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.app-datepicker-select .app-dropdown-caret {
+  font-size: 0.7rem;
+}
+
+.app-datepicker-steps {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.125rem;
+  margin-left: auto;
+}
+
+.app-datepicker-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #667085;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.app-datepicker-step:hover:not(:disabled) {
+  background: #f2f4f7;
+  color: var(--notion-blue-hover);
+}
+
+.app-datepicker-step:focus-visible {
+  outline: 2px solid var(--notion-blue);
+  outline-offset: 1px;
+}
+
+.app-datepicker-step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.app-datepicker-weekdays,
+.app-datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.125rem;
+}
+
+.app-datepicker-weekdays span {
+  padding: 0.25rem 0;
+  color: #98a2b3;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.app-datepicker-day {
+  padding: 0.4rem 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #344054;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.app-datepicker-day:hover:not(:disabled):not(.is-selected) {
+  background: #f2f4f7;
+  color: var(--notion-blue-hover);
+}
+
+.app-datepicker-day:focus-visible {
+  outline: 2px solid var(--notion-blue);
+  outline-offset: 1px;
+}
+
+.app-datepicker-day.is-outside {
+  color: #cfd4dc;
+}
+
+.app-datepicker-day.is-today {
+  border-color: var(--notion-blue);
+  font-weight: 600;
+}
+
+.app-datepicker-day.is-selected {
+  border-color: var(--notion-blue);
+  background: var(--notion-blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+.app-datepicker-day:disabled {
+  color: #e4e7ec;
+  cursor: not-allowed;
+}
+
+.app-datepicker-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid #f2f4f7;
+}
+
+.app-datepicker-link {
+  padding: 0.2rem 0.35rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--notion-blue);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.app-datepicker-link:hover:not(:disabled) {
+  color: var(--notion-blue-hover);
+}
+
+.app-datepicker-link:focus-visible {
+  outline: 2px solid var(--notion-blue);
+  outline-offset: 1px;
+}
+
+.app-datepicker-link:disabled {
+  color: #cfd4dc;
+  cursor: not-allowed;
+}

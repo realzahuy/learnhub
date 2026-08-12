@@ -1,0 +1,15 @@
+
+.instructor-stats-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.instructor-stats-main {
+  flex: 1 0 auto;
+  background-color: #f5f7fa;
+}
+
+.instructor-stats-page .text-notion {
+  color: var(--notion-blue) !important;
+}

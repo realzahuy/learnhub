@@ -1,0 +1,108 @@
+
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+
+  background-color: #e8ecf3;
+}
+
+.admin-login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 2.25rem 2rem;
+  background: #fff;
+  border-radius: 14px;
+
+  box-shadow:
+    0 4px 8px -2px rgba(16, 24, 40, 0.1),
+    0 24px 48px -12px rgba(16, 24, 40, 0.3);
+}
+
+.admin-login-brand {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.admin-login-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #101828;
+  text-align: center;
+}
+
+.admin-login-card .form-control {
+  padding: 0.65rem 0.9rem;
+}
+
+.admin-login-card .form-control:focus {
+  border-color: var(--notion-blue);
+  box-shadow: 0 0 0 0.2rem rgba(35, 131, 226, 0.15);
+}
+
+.btn-admin-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background-color: var(--notion-blue);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-admin-login:hover:not(:disabled) {
+  background-color: var(--notion-blue-hover);
+  transform: translateY(-2px);
+}
+
+.btn-admin-login:disabled {
+  background-color: #cfd4dc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.admin-login-forgot {
+  display: block;
+  margin-top: 1rem;
+  color: var(--notion-blue);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.admin-login-forgot:hover {
+  color: var(--notion-blue-hover);
+}
+
+.admin-login-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 1.25rem auto 0;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  color: #667085;
+  font-size: 1.15rem;
+
+  transition: all 0.3s ease;
+}
+
+.admin-login-back:hover {
+  border-color: var(--notion-blue);
+  background-color: var(--notion-blue-light);
+  color: var(--notion-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(35, 131, 226, 0.25);
+}

@@ -1,0 +1,35 @@
+package com.zh.learnhub_api.services.media;
+
+import com.zh.learnhub_api.enums.VideoStatus;
+import com.zh.learnhub_api.pojo.Video;
+
+public final class VideoPlaybackUrls {
+
+    private static final String AUTHENTICATED_PREFIX = "/api/learn/videos/";
+    private static final String PREVIEW_PREFIX = "/api/learn/preview/videos/";
+
+    private VideoPlaybackUrls() {
+    }
+
+    public static String authenticated(Video video) {
+        return build(video, AUTHENTICATED_PREFIX);
+    }
+
+    public static String preview(Video video) {
+        return build(video, PREVIEW_PREFIX);
+    }
+
+    private static String build(Video video, String prefix) {
+        String storageKey = video.getStorageKey();
+        if (!VideoStatus.READY.name().equals(video.getStatus())
+                || storageKey == null || storageKey.isBlank()) {
+            return null;
+        }
+
+        String masterFileName = storageKey.substring(storageKey.lastIndexOf('/') + 1);
+        if (masterFileName.isBlank()) {
+            return null;
+        }
+        return prefix + video.getId() + "/hls/" + masterFileName;
+    }
+}

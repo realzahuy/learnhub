@@ -1,0 +1,128 @@
+
+.admin-instructor-total {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #667085;
+}
+
+.admin-users .admin-table th {
+  font-size: 0.95rem;
+}
+
+.admin-users .admin-table tbody td {
+  font-size: 1.08rem;
+}
+
+.admin-instructor-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.admin-instructor-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-instructor-name {
+  font-size: 1.12rem;
+  font-weight: 600;
+  color: #101828;
+}
+
+.admin-instructor-username {
+  font-size: 0.95rem;
+  color: #98a2b3;
+}
+
+.admin-detail-headline .admin-instructor-username {
+  font-size: 0.95rem;
+}
+
+.admin-instructor-email {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-verified {
+  color: #039855;
+}
+
+.admin-unverified {
+  color: #f79009;
+}
+
+.admin-instructor-badge {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-instructor-badge-ok {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.admin-instructor-badge-warn {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.admin-instructor-metric-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #101828;
+}
+
+.admin-instructor-date {
+  color: #667085;
+  white-space: nowrap;
+}
+
+.admin-instructor-courses {
+  display: flex;
+  gap: 3rem;
+  padding: 0.25rem 0;
+}
+
+.admin-instructor-headline-item {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.admin-instructor-headline-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #101828;
+}
+
+.admin-instructor-headline-label {
+  font-size: 0.9rem;
+  color: #667085;
+}
+
+.admin-instructor-muted {
+  color: #98a2b3;
+  font-style: italic;
+}
+
+@media (max-width: 767.98px) {
+  .admin-instructor-email,
+  .admin-instructor-courses {
+    flex-wrap: wrap;
+  }
+
+  .admin-instructor-email span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-instructor-courses {
+    gap: 1.5rem;
+  }
+}

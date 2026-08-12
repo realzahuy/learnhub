@@ -1,0 +1,14 @@
+
+@media (min-width: 1120px) {
+  .admin-stats .stats-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.admin-stats-note {
+  max-width: 70ch;
+  margin: 0.875rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #667085;
+}

@@ -1,0 +1,121 @@
+
+.app-stepper {
+  --app-stepper-dot-size: 34px;
+  --app-stepper-connector-inset: 22px;
+  display: flex;
+  margin: 0 0 1.75rem;
+  padding: 1.5rem 1rem 1.25rem;
+  list-style: none;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+
+.app-stepper-item {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.app-stepper-item:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  right: calc(50% + var(--app-stepper-connector-inset));
+  left: calc(-50% + var(--app-stepper-connector-inset));
+  z-index: 0;
+  height: 2px;
+  border-radius: 999px;
+  background-color: #e4e7ec;
+}
+
+.app-stepper-item.is-done::before,
+.app-stepper-item.is-active::before {
+  background-color: var(--notion-blue);
+}
+
+.app-stepper-button {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.app-stepper-button:disabled {
+  opacity: 1;
+}
+
+.app-stepper-button:not(:disabled) {
+  cursor: pointer;
+}
+
+.app-stepper-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--app-stepper-dot-size);
+  height: var(--app-stepper-dot-size);
+  border: 2px solid #e4e7ec;
+  border-radius: 50%;
+  background: #fff;
+  color: #98a2b3;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: all 0.25s ease;
+}
+
+.app-stepper-label {
+  color: #98a2b3;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: center;
+  transition: color 0.25s ease;
+}
+
+.app-stepper-item.is-done .app-stepper-dot {
+  border-color: var(--notion-blue);
+  background-color: var(--notion-blue);
+  color: #fff;
+}
+
+.app-stepper-item.is-done .app-stepper-label {
+  color: #344054;
+}
+
+.app-stepper-item.is-active .app-stepper-dot {
+  border-color: var(--notion-blue);
+  background-color: var(--notion-blue);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(35, 131, 226, 0.15);
+}
+
+.app-stepper-item.is-active .app-stepper-label {
+  color: var(--notion-blue);
+}
+
+.app-stepper-button:not(:disabled):hover .app-stepper-dot {
+  transform: translateY(-2px);
+}
+
+.app-stepper-button:not(:disabled):hover .app-stepper-label {
+  color: var(--notion-blue);
+}
+
+@media (max-width: 575.98px) {
+
+  .app-stepper-label {
+    display: none;
+  }
+
+  .app-stepper {
+    padding: 1.25rem 1rem;
+  }
+}

@@ -1,0 +1,25 @@
+.site-layout {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.site-layout-content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.site-layout-content > * {
+  flex: 1;
+}
+
+.public-layout--home .site-layout-content > * {
+  flex: 0 0 auto;
+}
+
+.public-layout--home .site-layout-content > .home-page {
+  width: 100%;
+  margin-block: auto;
+}

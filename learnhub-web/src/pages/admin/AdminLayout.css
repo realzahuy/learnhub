@@ -1,0 +1,248 @@
+
+:root {
+  --admin-nav-width: 240px;
+  --admin-nav-icon-col: 68px;
+}
+
+.admin-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f7fa;
+}
+
+.admin-main {
+  flex: 1 0 auto;
+  min-height: 100vh;
+  display: flex;
+}
+
+.admin-shell > .footer {
+  margin-top: 0 !important;
+  border-top: 1px solid #2f333c;
+}
+
+.admin-nav {
+  flex: 0 0 var(--admin-nav-width);
+  background-color: #16181d;
+  transition: flex-basis 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.admin-nav-inner {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 0;
+  overflow-y: auto;
+}
+
+.admin-nav-brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  margin-bottom: 1rem;
+
+  font-weight: 700;
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+
+.admin-nav-brand .admin-nav-label span:last-child {
+  color: #fff;
+}
+
+.admin-nav-label {
+  display: block;
+  max-width: 170px;
+  min-width: 0;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateX(0);
+  transition: max-width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.admin-nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #a7adba;
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.admin-nav-link:hover {
+  background-color: #23262e;
+  color: #fff;
+}
+
+.admin-nav-icon {
+  flex: 0 0 var(--admin-nav-icon-col);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.admin-nav-link.active {
+  color: #fff;
+  background-color: #23262e;
+  box-shadow: inset 3px 0 0 var(--notion-blue);
+}
+
+.admin-nav-link.active .admin-nav-icon {
+  color: var(--notion-blue);
+}
+
+.admin-nav-footer {
+  margin-top: auto;
+  border-top: 1px solid #23262e;
+  padding-top: 0.5rem;
+}
+
+.admin-nav-user {
+  height: 52px;
+}
+
+.admin-nav-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-nav-user-name {
+  min-width: 0;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-nav-logout {
+  width: 100%;
+}
+
+.admin-nav-logout:hover {
+  background-color: #3a1f22;
+  color: #ff6b6b;
+}
+
+.admin-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-content-body {
+  padding: 2rem;
+}
+
+.admin-nav-toggle {
+  flex: 0 0 var(--admin-nav-icon-col);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f2f4f7;
+  font-size: 1.85rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.admin-nav-toggle:hover,
+.admin-nav-toggle:focus-visible {
+  background: transparent;
+  color: var(--notion-blue);
+  outline: none;
+}
+
+.admin-nav-toggle i {
+  display: block;
+  transform: rotate(0deg);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s ease;
+}
+
+.admin-nav:not(.is-sidebar-expanded) .admin-nav-toggle i {
+  transform: rotate(90deg);
+}
+
+@media (min-width: 992px) {
+  .admin-nav:not(.is-sidebar-expanded) {
+    flex-basis: 68px;
+  }
+
+  .admin-nav:not(.is-sidebar-expanded) .admin-nav-label {
+    max-width: 0;
+    opacity: 0;
+    transform: translateX(-0.5rem);
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 991.98px) {
+  :root {
+    --admin-nav-width: 68px;
+  }
+
+  .admin-nav-label {
+    max-width: 0;
+    opacity: 0;
+    transform: translateX(-0.5rem);
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .admin-nav.is-sidebar-expanded {
+    flex-basis: 240px;
+  }
+
+  .admin-nav.is-sidebar-expanded .admin-nav-label {
+    max-width: 170px;
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .admin-content-body {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .admin-content-body {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-nav,
+  .admin-nav-label,
+  .admin-nav-toggle i {
+    transition: none;
+  }
+}

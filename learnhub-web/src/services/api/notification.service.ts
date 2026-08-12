@@ -1,0 +1,65 @@
+import { AppNotification } from '../../types/notification.types';
+import {
+  CourseStatusChangedEvent,
+  RealtimeConnectedEvent,
+  SSE_EVENT_NAMES,
+} from '../../types/realtime.types';
+import apiClient, { API_BASE_URL, authenticatedFetch } from './config';
+import { consumeJsonSseEvents } from './sse';
+
+interface RealtimeStreamHandlers {
+  onConnected?: (event: RealtimeConnectedEvent) => void;
+  onNotification?: (notification: AppNotification) => void;
+  onCourseStatusChanged?: (event: CourseStatusChangedEvent) => void;
+}
+
+interface NotificationPage {
+  content: AppNotification[];
+  last: boolean;
+  unreadCount: number;
+  nextCursorCreatedAt: string | null;
+  nextCursorId: number | null;
+}
+
+export interface NotificationCursor {
+  createdAt: string;
+  id: number;
+}
+
+export const notificationService = {
+  list: async (cursor: NotificationCursor | null = null, size = 30): Promise<NotificationPage> => {
+    const response = await apiClient.get<NotificationPage>('/notifications', {
+      params: {
+        size,
+        cursorCreatedAt: cursor?.createdAt,
+        cursorId: cursor?.id,
+      },
+    });
+    return response.data;
+  },
+
+  markAsRead: async (id: number): Promise<AppNotification> => {
+    const response = await apiClient.put<AppNotification>(`/notifications/${id}/read`);
+    return response.data;
+  },
+
+  stream: async (
+    handlers: RealtimeStreamHandlers,
+    signal: AbortSignal
+  ): Promise<void> => {
+    const response = await authenticatedFetch(`${API_BASE_URL}/notifications/stream`, {
+      method: 'GET',
+      headers: { Accept: 'text/event-stream' },
+      cache: 'no-store',
+      signal,
+    });
+    await consumeJsonSseEvents(response, {
+      [SSE_EVENT_NAMES.CONNECTED]: (data) =>
+        handlers.onConnected?.(data as RealtimeConnectedEvent),
+      [SSE_EVENT_NAMES.NOTIFICATION]: (data) =>
+        handlers.onNotification?.(data as AppNotification),
+      [SSE_EVENT_NAMES.COURSE_STATUS_CHANGED]: (data) =>
+        handlers.onCourseStatusChanged?.(data as CourseStatusChangedEvent),
+    });
+  },
+};
