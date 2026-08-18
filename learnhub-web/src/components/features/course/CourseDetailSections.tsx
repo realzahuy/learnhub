@@ -96,8 +96,10 @@ export const CourseCurriculum = ({
       <h2 className="h4 fw-bold mb-3">Nội dung khóa học</h2>
       <ul className="curriculum-list">
         {lessons.map((lesson) => {
-          const isQuiz = lesson.videos.length === 0 && lesson.questionCount > 0;
-          const canExpand = lesson.videos.length > 0;
+          const hasVideos = lesson.videos.length > 0;
+          const hasQuiz = lesson.questionCount > 0;
+          const isQuiz = !hasVideos && hasQuiz;
+          const canExpand = hasVideos || hasQuiz;
           const expanded = openLessonIds.includes(lesson.id);
           return (
             <li key={lesson.id} className="curriculum-item">
@@ -113,8 +115,8 @@ export const CourseCurriculum = ({
                 }${canExpand ? '' : ' is-hidden'}`} />
                 <i className={`bi ${isQuiz ? 'bi-patch-question' : 'bi-play-btn'} curriculum-icon`} />
                 <span className="curriculum-title">{lesson.title}</span>
-                {isQuiz && <span className="curriculum-meta">{lesson.questionCount} câu hỏi</span>}
-                {lesson.isPreview && !isQuiz && <span className="curriculum-preview">Xem thử</span>}
+                {hasQuiz && <span className="curriculum-meta">{lesson.questionCount} câu hỏi</span>}
+                {lesson.isPreview && hasVideos && <span className="curriculum-preview">Xem thử</span>}
               </button>
 
               {expanded && (
@@ -143,6 +145,15 @@ export const CourseCurriculum = ({
                       )}
                     </li>
                   ))}
+                  {hasQuiz && (
+                    <li className="curriculum-subitem">
+                      <div className="curriculum-subrow">
+                        <i className="bi bi-patch-question curriculum-subicon" />
+                        <span className="curriculum-subtitle">Bài kiểm tra</span>
+                        <span className="curriculum-duration">{lesson.questionCount} câu hỏi</span>
+                      </div>
+                    </li>
+                  )}
                 </ul>
               )}
             </li>

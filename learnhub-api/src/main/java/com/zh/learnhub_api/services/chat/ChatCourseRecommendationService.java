@@ -8,7 +8,6 @@ import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.services.ai.EmbeddingClient;
 import com.zh.learnhub_api.services.vector.CourseVectorMatch;
 import com.zh.learnhub_api.services.vector.CourseVectorStore;
-import com.zh.learnhub_api.services.vector.CourseTopicMatcher;
 import com.zh.learnhub_api.services.learning.ReviewService;
 import com.zh.learnhub_api.mappers.CourseMapper;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +42,8 @@ public class ChatCourseRecommendationService {
     private final AppProperties.Chat chatProperties;
 
     @Transactional(readOnly = true)
-    public List<CourseListItemDTO> recommend(List<String> searchKeywords, String username) {
+    public List<CourseListItemDTO> recommend(
+            String userMessage, List<String> searchKeywords, String username) {
         List<String> keywords = sanitizeKeywords(searchKeywords);
         if (!vectorStore.isEnabled() || keywords.isEmpty()) {
             return List.of();
@@ -56,7 +56,9 @@ public class ChatCourseRecommendationService {
             int safeCandidateLimit = Math.max(1, Math.min(chatProperties.vectorCandidateLimit(), 100));
             double safeMinimumScore = Math.max(-1d, Math.min(1d, chatProperties.minimumVectorScore()));
             List<CourseVectorMatch> matches = vectorStore.findSimilar(
-                    embeddingClient.embedQuery(buildVectorQuery(keywords)), safeCandidateLimit, enrolledIds,
+                    embeddingClient.embedQuery(buildVectorQuery(userMessage, keywords)),
+                    safeCandidateLimit,
+                    enrolledIds,
                     safeMinimumScore);
             if (matches.isEmpty()) {
                 return List.of();
@@ -81,9 +83,6 @@ public class ChatCourseRecommendationService {
                 }
                 CourseListProjection projection = projectionById.get(match.courseId());
                 if (projection == null) {
-                    continue;
-                }
-                if (!CourseTopicMatcher.matchesKeywords(projection, keywords)) {
                     continue;
                 }
                 CourseListItemDTO course = courseMapper.mapListProjectionToDTO(projection);
@@ -129,9 +128,14 @@ public class ChatCourseRecommendationService {
                 .toList();
     }
 
-    private String buildVectorQuery(List<String> keywords) {
-        return "Tìm khóa học dạy đúng các chủ đề và kỹ năng sau:\n- "
+    private String buildVectorQuery(String userMessage, List<String> keywords) {
+        String originalRequest = userMessage == null ? "" : userMessage.trim();
+        String keywordSection = "Các chủ đề và kỹ năng liên quan:\n- "
                 + String.join("\n- ", keywords);
+        if (originalRequest.isEmpty()) {
+            return keywordSection;
+        }
+        return "Nhu cầu gốc của người dùng:\n" + originalRequest + "\n\n" + keywordSection;
     }
 
 }

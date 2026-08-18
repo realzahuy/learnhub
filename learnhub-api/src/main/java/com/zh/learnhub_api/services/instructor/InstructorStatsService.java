@@ -1,6 +1,7 @@
 package com.zh.learnhub_api.services.instructor;
 
 import com.zh.learnhub_api.dtos.instructor.InstructorOverviewDTO;
+import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.instructor.InstructorTimeSeriesDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorTimeSeriesDTO.InstructorStatsPointDTO;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
@@ -8,6 +9,7 @@ import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.payment.PaymentItemRepository;
 import com.zh.learnhub_api.utils.StatsBuckets;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class InstructorStatsService {
     private final PaymentItemRepository paymentItemRepository;
     private final CourseRepository courseRepository;
 
+    @Cacheable(cacheNames = CacheNames.INSTRUCTOR_OVERVIEW, key = "#instructorId", sync = true)
     public InstructorOverviewDTO getOverview(Long instructorId) {
 
         LocalDateTime now = LocalDateTime.now();
@@ -60,6 +63,7 @@ public class InstructorStatsService {
                 .build();
     }
 
+    @Cacheable(cacheNames = CacheNames.INSTRUCTOR_TIME_SERIES)
     public InstructorTimeSeriesDTO getTimeSeries(Long instructorId, String groupBy,
                                                  LocalDate fromDate, LocalDate toDate) {
         StatsBuckets buckets = StatsBuckets.plan(groupBy, fromDate, toDate);

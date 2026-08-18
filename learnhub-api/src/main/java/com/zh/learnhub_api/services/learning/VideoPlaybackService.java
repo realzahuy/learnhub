@@ -7,7 +7,6 @@ import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Video;
 import com.zh.learnhub_api.projections.learning.VideoPlaybackProjection;
-import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.media.VideoPlaybackUrls;
 import com.zh.learnhub_api.services.media.VideoStorageService;
@@ -21,14 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class VideoPlaybackService {
 
     private final VideoRepository videoRepository;
-    private final EnrollmentRepository enrollmentRepository;
     private final VideoStorageService videoStorageService;
 
     public VideoStorageService.StoredObject openVideoFile(
             Long videoId, String fileName, Long userId, boolean admin) {
-        VideoPlaybackProjection video = videoRepository.findPlaybackById(videoId)
+        VideoPlaybackProjection video = (admin
+                ? videoRepository.findPlaybackById(videoId)
+                : videoRepository.findPlaybackForUserById(videoId, userId))
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
-        checkCanWatch(video, userId, admin);
+        checkCanWatch(video, admin);
         return openReadyVideoFile(video, fileName);
     }
 
@@ -38,6 +38,14 @@ public class VideoPlaybackService {
         if (!isPublishedPreview(video)) {
             throw new ForbiddenException("Bài giảng này không khả dụng để xem thử");
         }
+        return openReadyVideoFile(video, fileName);
+    }
+
+    public VideoStorageService.StoredObject openInstructorVideoFile(
+            Long videoId, String fileName, Long instructorId) {
+        VideoPlaybackProjection video = videoRepository
+                .findPlaybackForInstructorById(videoId, instructorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
         return openReadyVideoFile(video, fileName);
     }
 
@@ -67,11 +75,8 @@ public class VideoPlaybackService {
         return folder + fileName;
     }
 
-    private void checkCanWatch(VideoPlaybackProjection video, Long userId, boolean admin) {
-        if (video.getInstructorId().equals(userId)
-                || isPublishedPreview(video)
-                || enrollmentRepository.existsByUserId_IdAndCourseId_Id(userId, video.getCourseId())
-                || admin) {
+    private void checkCanWatch(VideoPlaybackProjection video, boolean admin) {
+        if (admin || isPublishedPreview(video) || Long.valueOf(1L).equals(video.getEnrolled())) {
             return;
         }
         throw new ForbiddenException("Bạn chưa ghi danh khóa học này");

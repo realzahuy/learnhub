@@ -1,5 +1,7 @@
 package com.zh.learnhub_api.projections.admin;
 
+import com.zh.learnhub_api.enums.AccountStatus;
+
 import java.time.LocalDateTime;
 
 public interface AdminUserProjection {
@@ -10,6 +12,7 @@ public interface AdminUserProjection {
     String getAvatar();
     String getBio();
     boolean isEmailVerified();
+    AccountStatus getAccountStatus();
     LocalDateTime getCreatedAt();
     LocalDateTime getLastLogin();
 }

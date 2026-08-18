@@ -7,13 +7,15 @@ import {
   useRef,
   useState,
 } from 'react';
+import { matchPath, useLocation } from 'react-router-dom';
 import {
   NotificationCursor,
   notificationService,
 } from '../services/api/notification.service';
-import { ROLE_ADMIN } from '../types/auth.types';
+import { ROLE_INSTRUCTOR } from '../types/auth.types';
 import { AppNotification } from '../types/notification.types';
 import { CourseStatusChangedEvent } from '../types/realtime.types';
+import { ROUTE_MATCH_PATTERNS } from '../routes/paths';
 import { useAuth } from './AuthContext';
 
 const HISTORY_PAGE_SIZE = 12;
@@ -27,7 +29,7 @@ interface NotificationContextType {
   loadMore: () => Promise<void>;
   markAsRead: (id: number) => Promise<void>;
   lastCourseStatusEvent: CourseStatusChangedEvent | null;
-  realtimeConnectionVersion: number;
+  realtimeReconnectVersion: number;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -37,7 +39,12 @@ const waitBeforeReconnect = (milliseconds: number) =>
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, roles } = useAuth();
-  const shouldReceiveNotifications = isAuthenticated && !roles.includes(ROLE_ADMIN);
+  const { pathname } = useLocation();
+  const isInstructorMode = Boolean(
+    matchPath(ROUTE_MATCH_PATTERNS.instructorArea, pathname)
+  );
+  const shouldReceiveNotifications =
+    isAuthenticated && isInstructorMode && roles.includes(ROLE_INSTRUCTOR);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,16 +52,19 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [hasMore, setHasMore] = useState(false);
   const [lastCourseStatusEvent, setLastCourseStatusEvent] =
     useState<CourseStatusChangedEvent | null>(null);
-  const [realtimeConnectionVersion, setRealtimeConnectionVersion] = useState(0);
+  const [realtimeReconnectVersion, setRealtimeReconnectVersion] = useState(0);
+  const reconnectPending = useRef(false);
   const knownIds = useRef(new Set<number>());
   const nextCursor = useRef<NotificationCursor | null>(null);
   const loadingMore = useRef(false);
+  const connectionController = useRef<AbortController | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!shouldReceiveNotifications) return;
+  const refresh = useCallback(async (signal?: AbortSignal) => {
+    if (!shouldReceiveNotifications || signal?.aborted) return;
     setIsLoading(true);
     try {
-      const history = await notificationService.list(null, HISTORY_PAGE_SIZE);
+      const history = await notificationService.list(null, HISTORY_PAGE_SIZE, signal);
+      if (signal?.aborted) return;
       knownIds.current = new Set(history.content.map((item) => item.id));
       nextCursor.current = history.nextCursorCreatedAt && history.nextCursorId
         ? { createdAt: history.nextCursorCreatedAt, id: history.nextCursorId }
@@ -63,17 +73,25 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       setUnreadCount(history.unreadCount);
       setHasMore(!history.last);
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [shouldReceiveNotifications]);
 
   const loadMore = useCallback(async () => {
     if (!shouldReceiveNotifications || !hasMore || loadingMore.current) return;
 
+    const signal = connectionController.current?.signal;
+    if (!signal || signal.aborted) return;
+
     loadingMore.current = true;
     setIsLoadingMore(true);
     try {
-      const history = await notificationService.list(nextCursor.current, HISTORY_PAGE_SIZE);
+      const history = await notificationService.list(
+        nextCursor.current,
+        HISTORY_PAGE_SIZE,
+        signal
+      );
+      if (signal?.aborted) return;
       nextCursor.current = history.nextCursorCreatedAt && history.nextCursorId
         ? { createdAt: history.nextCursorCreatedAt, id: history.nextCursorId }
         : null;
@@ -83,9 +101,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         additions.forEach((item) => knownIds.current.add(item.id));
         return [...current, ...additions];
       });
+    } catch (error) {
+      if (!signal?.aborted) {
+        console.error('Không thể tải thêm thông báo:', error);
+      }
     } finally {
       loadingMore.current = false;
-      setIsLoadingMore(false);
+      if (!signal?.aborted) setIsLoadingMore(false);
     }
   }, [hasMore, shouldReceiveNotifications]);
 
@@ -108,7 +130,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       setIsLoadingMore(false);
       setHasMore(false);
       setLastCourseStatusEvent(null);
-      setRealtimeConnectionVersion(0);
+      setRealtimeReconnectVersion(0);
+      reconnectPending.current = false;
       return;
     }
 
@@ -123,14 +146,17 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const controller = new AbortController();
+    connectionController.current = controller;
     let disposed = false;
 
     const connect = async () => {
       if (shouldReceiveNotifications) {
         try {
-          await refresh();
+          await refresh(controller.signal);
         } catch (error) {
-          console.error('Không thể tải lịch sử thông báo:', error);
+          if (!controller.signal.aborted) {
+            console.error('Không thể tải lịch sử thông báo:', error);
+          }
         }
       }
 
@@ -139,7 +165,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         try {
           await notificationService.stream(
             {
-              onConnected: () => setRealtimeConnectionVersion((version) => version + 1),
+              onConnected: () => {
+                if (!reconnectPending.current) return;
+                reconnectPending.current = false;
+                setRealtimeReconnectVersion((version) => version + 1);
+              },
               onNotification: shouldReceiveNotifications ? receiveNotification : undefined,
               onCourseStatusChanged: setLastCourseStatusEvent,
             },
@@ -152,11 +182,14 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (!disposed && !controller.signal.aborted) {
+          reconnectPending.current = true;
           if (shouldReceiveNotifications) {
             try {
-              await refresh();
+              await refresh(controller.signal);
             } catch (error) {
-              console.error('Không thể đồng bộ lại thông báo:', error);
+              if (!controller.signal.aborted) {
+                console.error('Không thể đồng bộ lại thông báo:', error);
+              }
             }
           }
           await waitBeforeReconnect(retryDelay);
@@ -169,6 +202,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       disposed = true;
       controller.abort();
+      if (connectionController.current === controller) {
+        connectionController.current = null;
+      }
     };
   }, [isAuthenticated, shouldReceiveNotifications, receiveNotification, refresh]);
 
@@ -192,7 +228,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         loadMore,
         markAsRead,
         lastCourseStatusEvent,
-        realtimeConnectionVersion,
+        realtimeReconnectVersion,
       }}
     >
       {children}

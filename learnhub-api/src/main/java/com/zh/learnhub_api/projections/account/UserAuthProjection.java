@@ -7,6 +7,7 @@ public interface UserAuthProjection {
     Long getId();
     String getUsername();
     String getPassword();
+    String getAccountStatus();
     String getRoleNames();
 
     default List<String> getRoles() {

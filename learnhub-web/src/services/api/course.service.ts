@@ -4,7 +4,10 @@ import { PageResponse } from '../../types/pagination.types';
 
 export const courseService = {
 
-  getPublishedCourses: async (params: CourseQueryParams = {}): Promise<PageResponse<Course>> => {
+  getPublishedCourses: async (
+    params: CourseQueryParams = {},
+    signal?: AbortSignal
+  ): Promise<PageResponse<Course>> => {
     const queryParams = new URLSearchParams();
 
     if (params.page !== undefined) queryParams.append('page', params.page.toString());
@@ -14,13 +17,14 @@ export const courseService = {
     if (params.sort) queryParams.append('sort', params.sort);
 
     const response = await apiClient.get<PageResponse<Course>>(
-      `/courses?${queryParams.toString()}`
+      `/courses?${queryParams.toString()}`,
+      { signal }
     );
     return response.data;
   },
 
-  getCourseBySlug: async (slug: string): Promise<CourseDetail> => {
-    const response = await apiClient.get<CourseDetail>(`/courses/${slug}`);
+  getCourseBySlug: async (slug: string, signal?: AbortSignal): Promise<CourseDetail> => {
+    const response = await apiClient.get<CourseDetail>(`/courses/${slug}`, { signal });
     return response.data;
   }
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { ProfileEditor } from '../../components/features/profile';
-import { BackButton } from '../../components/common';
+import { BackButton, LoadingScreen } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import { ROUTE_PATHS } from '../../routes/paths';
 import './ProfilePage.css';
@@ -10,15 +10,7 @@ const ProfilePage: React.FC = () => {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   if (isAuthLoading) {
-    return (
-      <main className="profile-main">
-        <div className="container py-5 text-center">
-          <div className="spinner-border text-notion" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
-        </div>
-      </main>
-    );
+    return <LoadingScreen variant="form" count={4} />;
   }
 
   if (!isAuthenticated) {

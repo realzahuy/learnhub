@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AdminCourseDialogs from './AdminCourseDialogs';
 import AdminCourseTable from './AdminCourseTable';
@@ -6,6 +6,7 @@ import { Dropdown, DropdownOption, Pagination, LoadingScreen } from '../../compo
 import { useNotifications } from '../../context/NotificationContext';
 import { useToast } from '../../context/ToastContext';
 import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
+import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigger';
 import { useCategories } from '../../hooks/useCategories';
 import { adminService } from '../../services/api/admin.service';
 import {
@@ -14,6 +15,7 @@ import {
 } from '../../types/course.types';
 import { PageResponse } from '../../types/pagination.types';
 import { getApiErrorMessage } from '../../utils';
+import { shouldRefreshAdminCourseList } from '../../utils/courseRealtime';
 import './AdminCoursesPage.css';
 
 const STATUS_OPTIONS: DropdownOption[] = [
@@ -24,7 +26,7 @@ const STATUS_OPTIONS: DropdownOption[] = [
 
 const AdminCoursesPage: React.FC = () => {
   const { showToast } = useToast();
-  const { lastCourseStatusEvent, realtimeConnectionVersion } = useNotifications();
+  const { lastCourseStatusEvent, realtimeReconnectVersion } = useNotifications();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const statusFilter = searchParams.get('status') || 'PENDING';
@@ -56,6 +58,23 @@ const AdminCoursesPage: React.FC = () => {
   const [rejectError, setRejectError] = useState<string | null>(null);
 
   const [reloadKey, setReloadKey] = useState(0);
+  const { refreshVersion, scheduleRefresh } = useCoalescedRefreshTrigger();
+  const filtersRef = useRef({ status: statusFilter, category: categoryFilter, search: searchQuery });
+  const seenReconnectVersion = useRef(realtimeReconnectVersion);
+  filtersRef.current = { status: statusFilter, category: categoryFilter, search: searchQuery };
+
+  useEffect(() => {
+    if (lastCourseStatusEvent
+        && shouldRefreshAdminCourseList(lastCourseStatusEvent, filtersRef.current)) {
+      scheduleRefresh();
+    }
+  }, [lastCourseStatusEvent, scheduleRefresh]);
+
+  useEffect(() => {
+    if (realtimeReconnectVersion === seenReconnectVersion.current) return;
+    seenReconnectVersion.current = realtimeReconnectVersion;
+    scheduleRefresh();
+  }, [realtimeReconnectVersion, scheduleRefresh]);
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -85,30 +104,33 @@ const AdminCoursesPage: React.FC = () => {
   );
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const fetchCourses = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await adminService.listCourses({
-          status: statusFilter,
-          category: categoryFilter || undefined,
-          search: searchQuery || undefined,
-          page: currentPage,
-        });
-        if (!cancelled) setPageData(data);
+        const data = await adminService.listCourses(
+          {
+            status: statusFilter,
+            category: categoryFilter || undefined,
+            search: searchQuery || undefined,
+            page: currentPage,
+          },
+          controller.signal
+        );
+        if (!controller.signal.aborted) setPageData(data);
       } catch (err) {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error('Không thể tải danh sách khóa học quản trị:', err);
         setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchCourses();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [
     statusFilter,
@@ -116,8 +138,7 @@ const AdminCoursesPage: React.FC = () => {
     searchQuery,
     currentPage,
     reloadKey,
-    lastCourseStatusEvent,
-    realtimeConnectionVersion,
+    refreshVersion,
   ]);
 
   const handleApprove = useCallback(
@@ -210,17 +231,22 @@ const AdminCoursesPage: React.FC = () => {
           </div>
         </div>
 
-        {loading ? (
-          <LoadingScreen />
-        ) : error ? (
-          <div className="alert alert-danger">{error}</div>
-        ) : courses.length === 0 ? (
-          <div className="admin-empty">
-            Không có khóa học nào phù hợp.
-          </div>
-        ) : (
-          <>
-            <AdminCourseTable courses={courses} onSelect={setDetailCourse} />
+        {error && pageData && <div className="alert alert-danger">{error}</div>}
+        <div
+          className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
+          aria-busy={loading}
+        >
+          {loading && !pageData ? (
+            <LoadingScreen variant="table" count={6} />
+          ) : error && !pageData ? (
+            <div className="alert alert-danger">{error}</div>
+          ) : courses.length === 0 ? (
+            <div className="admin-empty">
+              Không có khóa học nào phù hợp.
+            </div>
+          ) : (
+            <>
+              <AdminCourseTable courses={courses} onSelect={setDetailCourse} />
 
             {pageData && (
               <Pagination
@@ -231,8 +257,9 @@ const AdminCoursesPage: React.FC = () => {
                 onPageChange={handlePageChange}
               />
             )}
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <AdminCourseDialogs

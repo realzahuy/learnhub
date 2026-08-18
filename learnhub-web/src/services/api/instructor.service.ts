@@ -13,7 +13,8 @@ import type { InstructorCourseContent } from '../../types/lesson.types';
 export const instructorService = {
 
   getMyCourses: async (
-    params: InstructorCourseQueryParams = {}
+    params: InstructorCourseQueryParams = {},
+    signal?: AbortSignal
   ): Promise<PageResponse<InstructorCourse>> => {
     const queryParams = new URLSearchParams();
 
@@ -24,7 +25,8 @@ export const instructorService = {
     if (params.search) queryParams.append('search', params.search);
 
     const response = await apiClient.get<PageResponse<InstructorCourse>>(
-      `/instructor/courses?${queryParams.toString()}`
+      `/instructor/courses?${queryParams.toString()}`,
+      { signal }
     );
     return response.data;
   },
@@ -37,8 +39,8 @@ export const instructorService = {
     return response.data;
   },
 
-  getCourseDetail: async (id: number): Promise<InstructorCourse> => {
-    const response = await apiClient.get<InstructorCourse>(`/instructor/courses/${id}`);
+  getCourseDetail: async (id: number, signal?: AbortSignal): Promise<InstructorCourse> => {
+    const response = await apiClient.get<InstructorCourse>(`/instructor/courses/${id}`, { signal });
     return response.data;
   },
 
@@ -49,8 +51,11 @@ export const instructorService = {
     return response.data;
   },
 
-  getRejectReason: async (id: number): Promise<CourseRejectReason> => {
-    const response = await apiClient.get<CourseRejectReason>(`/instructor/courses/${id}/reject-reason`);
+  getRejectReason: async (id: number, signal?: AbortSignal): Promise<CourseRejectReason> => {
+    const response = await apiClient.get<CourseRejectReason>(
+      `/instructor/courses/${id}/reject-reason`,
+      { signal }
+    );
     return response.data;
   },
 

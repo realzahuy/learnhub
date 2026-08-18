@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import { useCategories } from '../../hooks/useCategories';
+import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigger';
 import { useCourseThumbnail } from '../../hooks/useCourseThumbnail';
 import CourseInfoForm from '../../components/features/instructor/CourseInfoForm';
-import { DropdownOption } from '../../components/common';
+import { DropdownOption, PageSkeleton } from '../../components/common';
 import { instructorService } from '../../services/api/instructor.service';
 import {
   InstructorCourse,
@@ -28,7 +29,7 @@ const InstructorCourseEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { lastCourseStatusEvent, realtimeConnectionVersion } = useNotifications();
+  const { lastCourseStatusEvent, realtimeReconnectVersion } = useNotifications();
 
   const [course, setCourse] = useState<InstructorCourse | null>(null);
   const [rejectReason, setRejectReason] = useState<CourseRejectReason | null>(null);
@@ -49,6 +50,22 @@ const InstructorCourseEditPage: React.FC = () => {
 
   const courseId = Number(id);
   const isValidId = Number.isInteger(courseId) && courseId > 0;
+  const { refreshVersion, scheduleRefresh } = useCoalescedRefreshTrigger();
+  const courseIdRef = useRef(courseId);
+  const seenReconnectVersion = useRef(realtimeReconnectVersion);
+  courseIdRef.current = courseId;
+
+  useEffect(() => {
+    if (lastCourseStatusEvent?.courseId === courseIdRef.current) {
+      scheduleRefresh();
+    }
+  }, [lastCourseStatusEvent, scheduleRefresh]);
+
+  useEffect(() => {
+    if (realtimeReconnectVersion === seenReconnectVersion.current) return;
+    seenReconnectVersion.current = realtimeReconnectVersion;
+    scheduleRefresh();
+  }, [realtimeReconnectVersion, scheduleRefresh]);
   const {
     categories,
     loading: categoriesLoading,
@@ -70,45 +87,46 @@ const InstructorCourseEditPage: React.FC = () => {
   useEffect(() => {
     if (!isValidId) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
 
     const load = async () => {
       try {
         setLoading(true);
         setLoadError(null);
 
-        const detail = await instructorService.getCourseDetail(courseId);
-        if (cancelled) return;
+        const detail = await instructorService.getCourseDetail(courseId, controller.signal);
+        if (controller.signal.aborted) return;
 
         setCourse(detail);
         setForm(toCourseForm(detail));
 
         if (detail.status === 'REJECTED') {
           try {
-            const reason = await instructorService.getRejectReason(courseId);
-            if (!cancelled) setRejectReason(reason);
+            const reason = await instructorService.getRejectReason(courseId, controller.signal);
+            if (!controller.signal.aborted) setRejectReason(reason);
           } catch {
 
           }
+        } else {
+          setRejectReason(null);
         }
       } catch (err) {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error('Không thể tải chi tiết khóa học:', err);
         setLoadError('Không thể tải thông tin khóa học. Vui lòng thử lại sau.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     load();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [
     isValidId,
     courseId,
-    lastCourseStatusEvent,
-    realtimeConnectionVersion,
+    refreshVersion,
   ]);
 
   useEffect(() => {
@@ -120,7 +138,7 @@ const InstructorCourseEditPage: React.FC = () => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const save = async (submitForReview: boolean) => {
+  const save = async (submitForReview: boolean, destination = backTo) => {
     if (!course) return;
 
     const validationError = validateCourseForm(form);
@@ -151,7 +169,7 @@ const InstructorCourseEditPage: React.FC = () => {
         submitForReview
       );
 
-      navigate(backTo, { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       console.error('Không thể cập nhật khóa học:', err);
       setSaveError(getApiErrorMessage(err, 'Không thể lưu khóa học. Vui lòng thử lại sau.'));
@@ -192,11 +210,7 @@ const InstructorCourseEditPage: React.FC = () => {
           </div>
 
           {loading || categoriesLoading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-notion" role="status">
-                <span className="visually-hidden">Đang tải...</span>
-              </div>
-            </div>
+            <PageSkeleton variant="form" count={5} />
           ) : loadError || categoriesError ? (
             <div className="alert alert-danger">{loadError ?? categoriesError}</div>
           ) : (
@@ -292,6 +306,17 @@ const InstructorCourseEditPage: React.FC = () => {
                   </div>
                 }
               />
+
+              <div className="course-edit-next-actions">
+                <button
+                  type="button"
+                  className="btn-course-edit-primary"
+                  onClick={() => navigate(routeTo.instructorCourseBuild(courseId))}
+                  disabled={saving}
+                >
+                  Tiếp tục
+                </button>
+              </div>
             </>
           )}
         </div>

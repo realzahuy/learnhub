@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.repositories.account;
 
+import com.zh.learnhub_api.enums.AccountStatus;
 import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.projections.account.ExistingUserProjection;
 import com.zh.learnhub_api.projections.account.UserAuthProjection;
@@ -27,6 +28,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     String ADMIN_USER_SELECT = "SELECT u.id AS id, u.username AS username, "
             + "u.email AS email, u.fullName AS fullName, u.avatar AS avatar, "
             + "u.bio AS bio, u.emailVerified AS emailVerified, "
+            + "u.accountStatus AS accountStatus, "
             + "u.createdAt AS createdAt, u.lastLogin AS lastLogin ";
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -36,6 +38,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
 
     Optional<User> findByEmail(String email);
+
+    boolean existsByIdAndAccountStatus(Long id, AccountStatus accountStatus);
 
     @Query("SELECT u.username AS username, u.email AS email FROM User u "
          + "WHERE u.username = :username OR u.email = :email")
@@ -64,6 +68,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     int addInstructorRole(@Param("userId") Long userId);
 
     @Query(value = "SELECT u.id AS id, u.username AS username, u.password AS password, " +
+                   "u.account_status AS accountStatus, " +
                    "GROUP_CONCAT(r.name) AS roleNames " +
                    "FROM user u " +
                    "LEFT JOIN user_role ur ON u.id = ur.user_id " +
@@ -114,6 +119,27 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<AdminUserProjection> findByRoleNameAndKeyword(@Param("roleName") String roleName,
                                                        @Param("keyword") String keyword,
                                                        Pageable pageable);
+
+    @Query(value = ADMIN_USER_SELECT + "FROM User u WHERE u.accountStatus = :accountStatus",
+           countQuery = "SELECT COUNT(u) FROM User u WHERE u.accountStatus = :accountStatus")
+    Page<AdminUserProjection> findByAccountStatus(
+            @Param("accountStatus") AccountStatus accountStatus,
+            Pageable pageable);
+
+    @Query(value = ADMIN_USER_SELECT + "FROM User u "
+                 + "WHERE u.accountStatus = :accountStatus "
+                 + "AND (u.fullName LIKE :keyword "
+                 + "  OR u.username LIKE :keyword "
+                 + "  OR u.email LIKE :keyword)",
+           countQuery = "SELECT COUNT(u) FROM User u "
+                 + "WHERE u.accountStatus = :accountStatus "
+                 + "AND (u.fullName LIKE :keyword "
+                 + "  OR u.username LIKE :keyword "
+                 + "  OR u.email LIKE :keyword)")
+    Page<AdminUserProjection> findByAccountStatusAndKeyword(
+            @Param("accountStatus") AccountStatus accountStatus,
+            @Param("keyword") String keyword,
+            Pageable pageable);
 
     @Query(value = ADMIN_USER_SELECT + "FROM User u",
            countQuery = "SELECT COUNT(u) FROM User u")

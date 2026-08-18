@@ -3,6 +3,7 @@ package com.zh.learnhub_api.services.learning;
 import com.zh.learnhub_api.dtos.learning.QuizResponseDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResultDTO;
 import com.zh.learnhub_api.dtos.learning.QuizSubmitRequestDTO;
+import com.zh.learnhub_api.dtos.learning.LessonProgressResponseDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResponseDTO.QuizOptionDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResponseDTO.QuizQuestionDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResultDTO.QuizQuestionResultDTO;
@@ -14,6 +15,9 @@ import com.zh.learnhub_api.repositories.course.LessonRepository;
 import com.zh.learnhub_api.repositories.course.QuestionRepository;
 import com.zh.learnhub_api.repositories.learning.QuizAttemptRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
+import com.zh.learnhub_api.projections.learning.QuizAttemptOverviewProjection;
+import com.zh.learnhub_api.projections.learning.QuizOpenProjection;
+import com.zh.learnhub_api.projections.learning.QuizSubmitAccessProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,8 +44,9 @@ public class QuizService {
     private final AppProperties.Quiz quizProperties;
 
     public QuizResponseDTO getQuiz(Long lessonId, Long userId) {
-        Lesson lesson = findLesson(lessonId);
-        lessonProgressService.checkCanLearn(lesson, userId);
+        QuizOpenProjection quiz = lessonRepository.findQuizOpen(lessonId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học"));
+        lessonProgressService.requireEnrollment(quiz.getEnrolled());
 
         List<Question> questions = loadQuestions(lessonId);
         if (questions.isEmpty()) {
@@ -52,27 +57,30 @@ public class QuizService {
                 .map(this::toQuizQuestion)
                 .collect(Collectors.toList());
 
-        Integer bestScore = quizAttemptRepository.findBestScore(userId, lessonId);
-        QuizResultDTO latestResult = quizAttemptRepository
-                .findTopByUserId_IdAndLessonId_IdOrderBySubmittedAtDescIdDesc(
-                        userId, lessonId)
-                .map(attempt -> toSavedResult(attempt, bestScore))
-                .orElse(null);
+        Integer bestScore = quiz.getBestScore();
+        boolean lessonCompleted = lessonProgressService
+                .getProgressForAuthorizedUser(lessonId, userId)
+                .completed();
+        QuizResultDTO latestResult = quiz.getAttemptId() == null
+                ? null
+                : toSavedResult(quiz, bestScore, lessonCompleted);
 
         return new QuizResponseDTO(
-                lesson.getId(),
-                lesson.getTitle(),
+                quiz.getLessonId(),
+                quiz.getLessonTitle(),
                 quizProperties.passPercent(),
                 questionDTOs,
                 bestScore,
-                quizAttemptRepository.countByUserId_IdAndLessonId_Id(userId, lessonId),
+                quiz.getAttemptCount(),
                 latestResult);
     }
 
     @Transactional
     public QuizResultDTO submit(Long lessonId, QuizSubmitRequestDTO request, Long userId) {
-        Lesson lesson = findLesson(lessonId);
-        lessonProgressService.checkCanLearn(lesson, userId);
+        QuizSubmitAccessProjection access = lessonRepository
+                .findQuizSubmitAccess(lessonId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học"));
+        lessonProgressService.requireEnrollment(access.getEnrolled());
 
         List<Question> questions = loadQuestions(lessonId);
         if (questions.isEmpty()) {
@@ -106,7 +114,7 @@ public class QuizService {
 
         QuizAttempt attempt = new QuizAttempt();
         attempt.setUserId(userRepository.getReferenceById(userId));
-        attempt.setLessonId(lesson);
+        attempt.setLessonId(lessonRepository.getReferenceById(lessonId));
         attempt.setCorrectCount(correctCount);
         attempt.setTotalQuestions(total);
         attempt.setScorePercent(scorePercent);
@@ -114,12 +122,14 @@ public class QuizService {
         attempt.setAnswerSnapshot(writeAnswerSnapshot(results));
         quizAttemptRepository.save(attempt);
 
-        if (passed) {
-            lessonProgressService.setLessonCompleted(lessonId, true, userId);
-        }
+        LessonProgressResponseDTO progress = passed
+                ? lessonProgressService.markQuizCompletedForAuthorizedUser(lessonId, userId)
+                : lessonProgressService.getProgressForAuthorizedUser(lessonId, userId);
 
-        Integer bestScore = quizAttemptRepository.findBestScore(userId, lessonId);
-        boolean lessonCompleted = bestScore != null && bestScore >= quizProperties.passPercent();
+        Integer bestScore = access.getBestScore() == null
+                ? scorePercent
+                : Math.max(access.getBestScore(), scorePercent);
+        boolean lessonCompleted = progress.completed();
 
         log.info("Quiz submitted - userId: {}, lesson: {}, score: {}/{} ({}%)",
                 userId, lessonId, correctCount, total, scorePercent);
@@ -200,7 +210,10 @@ public class QuizService {
         }
     }
 
-    private QuizResultDTO toSavedResult(QuizAttempt attempt, Integer bestScore) {
+    private QuizResultDTO toSavedResult(
+            QuizAttemptOverviewProjection attempt,
+            Integer bestScore,
+            boolean lessonCompleted) {
         if (attempt.getAnswerSnapshot() == null || attempt.getAnswerSnapshot().isBlank()) {
             return null;
         }
@@ -213,19 +226,15 @@ public class QuizService {
                     attempt.getTotalQuestions(),
                     attempt.getScorePercent(),
                     quizProperties.passPercent(),
-                    attempt.isPassed(),
+                    Boolean.TRUE.equals(attempt.getPassed()),
                     bestScore,
-                    bestScore != null && bestScore >= quizProperties.passPercent(),
+                    lessonCompleted,
                     questions);
         } catch (JacksonException ex) {
             log.warn("Không thể đọc đáp án đã lưu của lần làm quiz {}: {}",
-                    attempt.getId(), ex.getMessage());
+                    attempt.getAttemptId(), ex.getMessage());
             return null;
         }
     }
 
-    private Lesson findLesson(Long lessonId) {
-        return lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học"));
-    }
 }

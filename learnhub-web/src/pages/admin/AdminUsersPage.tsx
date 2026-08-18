@@ -1,16 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Dropdown, DropdownOption, Pagination, LoadingScreen, UserAvatar } from '../../components/common';
+import {
+  ConfirmDialog,
+  Dropdown,
+  DropdownOption,
+  Pagination,
+  LoadingScreen,
+  UserAvatar,
+} from '../../components/common';
+import { useToast } from '../../context/ToastContext';
 import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
 import { adminService } from '../../services/api/admin.service';
 import { AdminUser, AdminUserFilter } from '../../types/admin.types';
 import { PageResponse } from '../../types/pagination.types';
-import { formatLongDate, formatDateTime } from '../../utils';
+import { formatLongDate, formatDateTime, getApiErrorMessage } from '../../utils';
 import './AdminUsersPage.css';
 
 const USER_FILTER_OPTIONS: DropdownOption[] = [
   { value: 'ALL', label: 'Tất cả' },
   { value: 'INSTRUCTOR', label: 'Giảng viên' },
+  { value: 'LOCKED', label: 'Đã khóa' },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,11 +32,13 @@ const formatRoles = (roles: string[]) =>
   roles.map((role) => ROLE_LABELS[role] ?? role).join(', ');
 
 const AdminUsersPage: React.FC = () => {
+  const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const searchQuery = searchParams.get('search') || '';
   const filterParam = searchParams.get('filter');
-  const userFilter: AdminUserFilter = filterParam === 'INSTRUCTOR' ? 'INSTRUCTOR' : 'ALL';
+  const userFilter: AdminUserFilter =
+    filterParam === 'INSTRUCTOR' || filterParam === 'LOCKED' ? filterParam : 'ALL';
   const currentPage = parseInt(searchParams.get('page') || '0');
 
   const [pageData, setPageData] = useState<PageResponse<AdminUser> | null>(null);
@@ -37,6 +48,10 @@ const AdminUsersPage: React.FC = () => {
   const [localSearch, setLocalSearch] = useState(searchQuery);
 
   const [detailUser, setDetailUser] = useState<AdminUser | null>(null);
+  const [pendingLock, setPendingLock] = useState<AdminUser | null>(null);
+  const [locking, setLocking] = useState(false);
+  const [pendingUnlock, setPendingUnlock] = useState<AdminUser | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -66,29 +81,32 @@ const AdminUsersPage: React.FC = () => {
   );
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const fetchUsers = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await adminService.listUsers({
-          filter: userFilter,
-          search: searchQuery || undefined,
-          page: currentPage,
-        });
-        if (!cancelled) setPageData(data);
+        const data = await adminService.listUsers(
+          {
+            filter: userFilter,
+            search: searchQuery || undefined,
+            page: currentPage,
+          },
+          controller.signal
+        );
+        if (!controller.signal.aborted) setPageData(data);
       } catch (err) {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error('Không thể tải danh sách người dùng:', err);
         setError('Không thể tải danh sách người dùng. Vui lòng thử lại sau.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchUsers();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [searchQuery, userFilter, currentPage]);
 
@@ -99,6 +117,83 @@ const AdminUsersPage: React.FC = () => {
     },
     [setParam]
   );
+
+  const handleLockUser = useCallback(async () => {
+    if (!pendingLock || locking) return;
+
+    setLocking(true);
+    try {
+      await adminService.lockUser(pendingLock.id);
+      const lockedUser = { ...pendingLock, accountStatus: 'LOCKED' as const };
+      setPageData((current) =>
+        current
+          ? {
+              ...current,
+              content: current.content.map((user) =>
+                user.id === lockedUser.id ? lockedUser : user
+              ),
+            }
+          : current
+      );
+      setDetailUser((current) =>
+        current?.id === lockedUser.id ? lockedUser : current
+      );
+      setPendingLock(null);
+      showToast(
+        `Đã khóa tài khoản @${lockedUser.username}. Email thông báo đang được gửi.`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Không thể khóa tài khoản:', err);
+      showToast(getApiErrorMessage(err, 'Không thể khóa tài khoản. Vui lòng thử lại.'), 'error');
+    } finally {
+      setLocking(false);
+    }
+  }, [pendingLock, locking, showToast]);
+
+  const handleUnlockUser = useCallback(async () => {
+    if (!pendingUnlock || unlocking) return;
+
+    setUnlocking(true);
+    try {
+      await adminService.unlockUser(pendingUnlock.id);
+      const activeUser = { ...pendingUnlock, accountStatus: 'ACTIVE' as const };
+      setPageData((current) => {
+        if (!current) return current;
+        if (userFilter !== 'LOCKED') {
+          return {
+            ...current,
+            content: current.content.map((user) =>
+              user.id === activeUser.id ? activeUser : user
+            ),
+          };
+        }
+
+        const totalElements = Math.max(0, current.totalElements - 1);
+        const totalPages = Math.ceil(totalElements / current.pageSize);
+        return {
+          ...current,
+          content: current.content.filter((user) => user.id !== activeUser.id),
+          totalElements,
+          totalPages,
+          last: current.pageNumber >= totalPages - 1,
+        };
+      });
+      setDetailUser((current) =>
+        current?.id === activeUser.id ? activeUser : current
+      );
+      setPendingUnlock(null);
+      showToast(`Đã mở khóa tài khoản @${activeUser.username}.`, 'success');
+    } catch (err) {
+      console.error('Không thể mở khóa tài khoản:', err);
+      showToast(
+        getApiErrorMessage(err, 'Không thể mở khóa tài khoản. Vui lòng thử lại.'),
+        'error'
+      );
+    } finally {
+      setUnlocking(false);
+    }
+  }, [pendingUnlock, unlocking, showToast, userFilter]);
 
   const users = pageData?.content ?? [];
 
@@ -116,7 +211,13 @@ const AdminUsersPage: React.FC = () => {
           />
           <div className="admin-instructor-total">
             {pageData
-              ? `${pageData.totalElements} ${userFilter === 'INSTRUCTOR' ? 'giảng viên' : 'người dùng'}`
+              ? `${pageData.totalElements} ${
+                  userFilter === 'INSTRUCTOR'
+                    ? 'giảng viên'
+                    : userFilter === 'LOCKED'
+                      ? 'tài khoản bị khóa'
+                      : 'người dùng'
+                }`
               : ' '}
           </div>
           <div className="admin-search">
@@ -131,20 +232,27 @@ const AdminUsersPage: React.FC = () => {
           </div>
         </div>
 
-        {loading ? (
-          <LoadingScreen />
-        ) : error ? (
-          <div className="alert alert-danger">{error}</div>
-        ) : users.length === 0 ? (
-          <div className="admin-empty">
-            {searchQuery
-              ? 'Không tìm thấy người dùng nào phù hợp.'
-              : userFilter === 'INSTRUCTOR'
-                ? 'Chưa có giảng viên nào.'
-                : 'Chưa có người dùng nào.'}
-          </div>
-        ) : (
-          <>
+        {error && pageData && <div className="alert alert-danger">{error}</div>}
+        <div
+          className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
+          aria-busy={loading}
+        >
+          {loading && !pageData ? (
+            <LoadingScreen variant="table" count={6} />
+          ) : error && !pageData ? (
+            <div className="alert alert-danger">{error}</div>
+          ) : users.length === 0 ? (
+            <div className="admin-empty">
+              {searchQuery
+                ? 'Không tìm thấy người dùng nào phù hợp.'
+                : userFilter === 'INSTRUCTOR'
+                  ? 'Chưa có giảng viên nào.'
+                  : userFilter === 'LOCKED'
+                    ? 'Chưa có tài khoản nào bị khóa.'
+                    : 'Chưa có người dùng nào.'}
+            </div>
+          ) : (
+            <>
             <div className="admin-table-wrap motion-content-enter">
               <table className="admin-table">
                 <thead>
@@ -152,6 +260,7 @@ const AdminUsersPage: React.FC = () => {
                     <th>Người dùng</th>
                     <th>Email</th>
                     <th>Vai trò</th>
+                    <th>Trạng thái</th>
                     <th>Ngày tham gia</th>
                   </tr>
                 </thead>
@@ -207,6 +316,13 @@ const AdminUsersPage: React.FC = () => {
                         </div>
                       </td>
                       <td>{formatRoles(user.roles) || '—'}</td>
+                      <td>
+                        <span
+                          className={`admin-account-status admin-account-status-${user.accountStatus.toLowerCase()}`}
+                        >
+                          {user.accountStatus === 'LOCKED' ? 'Đã khóa' : 'Hoạt động'}
+                        </span>
+                      </td>
                       <td className="admin-instructor-date">
                         {formatLongDate(user.createdAt) ?? '—'}
                       </td>
@@ -226,8 +342,9 @@ const AdminUsersPage: React.FC = () => {
                 onPageChange={handlePageChange}
               />
             )}
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       { }
@@ -279,6 +396,14 @@ const AdminUsersPage: React.FC = () => {
                   </dd>
                   <dt>Vai trò</dt>
                   <dd>{formatRoles(detailUser.roles) || '—'}</dd>
+                  <dt>Trạng thái tài khoản</dt>
+                  <dd>
+                    <span
+                      className={`admin-account-status admin-account-status-${detailUser.accountStatus.toLowerCase()}`}
+                    >
+                      {detailUser.accountStatus === 'LOCKED' ? 'Đã khóa' : 'Hoạt động'}
+                    </span>
+                  </dd>
                   <dt>Ngày tham gia</dt>
                   <dd>{formatLongDate(detailUser.createdAt) ?? '—'}</dd>
                   <dt>Đăng nhập lần cuối</dt>
@@ -317,6 +442,24 @@ const AdminUsersPage: React.FC = () => {
               </div>
 
               <div className="modal-footer">
+                {!detailUser.roles.includes('ROLE_ADMIN') && detailUser.accountStatus === 'ACTIVE' && (
+                  <button
+                    type="button"
+                    className="btn-admin-danger"
+                    onClick={() => setPendingLock(detailUser)}
+                  >
+                    Khóa tài khoản
+                  </button>
+                )}
+                {!detailUser.roles.includes('ROLE_ADMIN') && detailUser.accountStatus === 'LOCKED' && (
+                  <button
+                    type="button"
+                    className="btn-admin-approve"
+                    onClick={() => setPendingUnlock(detailUser)}
+                  >
+                    Mở khóa tài khoản
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn-admin-neutral"
@@ -329,6 +472,32 @@ const AdminUsersPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={pendingLock !== null}
+        title={`Khóa tài khoản @${pendingLock?.username}?`}
+        message="Người dùng sẽ bị đăng xuất khỏi tất cả thiết bị và không thể đăng nhập. Hệ thống sẽ gửi email thông báo kèm địa chỉ email liên hệ của bạn."
+        confirmLabel={locking ? 'Đang khóa...' : 'Khóa tài khoản'}
+        cancelLabel="Hủy"
+        variant="danger"
+        onConfirm={handleLockUser}
+        onCancel={() => {
+          if (!locking) setPendingLock(null);
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={pendingUnlock !== null}
+        title={`Mở khóa tài khoản @${pendingUnlock?.username}?`}
+        message="Người dùng sẽ có thể đăng nhập lại vào tài khoản này."
+        confirmLabel={unlocking ? 'Đang mở khóa...' : 'Mở khóa tài khoản'}
+        cancelLabel="Hủy"
+        variant="primary"
+        onConfirm={handleUnlockUser}
+        onCancel={() => {
+          if (!unlocking) setPendingUnlock(null);
+        }}
+      />
     </>
   );
 };

@@ -151,7 +151,7 @@ const AdminCategoriesPage: React.FC = () => {
         </form>
 
         {loading ? (
-          <LoadingScreen />
+          <LoadingScreen variant="list" count={6} />
         ) : error ? (
           <div className="alert alert-danger">{error}</div>
         ) : categories.length === 0 ? (

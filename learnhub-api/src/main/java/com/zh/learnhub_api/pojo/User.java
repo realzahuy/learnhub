@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.pojo;
 
+import com.zh.learnhub_api.enums.AccountStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -63,6 +64,10 @@ public class User implements Serializable {
 
     @Column(name = "email_verified")
     private boolean emailVerified;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false, length = 20)
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
     
     @Column(name = "last_login")
     private LocalDateTime lastLogin;

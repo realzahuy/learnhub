@@ -5,7 +5,6 @@ public interface VideoPlaybackProjection {
     String getStorageKey();
     String getStatus();
     boolean isLessonPreview();
-    Long getCourseId();
     String getCourseStatus();
-    Long getInstructorId();
+    Long getEnrolled();
 }

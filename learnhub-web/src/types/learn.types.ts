@@ -15,6 +15,8 @@ export interface LearnLesson {
   position: number;
   isPreview: boolean;
   completed: boolean;
+  videoCompleted: boolean;
+  quizCompleted: boolean;
   videos: LearnVideo[];
   questionCount: number;
 
@@ -46,4 +48,10 @@ export interface LearnCourse {
   totalLessons: number;
 
   quizPassPercent: number;
+}
+
+export interface LessonProgressStatus {
+  completed: boolean;
+  videoCompleted: boolean;
+  quizCompleted: boolean;
 }

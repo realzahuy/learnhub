@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCategories } from '../../hooks/useCategories';
-import { Dropdown, DropdownOption, Pagination, StarRating } from '../../components/common';
+import { Dropdown, DropdownOption, PageSkeleton, Pagination, StarRating } from '../../components/common';
 import { formatPrice } from '../../utils';
 import { courseService } from '../../services/api/course.service';
 import { Course, CourseSort } from '../../types/course.types';
@@ -69,7 +69,7 @@ const CoursesPage = () => {
     navigate(routeTo.courseDetail(slug));
   };
 
-  const fetchCourses = useCallback(async () => {
+  const fetchCourses = useCallback(async (signal: AbortSignal) => {
     try {
       setLoading(true);
       setError(null);
@@ -82,19 +82,23 @@ const CoursesPage = () => {
         sort: sortFilter,
       };
 
-      const response = await courseService.getPublishedCourses(params);
+      const response = await courseService.getPublishedCourses(params, signal);
+      if (signal.aborted) return;
       setCourses(response.content);
       setPageData(response);
     } catch (err) {
+      if (signal.aborted) return;
       console.error('Lỗi khi tải danh sách khóa học:', err);
       setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [currentPage, searchQuery, categoryFilter, sortFilter]);
 
   useEffect(() => {
-    fetchCourses();
+    const controller = new AbortController();
+    void fetchCourses(controller.signal);
+    return () => controller.abort();
   }, [fetchCourses]);
 
   const getCategoryColor = (categoryName: string) => {
@@ -151,19 +155,8 @@ const CoursesPage = () => {
             className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
             aria-busy={loading}
           >
-          {loading && pageData && (
-            <div className="motion-loading-indicator" role="status">
-              <span className="spinner-border text-notion" aria-hidden="true" />
-              Äang cáº­p nháº­t
-            </div>
-          )}
-
           {loading && !pageData ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-notion" role="status">
-                <span className="visually-hidden">Đang tải...</span>
-              </div>
-            </div>
+            <PageSkeleton variant="cards" count={6} />
           ) : error ? (
             <div className="alert alert-danger" role="alert">
               {error}

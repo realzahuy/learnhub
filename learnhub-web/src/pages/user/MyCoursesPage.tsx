@@ -1,7 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { Pagination } from '../../components/common';
+import {
+  Dropdown,
+  DropdownOption,
+  LoadingScreen,
+  PageSkeleton,
+  Pagination,
+} from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
+import { useCategories } from '../../hooks/useCategories';
+import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
 import { enrollmentService } from '../../services/api/enrollment.service';
 import { Enrollment } from '../../types/enrollment.types';
 import { PageResponse } from '../../types/pagination.types';
@@ -15,10 +23,53 @@ const MyCoursesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const currentPage = parseInt(searchParams.get('page') || '0');
+  const categoryFilter = searchParams.get('category') || '';
+  const searchQuery = searchParams.get('search') || '';
+  const [localSearch, setLocalSearch] = useState(searchQuery);
+  const { categories } = useCategories();
 
   const [pageData, setPageData] = useState<PageResponse<Enrollment> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const categoryOptions = useMemo<DropdownOption[]>(
+    () => [
+      { value: '', label: 'Tất cả danh mục' },
+      ...categories.map((category) => ({
+        value: category.name,
+        label: category.name,
+      })),
+    ],
+    [categories]
+  );
+
+  const updateFilter = useCallback(
+    (key: 'category' | 'search', value: string) => {
+      const next = new URLSearchParams(searchParams);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      next.set('page', '0');
+      setSearchParams(next);
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const [pushSearchToUrl] = useDebouncedCallback(
+    (value: string) => updateFilter('search', value.trim()),
+    500
+  );
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setLocalSearch(value);
+      pushSearchToUrl(value);
+    },
+    [pushSearchToUrl]
+  );
+
+  useEffect(() => {
+    setLocalSearch(searchQuery);
+  }, [searchQuery]);
 
   const handlePageChange = useCallback(
     (page: number) => {
@@ -35,9 +86,15 @@ const MyCoursesPage = () => {
 
     let cancelled = false;
     setLoading(true);
+    setError(null);
 
     enrollmentService
-      .list({ page: currentPage })
+      .list({
+        page: currentPage,
+        size: 12,
+        category: categoryFilter || undefined,
+        search: searchQuery || undefined,
+      })
       .then((data) => {
         if (!cancelled) setPageData(data);
       })
@@ -53,20 +110,10 @@ const MyCoursesPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, currentPage]);
+  }, [isAuthenticated, currentPage, categoryFilter, searchQuery]);
 
   if (isAuthLoading) {
-    return (
-      <div className="my-courses-page">
-        <main className="my-courses-main">
-          <div className="container py-5 text-center">
-            <div className="spinner-border text-notion" role="status">
-              <span className="visually-hidden">Đang tải...</span>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
+    return <LoadingScreen variant="cards" count={6} />;
   }
 
   if (!isAuthenticated) {
@@ -82,31 +129,47 @@ const MyCoursesPage = () => {
         <div className="container py-4">
           <h1 className="my-courses-title">Khóa học của tôi</h1>
 
+          <div className="my-courses-toolbar">
+            <Dropdown
+              className="my-courses-category"
+              value={categoryFilter}
+              options={categoryOptions}
+              onChange={(value) => updateFilter('category', value)}
+              ariaLabel="Lọc khóa học của tôi theo danh mục"
+            />
+
+            <div className="my-courses-search">
+              <input
+                type="text"
+                placeholder="Tìm kiếm khóa học của tôi"
+                value={localSearch}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                aria-label="Tìm kiếm khóa học của tôi"
+              />
+              <i className="bi bi-search" aria-hidden="true" />
+            </div>
+          </div>
+
           <div
             className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
             aria-busy={loading}
           >
-          {loading && pageData && (
-            <div className="motion-loading-indicator" role="status">
-              <span className="spinner-border text-notion" aria-hidden="true" />
-              Äang cáº­p nháº­t
-            </div>
-          )}
-
           {loading && !pageData ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-notion" role="status">
-                <span className="visually-hidden">Đang tải...</span>
-              </div>
-            </div>
+            <PageSkeleton variant="cards" count={6} />
           ) : error ? (
             <div className="alert alert-danger">{error}</div>
           ) : enrollments.length === 0 ? (
             <div className="my-courses-empty">
-              <p className="mb-3">Bạn chưa ghi danh khóa học nào.</p>
-              <button type="button" className="btn btn-notion" onClick={() => navigate(ROUTE_PATHS.courses)}>
-                Khám phá khóa học
-              </button>
+              {categoryFilter || searchQuery ? (
+                <p className="mb-0">Không tìm thấy khóa học nào phù hợp.</p>
+              ) : (
+                <>
+                  <p className="mb-3">Bạn chưa ghi danh khóa học nào.</p>
+                  <button type="button" className="btn btn-notion" onClick={() => navigate(ROUTE_PATHS.courses)}>
+                    Khám phá khóa học
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <>

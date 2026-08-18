@@ -19,6 +19,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class NotificationSseService {
 
     private static final long EMITTER_TIMEOUT_MS = 30 * 60 * 1000L;
+    private static final String ACCOUNT_LOCKED_MESSAGE =
+            "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.";
 
     private final UserRepository userRepository;
     private final Map<Long, CopyOnWriteArrayList<SseEmitter>> emittersByUser =
@@ -92,6 +94,21 @@ public class NotificationSseService {
         if (emitters == null) return;
         for (SseEmitter emitter : emitters) {
             sendCourseStatus(userId, emitter, event);
+        }
+    }
+
+    public void publishAccountLocked(Long userId) {
+        CopyOnWriteArrayList<SseEmitter> emitters = emittersByUser.get(userId);
+        if (emitters == null) return;
+        for (SseEmitter emitter : emitters) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name(SseEventNames.ACCOUNT_LOCKED)
+                        .data(Map.of("message", ACCOUNT_LOCKED_MESSAGE)));
+            } catch (IOException ex) {
+                removeEmitter(userId, emitter);
+                emitter.completeWithError(ex);
+            }
         }
     }
 

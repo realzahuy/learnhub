@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import './ConfirmDialog.css';
 
 interface ConfirmDialogProps {
@@ -43,7 +44,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="modal show d-block confirm-dialog"
       tabIndex={-1}
@@ -83,7 +84,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

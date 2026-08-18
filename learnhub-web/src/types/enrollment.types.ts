@@ -6,6 +6,7 @@ export interface Enrollment {
   courseSlug: string;
   courseThumbnail: string | null;
   instructorName: string;
+  categoryName: string;
 
   completedLessons: number;
   totalLessons: number;

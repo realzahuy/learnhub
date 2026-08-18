@@ -21,6 +21,7 @@ CREATE TABLE user (
     bio TEXT,
 
     email_verified BOOLEAN DEFAULT FALSE,
+    account_status ENUM('ACTIVE', 'LOCKED') NOT NULL DEFAULT 'ACTIVE',
     last_login DATETIME,
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -310,6 +311,8 @@ CREATE TABLE lesson_progress (
     lesson_id BIGINT NOT NULL,
 
     is_completed BOOLEAN NOT NULL DEFAULT FALSE,
+    video_completed BOOLEAN NOT NULL DEFAULT FALSE,
+    quiz_completed BOOLEAN NOT NULL DEFAULT FALSE,
 
     CONSTRAINT uk_user_lesson
         UNIQUE(user_id, lesson_id),

@@ -82,7 +82,7 @@ public class InstructorCourseContentService {
                 .status(video.getStatus())
                 .position(video.getPosition())
                 .durationSeconds(video.getDurationSeconds())
-                .playbackUrl(VideoPlaybackUrls.authenticated(video))
+                .playbackUrl(VideoPlaybackUrls.instructor(video))
                 .build();
     }
 }

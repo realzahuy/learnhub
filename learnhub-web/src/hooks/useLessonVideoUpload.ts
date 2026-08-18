@@ -25,20 +25,22 @@ export const useLessonVideoUpload = (
   const nextKeyRef = useRef(1);
   const reservedPositionRef = useRef(0);
 
-  const handlePickVideo = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePickVideo = useCallback(async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): Promise<boolean> => {
     const file = event.target.files?.[0];
     event.target.value = '';
-    if (!file) return;
+    if (!file) return false;
 
     const title = newTitle.trim().slice(0, 255);
     if (!title) {
       setError('Nhập tên video trước khi chọn tệp');
-      return;
+      return false;
     }
     const invalidReason = validateVideoFile(file);
     if (invalidReason) {
       setError(invalidReason);
-      return;
+      return false;
     }
 
     setError(null);
@@ -73,6 +75,7 @@ export const useLessonVideoUpload = (
       await videoService.confirmUpload(lesson.id, session.videoId);
       const uploaded = await videoService.getVideo(lesson.id, session.videoId);
       onVideosChange(lesson.id, (previous) => [...previous, uploaded]);
+      return true;
     } catch (cause) {
       console.error('Không thể tải video lên:', cause);
       setError(getApiErrorMessage(cause, 'Không tải được video lên. Vui lòng thử lại.'));
@@ -84,6 +87,7 @@ export const useLessonVideoUpload = (
           console.error('Không thể tải thông tin video bị lỗi:', fetchError);
         }
       }
+      return false;
     } finally {
       setPending((previous) => previous.filter((item) => item.key !== key));
     }

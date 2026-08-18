@@ -1,6 +1,7 @@
 package com.zh.learnhub_api.services.instructor;
 
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
+import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.course.CourseCreateResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseRejectResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseUpsertRequestDTO;
@@ -17,6 +18,7 @@ import com.zh.learnhub_api.repositories.course.CourseRejectRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.services.course.CourseUpdatePolicy;
+import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import com.zh.learnhub_api.services.course.SlugService;
 import com.zh.learnhub_api.services.media.ImageStorageService;
 import com.zh.learnhub_api.services.media.MediaCleanupService;
@@ -54,6 +56,7 @@ public class InstructorCourseService {
     private final ImageStorageService imageStorageService;
     private final MediaCleanupService mediaCleanupService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ApplicationCacheInvalidator cacheInvalidator;
 
     @Transactional
     public CourseCreateResponseDTO createCourse(
@@ -91,6 +94,8 @@ public class InstructorCourseService {
                     savedCourse.getId(),
                     instructor.getId(),
                     CourseStatus.PENDING,
+                    savedCourse.getTitle(),
+                    category.getName(),
                     CourseRealtimeAudience.ADMINS));
         }
         return new CourseCreateResponseDTO(
@@ -137,6 +142,11 @@ public class InstructorCourseService {
         }
 
         Course updatedCourse = courseRepository.save(course);
+        if (statusBeforeUpdate == CourseStatus.PUBLISHED) {
+            cacheInvalidator.evictAfterCommit(
+                    CacheNames.PUBLIC_COURSE_DETAILS,
+                    updatedCourse.getSlug());
+        }
         boolean semanticContentChanged = !Objects.equals(oldTitle, updatedCourse.getTitle())
                 || !Objects.equals(oldShortDescription, updatedCourse.getShortDescription())
                 || !Objects.equals(oldDescription, updatedCourse.getDescription());
@@ -148,6 +158,8 @@ public class InstructorCourseService {
                     updatedCourse.getId(),
                     updatedCourse.getInstructorId().getId(),
                     CourseStatus.PENDING,
+                    updatedCourse.getTitle(),
+                    updatedCourse.getCategoryId().getName(),
                     CourseRealtimeAudience.ADMINS));
         }
         return mapToDTO(updatedCourse);

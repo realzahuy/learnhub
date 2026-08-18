@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Lesson } from '../../../types/lesson.types';
 import {
   MAX_ANSWERS,
@@ -16,7 +16,9 @@ interface LessonQuestionListProps {
   lesson: Lesson;
   questions: Question[];
   disabled: boolean;
+  isAdding: boolean;
   onQuestionsChange: (lessonId: number, questions: Question[]) => void;
+  onAddFinished: () => void;
 }
 
 interface DraftAnswer {
@@ -61,11 +63,20 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
   lesson,
   questions,
   disabled,
+  isAdding,
   onQuestionsChange,
+  onAddFinished,
 }) => {
   const [draft, setDraft] = useState<DraftQuestion | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isAdding && draft === null) {
+      setError(null);
+      setDraft(emptyDraft());
+    }
+  }, [draft, isAdding]);
 
   const rollbackRef = useRef<Question[] | null>(null);
 
@@ -142,6 +153,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
       if (draft.id === null) {
         const created = await questionService.create(courseId, lesson.id, payload);
         onQuestionsChange(lesson.id, [...questions, created]);
+        onAddFinished();
       } else {
         const updated = await questionService.update(courseId, lesson.id, draft.id, payload);
         onQuestionsChange(
@@ -156,7 +168,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [courseId, draft, lesson.id, questions, onQuestionsChange]);
+  }, [courseId, draft, lesson.id, questions, onQuestionsChange, onAddFinished]);
 
   const handleDelete = useCallback(
     async (question: Question) => {
@@ -318,8 +330,10 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                 type="button"
                 className="btn-lesson-ghost"
                 onClick={() => {
+                  const wasCreating = draft.id === null;
                   setError(null);
                   setDraft(null);
+                  if (wasCreating) onAddFinished();
                 }}
                 disabled={saving}
               >
@@ -340,20 +354,6 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
 
       {error && <span className="lesson-media-error">{error}</span>}
 
-      {!draft && (
-        <button
-          type="button"
-          className="btn-lesson-add-inline"
-          onClick={() => {
-            setError(null);
-            setDraft(emptyDraft());
-          }}
-          disabled={busy}
-        >
-          <i className="bi bi-plus-lg"></i>
-          {questions.length === 0 ? 'Tạo câu hỏi' : 'Thêm câu hỏi'}
-        </button>
-      )}
     </div>
   );
 };

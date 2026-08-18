@@ -1,23 +1,32 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { User } from '../types/auth.types';
+import { AuthenticatedUser } from '../types/auth.types';
 import { authService } from '../services/api/auth.service';
 import { getRolesFromToken } from '../utils/jwt';
+import { useNavigate } from 'react-router-dom';
+import {
+  ACCOUNT_LOCKED_EVENT,
+  AccountLockedEventDetail,
+  isAccountLockedError,
+  isRefreshSessionRejected,
+} from '../services/authSessionEvents';
+import { ROUTE_PATHS } from '../routes/paths';
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthenticatedUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   roles: string[];
   syncRoles: () => void;
   login: (login: string, password: string) => Promise<string[]>;
   logout: () => Promise<void>;
-  updateUser: (user: User) => void;
+  updateUser: (user: AuthenticatedUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+  const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [roles, setRoles] = useState<string[]>([]);
 
@@ -30,16 +39,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const restoreSession = async () => {
       try {
-        await authService.refreshTokens();
-        const currentUser = await authService.getCurrentUser();
+        const refreshed = await authService.refreshTokens();
         if (cancelled) return;
-        setUser(currentUser);
+        setUser(refreshed.user);
         syncRoles();
-      } catch {
-        if (cancelled) return;
-        authService.clearAuth();
-        setUser(null);
-        setRoles([]);
+      } catch (error) {
+        if (cancelled || isAccountLockedError(error)) return;
+
+        if (isRefreshSessionRejected(error)) {
+          authService.clearAuth();
+          setUser(null);
+          setRoles([]);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -51,6 +62,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [syncRoles]);
 
+  useEffect(() => {
+    const handleAccountLocked = (event: Event) => {
+      const { message } = (event as CustomEvent<AccountLockedEventDetail>).detail;
+      authService.clearAuth();
+      setUser(null);
+      setRoles([]);
+      setIsLoading(false);
+      navigate(ROUTE_PATHS.login, {
+        replace: true,
+        state: { authError: message },
+      });
+    };
+
+    window.addEventListener(ACCOUNT_LOCKED_EVENT, handleAccountLocked);
+    return () => window.removeEventListener(ACCOUNT_LOCKED_EVENT, handleAccountLocked);
+  }, [navigate]);
+
   const login = async (loginValue: string, password: string): Promise<string[]> => {
     try {
       const loginResponse = await authService.login({
@@ -60,8 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const nextRoles = getRolesFromToken(loginResponse.accessToken);
       setRoles(nextRoles);
 
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
+      setUser(loginResponse.user);
       return nextRoles;
     } catch (error) {
       authService.clearAuth();
@@ -83,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateUser = (updatedUser: User) => {
+  const updateUser = (updatedUser: AuthenticatedUser) => {
     setUser(updatedUser);
   };
 

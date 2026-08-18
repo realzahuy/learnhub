@@ -16,7 +16,7 @@ public class CourseRealtimeEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onCourseStatusChanged(CourseStatusChangedEvent event) {
         CourseStatusChangedDTO payload = new CourseStatusChangedDTO(
-                event.courseId(), event.status());
+                event.courseId(), event.status(), event.title(), event.categoryName());
         if (event.audience() == CourseRealtimeAudience.ADMINS) {
             notificationSseService.publishCourseStatusToAdmins(payload);
             return;

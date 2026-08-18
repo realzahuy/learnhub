@@ -111,10 +111,19 @@ public class LearningController {
             @Valid @RequestBody LessonProgressRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        boolean saved = lessonProgressService.setLessonCompleted(
+        LessonProgressResponseDTO saved = lessonProgressService.setLessonCompleted(
                 lessonId, request.completed(), principal.getUserId());
 
-        return ResponseEntity.ok(new LessonProgressResponseDTO(saved));
+        return ResponseEntity.ok(saved);
+    }
+
+    @PutMapping("/lessons/{lessonId}/video-completed")
+    public ResponseEntity<LessonProgressResponseDTO> markVideoCompleted(
+            @PathVariable Long lessonId,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
+
+        return ResponseEntity.ok(
+                lessonProgressService.markVideoCompleted(lessonId, principal.getUserId()));
     }
 
     private boolean isAdmin(AuthenticatedUserPrincipal principal) {

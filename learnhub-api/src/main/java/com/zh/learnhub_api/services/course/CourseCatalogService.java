@@ -1,25 +1,18 @@
 package com.zh.learnhub_api.services.course;
 
 import com.zh.learnhub_api.configs.AppProperties;
+import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
 import com.zh.learnhub_api.dtos.course.PublicCourseDetailDTO;
-import com.zh.learnhub_api.dtos.course.PublicLessonDTO;
-import com.zh.learnhub_api.dtos.course.PublicLessonDTO.PublicVideoDTO;
-import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
-import com.zh.learnhub_api.pojo.Video;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
-import com.zh.learnhub_api.projections.course.PublicCourseDetailProjection;
 import com.zh.learnhub_api.projections.course.RatedCourseListProjection;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
-import com.zh.learnhub_api.repositories.course.LessonRepository;
-import com.zh.learnhub_api.repositories.course.QuestionRepository;
-import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.learning.RatingStats;
-import com.zh.learnhub_api.services.media.VideoPlaybackUrls;
 import com.zh.learnhub_api.services.learning.ReviewService;
 import com.zh.learnhub_api.mappers.CourseMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,9 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,13 +29,20 @@ import java.util.stream.Collectors;
 public class CourseCatalogService {
 
     private final CourseRepository courseRepository;
-    private final LessonRepository lessonRepository;
-    private final VideoRepository videoRepository;
-    private final QuestionRepository questionRepository;
     private final CourseMapper courseMapper;
     private final ReviewService reviewService;
+    private final PublicCourseDetailCacheService publicCourseDetailCacheService;
     private final AppProperties.Recommendation recommendationProperties;
 
+    @Cacheable(
+            cacheNames = CacheNames.PUBLIC_COURSE_CATALOG,
+            key = "#requestedPage.pageSize",
+            condition = "#requestedPage.pageNumber == 0 "
+                    + "&& (#keyword == null || #keyword.isBlank()) "
+                    + "&& (#categoryName == null || #categoryName.isBlank()) "
+                    + "&& (#sort == null || #sort.isBlank() "
+                    + "|| #sort.trim().equalsIgnoreCase('newest'))",
+            sync = true)
     public PageResponseDTO<CourseListItemDTO> getPublishedCourses(
             String keyword, String categoryName, String sort, Pageable requestedPage) {
         String normalizedKeyword = normalizeFilter(keyword);
@@ -100,50 +98,25 @@ public class CourseCatalogService {
     }
 
     public PublicCourseDetailDTO getPublishedCourseBySlug(String slug) {
-        PublicCourseDetailProjection projection = courseRepository.findPublishedBySlugForPublic(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
+        PublicCourseDetailDTO cached = publicCourseDetailCacheService.getStaticDetail(slug);
+        RatingStats instructorRating = reviewService.getInstructorRatingStats(
+                cached.getInstructorId());
 
-        PublicCourseDetailDTO dto = courseMapper.mapPublicDetailProjectionToDTO(projection);
-        dto.setLessons(getPublicLessons(dto.getId()));
-
-        dto.setRatingSummary(reviewService.buildSummary(dto.getId()));
-
-        RatingStats instructorRating = reviewService.getInstructorRatingStats(dto.getInstructorId());
-        dto.setInstructorAverageRating(instructorRating.average());
-        dto.setInstructorReviewCount(instructorRating.reviewCount());
-        return dto;
-    }
-
-    private List<PublicLessonDTO> getPublicLessons(Long courseId) {
-        Map<Long, List<Video>> videosByLesson = videoRepository.findPublicByCourseId(courseId).stream()
-                .collect(Collectors.groupingBy(
-                        video -> video.getLesson().getId(),
-                        LinkedHashMap::new,
-                        Collectors.toList()));
-
-        Map<Long, Integer> questionCountByLesson = questionRepository
-                .countByCourseGroupedByLesson(courseId).stream()
-                .collect(Collectors.toMap(
-                        row -> row.getLessonId(),
-                        row -> row.getQuestionCount().intValue()));
-
-        return lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId).stream()
-                .map(lesson -> new PublicLessonDTO(
-                        lesson.getId(),
-                        lesson.getTitle(),
-                        lesson.getPosition(),
-                        lesson.isPreview(),
-                        videosByLesson.getOrDefault(lesson.getId(), List.of()).stream()
-                                .map(video -> toPublicVideo(video, lesson.isPreview()))
-                                .collect(Collectors.toList()),
-                        questionCountByLesson.getOrDefault(lesson.getId(), 0)))
-                .collect(Collectors.toList());
-    }
-
-    private PublicVideoDTO toPublicVideo(Video video, boolean lessonIsPreview) {
-        String previewUrl = lessonIsPreview ? VideoPlaybackUrls.preview(video) : null;
-
-        return new PublicVideoDTO(
-                video.getId(), video.getTitle(), video.getDurationSeconds(), previewUrl);
+        return new PublicCourseDetailDTO(
+                cached.getId(),
+                cached.getTitle(),
+                cached.getSlug(),
+                cached.getShortDescription(),
+                cached.getDescription(),
+                cached.getThumbnail(),
+                cached.getPrice(),
+                cached.getInstructorId(),
+                cached.getInstructorName(),
+                cached.getInstructorAvatar(),
+                cached.getCategoryName(),
+                cached.getLessons(),
+                reviewService.buildSummary(cached.getId()),
+                instructorRating.average(),
+                instructorRating.reviewCount());
     }
 }

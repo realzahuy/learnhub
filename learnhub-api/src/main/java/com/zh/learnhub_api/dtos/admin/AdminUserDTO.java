@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.dtos.admin;
 
+import com.zh.learnhub_api.enums.AccountStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,7 @@ public class AdminUserDTO {
     private String avatar;
     private String bio;
     private boolean emailVerified;
+    private AccountStatus accountStatus;
     private List<String> roles;
 
     private LocalDateTime createdAt;

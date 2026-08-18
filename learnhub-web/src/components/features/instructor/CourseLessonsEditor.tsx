@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { ConfirmDialog, Dropdown, DropdownOption } from '../../common';
+import { ConfirmDialog } from '../../common';
 import LessonRow from './LessonRow';
-import { Lesson, LessonKind, LESSON_KIND_LABELS, Video } from '../../../types/lesson.types';
+import { Lesson, Video } from '../../../types/lesson.types';
 import { Question } from '../../../types/question.types';
 import { lessonService } from '../../../services/api/lesson.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
@@ -9,22 +9,15 @@ import { REORDER_SAVE_DELAY_MS, useDeferredSave } from '../../../hooks/useDeferr
 import { getApiErrorMessage } from '../../../utils';
 import './CourseLessonsEditor.css';
 
-const KIND_OPTIONS: DropdownOption[] = [
-  { value: 'VIDEO', label: LESSON_KIND_LABELS.VIDEO },
-  { value: 'QUIZ', label: LESSON_KIND_LABELS.QUIZ },
-];
-
 interface CourseLessonsEditorProps {
   courseId: number;
   lessons: Lesson[];
-
-  kinds: Record<number, LessonKind>;
 
   videos: Record<number, Video[]>;
   processingProgressByVideoId: Record<number, number>;
 
   questions: Record<number, Question[]>;
-  onLessonAdd: (lesson: Lesson, kind: LessonKind) => void;
+  onLessonAdd: (lesson: Lesson) => void;
   onLessonUpdate: (lesson: Lesson) => void;
 
   onLessonsReorder: (lessons: Lesson[]) => void;
@@ -36,7 +29,6 @@ interface CourseLessonsEditorProps {
 const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
   courseId,
   lessons,
-  kinds,
   videos,
   processingProgressByVideoId,
   questions,
@@ -48,7 +40,6 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
   onQuestionsChange,
 }) => {
   const [newTitle, setNewTitle] = useState('');
-  const [newKind, setNewKind] = useState<LessonKind>('VIDEO');
   const [newIsPreview, setNewIsPreview] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +60,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
 
       const created = await lessonService.create(courseId, [{ title, isPreview: newIsPreview }]);
       if (created.length > 0) {
-        onLessonAdd(created[0], newKind);
+        onLessonAdd(created[0]);
       }
       setNewTitle('');
       setNewIsPreview(false);
@@ -80,7 +71,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
     } finally {
       setAdding(false);
     }
-  }, [courseId, newTitle, newKind, newIsPreview, onLessonAdd]);
+  }, [courseId, newTitle, newIsPreview, onLessonAdd]);
 
   const handleRename = useCallback(
     async (lesson: Lesson, title: string): Promise<boolean> => {
@@ -176,14 +167,12 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
     }
   }, [courseId, pendingDelete, deleting, onLessonRemove]);
 
-  const pendingKind = pendingDelete ? kinds[pendingDelete.id] ?? 'VIDEO' : 'VIDEO';
-
   return (
     <div className="lessons-editor">
       <div className="lessons-editor-heading">
         <h2 className="lessons-editor-title">Bài giảng của khóa học</h2>
         <p className="lessons-editor-hint">
-          Thêm từng bài giảng rồi soạn nội dung cho nó. Video được đẩy thẳng lên kho lưu trữ
+          Thêm từng bài giảng rồi soạn video và câu hỏi cho nó. Video được đẩy thẳng lên kho lưu trữ
           và cần vài phút xử lý - bạn không phải chờ ở lại trang.
         </p>
       </div>
@@ -219,38 +208,18 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
         </div>
 
         <div className="lessons-add-options">
-          { }
-          <div className="lessons-add-field lessons-add-kind">
-            <span className="lessons-add-label">Chọn loại nội dung</span>
-            <Dropdown
-              value={newKind}
-              options={KIND_OPTIONS}
-              onChange={(value) => {
-                const kind = value as LessonKind;
-                setNewKind(kind);
-
-                if (kind === 'QUIZ') setNewIsPreview(false);
-              }}
-              ariaLabel="Chọn loại nội dung của bài giảng"
-            />
+          <div className="lessons-add-field">
+            <span className="lessons-add-label">Cho học viên xem thử</span>
+            <label className="lessons-add-preview">
+              <input
+                type="checkbox"
+                checked={newIsPreview}
+                onChange={(e) => setNewIsPreview(e.target.checked)}
+                disabled={adding}
+              />
+              Cho xem thử video của bài này
+            </label>
           </div>
-
-          {
-}
-          {newKind === 'VIDEO' && (
-            <div className="lessons-add-field">
-              <span className="lessons-add-label">Cho học viên xem thử</span>
-              <label className="lessons-add-preview">
-                <input
-                  type="checkbox"
-                  checked={newIsPreview}
-                  onChange={(e) => setNewIsPreview(e.target.checked)}
-                  disabled={adding}
-                />
-                Cho xem thử bài này
-              </label>
-            </div>
-          )}
 
           <button
             type="button"
@@ -267,7 +236,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
 
       {lessons.length === 0 ? (
         <p className="lessons-empty">
-          Chưa có bài giảng nào. Nhập tên bài, chọn loại nội dung rồi thêm bài đầu tiên.
+          Chưa có bài giảng nào. Nhập tên rồi thêm bài giảng đầu tiên.
         </p>
       ) : (
         <ol className="lessons-list">
@@ -276,7 +245,6 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
               key={lesson.id}
               courseId={courseId}
               lesson={lesson}
-              kind={kinds[lesson.id] ?? 'VIDEO'}
               videos={videos[lesson.id] ?? []}
               processingProgressByVideoId={processingProgressByVideoId}
               questions={questions[lesson.id] ?? []}
@@ -298,11 +266,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
       <ConfirmDialog
         isOpen={pendingDelete !== null}
         title={`Xóa bài giảng "${pendingDelete?.title ?? ''}"?`}
-        message={
-          pendingKind === 'QUIZ'
-            ? 'Toàn bộ câu hỏi của bài giảng này cũng bị xóa theo. Không thể hoàn tác.'
-            : 'Toàn bộ video đã tải lên của bài giảng này cũng bị xóa khỏi kho lưu trữ. Không thể hoàn tác.'
-        }
+        message="Toàn bộ video và câu hỏi của bài giảng này cũng bị xóa theo. Không thể hoàn tác."
         confirmLabel={deleting ? 'Đang xóa...' : 'Xóa bài giảng'}
         cancelLabel="Giữ lại"
         variant="danger"

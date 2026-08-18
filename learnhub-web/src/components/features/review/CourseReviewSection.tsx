@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pagination, StarRating, UserAvatar } from '../../common';
+import { PageSkeleton, Pagination, StarRating, UserAvatar } from '../../common';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { reviewService } from '../../../services/api/review.service';
@@ -263,7 +263,7 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
 
       { }
       {isLoading ? (
-        <p className="review-empty mb-0">Đang tải đánh giá...</p>
+        <PageSkeleton variant="list" count={3} />
       ) : (
         reviews.map((review) => (
           <div className="review-item" key={review.id}>

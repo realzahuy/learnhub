@@ -1,6 +1,7 @@
 package com.zh.learnhub_api.controllers.account;
 
 import com.zh.learnhub_api.configs.AppProperties;
+import com.zh.learnhub_api.dtos.account.AuthenticatedUserDTO;
 import com.zh.learnhub_api.dtos.account.ForgotPasswordRequestDTO;
 import com.zh.learnhub_api.dtos.account.LoginRequestDTO;
 import com.zh.learnhub_api.dtos.account.ResetPasswordRequestDTO;
@@ -23,6 +24,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -57,8 +59,10 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponseDTO> refresh(
-            @CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken) {
-        return tokenResponse(authService.refresh(refreshToken));
+            @CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
+            String authorization) {
+        return tokenResponse(authService.refresh(refreshToken, bearerToken(authorization)));
     }
 
     @PostMapping("/logout")
@@ -91,7 +95,10 @@ public class AuthController {
     private ResponseEntity<LoginResponseDTO> tokenResponse(AuthService.AuthTokens tokens) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie(tokens).toString())
-                .body(LoginResponseDTO.builder().accessToken(tokens.accessToken()).build());
+                .body(LoginResponseDTO.builder()
+                        .accessToken(tokens.accessToken())
+                        .user(new AuthenticatedUserDTO(tokens.fullName(), tokens.avatar()))
+                        .build());
     }
 
     private ResponseCookie refreshCookie(AuthService.AuthTokens tokens) {
@@ -103,6 +110,13 @@ public class AuthController {
 
     private ResponseCookie clearRefreshCookie() {
         return cookieBuilder("").maxAge(Duration.ZERO).build();
+    }
+
+    private String bearerToken(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            return null;
+        }
+        return authorization.substring(7);
     }
 
     private ResponseCookie.ResponseCookieBuilder cookieBuilder(String value) {

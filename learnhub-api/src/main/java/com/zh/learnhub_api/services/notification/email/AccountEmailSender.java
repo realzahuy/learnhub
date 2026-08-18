@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +44,24 @@ public class AccountEmailSender {
                 buildPasswordResetHtml(code, expireMinutes),
                 "mã đặt lại mật khẩu",
                 "Không gửi được email đặt lại mật khẩu. Vui lòng thử lại sau.");
+    }
+
+    public void sendAccountLocked(String toEmail, String fullName, String adminEmail) {
+        sendCodeEmail(
+                toEmail,
+                "Tài khoản learnhub của bạn đã bị khóa",
+                buildAccountLockedHtml(fullName, adminEmail),
+                "thông báo khóa tài khoản",
+                "Không gửi được email thông báo khóa tài khoản. Vui lòng thử lại sau.");
+    }
+
+    public void sendAccountUnlocked(String toEmail, String fullName) {
+        sendCodeEmail(
+                toEmail,
+                "Tài khoản learnhub của bạn đã được mở khóa",
+                buildAccountUnlockedHtml(fullName),
+                "thông báo mở khóa tài khoản",
+                "Không gửi được email thông báo mở khóa tài khoản. Vui lòng thử lại sau.");
     }
 
     private void sendCodeEmail(String toEmail, String subject, String html,
@@ -120,5 +139,36 @@ public class AccountEmailSender {
               </p>
             </div>
             """.formatted(code, expireMinutes);
+    }
+
+    static String buildAccountLockedHtml(String fullName, String adminEmail) {
+        String safeName = HtmlUtils.htmlEscape(
+                fullName == null || fullName.isBlank() ? "bạn" : fullName);
+        String safeAdminEmail = HtmlUtils.htmlEscape(adminEmail);
+        return """
+            <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#101828">
+              <h2 style="margin:0 0 8px">Tài khoản đã bị khóa</h2>
+              <p style="margin:0 0 16px;color:#475467">Xin chào %s,</p>
+              <p style="margin:0;color:#475467;line-height:1.6">
+                Tài khoản learnhub của bạn đã bị quản trị viên khóa. Nếu có thắc mắc, vui lòng
+                liên hệ quản trị viên qua email
+                <a href="mailto:%s" style="color:#175cd3;font-weight:700">%s</a>.
+              </p>
+            </div>
+            """.formatted(safeName, safeAdminEmail, safeAdminEmail);
+    }
+
+    static String buildAccountUnlockedHtml(String fullName) {
+        String safeName = HtmlUtils.htmlEscape(
+                fullName == null || fullName.isBlank() ? "bạn" : fullName);
+        return """
+            <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#101828">
+              <h2 style="margin:0 0 8px">Tài khoản đã được mở khóa</h2>
+              <p style="margin:0 0 16px;color:#475467">Xin chào %s,</p>
+              <p style="margin:0;color:#475467;line-height:1.6">
+                Tài khoản learnhub của bạn đã được mở khóa.
+              </p>
+            </div>
+            """.formatted(safeName);
     }
 }

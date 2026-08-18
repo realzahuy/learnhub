@@ -37,22 +37,6 @@ public class PaymentService {
         PaymentCheckoutTransactionService.CheckoutDraft draft =
                 checkoutTransactionService.createPendingCheckout(request, userId);
 
-        if (!draft.requiresGateway()) {
-            return PaymentResponseDTO.builder()
-                    .paymentId(null)
-                    .payUrl(null)
-                    .totalPrice(BigDecimal.ZERO)
-                    .paymentMethod("FREE")
-                    .status(PaymentStatus.SUCCESS.name())
-                    .freeEnrolled(draft.freeEnrolled())
-                    .paidCourseIds(List.of())
-                    .message(draft.freeEnrolled().isEmpty()
-                            ? "Không có khóa học mới để thêm"
-                            : "Đã thêm " + draft.freeEnrolled().size()
-                                    + " khóa miễn phí vào tài khoản.")
-                    .build();
-        }
-
         Payment payment = draft.payment();
         String payUrl;
         try {
@@ -69,21 +53,14 @@ public class PaymentService {
             throw gatewayError;
         }
 
-        String message = draft.freeEnrolled().isEmpty()
-                ? "Tiếp tục thanh toán " + draft.paidCourseIds().size() + " khóa học."
-                : "Đã thêm " + draft.freeEnrolled().size() + " khóa miễn phí. "
-                    + "Tiếp tục thanh toán " + draft.paidCourseIds().size()
-                    + " khóa còn lại.";
-
         return PaymentResponseDTO.builder()
                 .paymentId(payment.getId())
                 .payUrl(payUrl)
                 .totalPrice(draft.totalPrice())
                 .paymentMethod(draft.paymentMethod())
                 .status(PaymentStatus.PENDING.name())
-                .freeEnrolled(draft.freeEnrolled())
                 .paidCourseIds(draft.paidCourseIds())
-                .message(message)
+                .message("Tiếp tục thanh toán " + draft.paidCourseIds().size() + " khóa học.")
                 .build();
     }
 
@@ -168,7 +145,6 @@ public class PaymentService {
                 .transactionId(payment.getTransactionId())
                 .createdAt(payment.getCreatedAt())
                 .paidCourseIds(paidCourseIds)
-                .freeEnrolled(List.of())
                 .build();
     }
 

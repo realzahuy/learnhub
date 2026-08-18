@@ -12,7 +12,7 @@ export const adminService = {
     search?: string;
     page?: number;
     size?: number;
-  }): Promise<PageResponse<InstructorCourse>> => {
+  }, signal?: AbortSignal): Promise<PageResponse<InstructorCourse>> => {
     const query = new URLSearchParams();
     if (params.status) query.append('status', params.status);
     if (params.category) query.append('category', params.category);
@@ -21,7 +21,8 @@ export const adminService = {
     if (params.size !== undefined) query.append('size', params.size.toString());
 
     const response = await apiClient.get<PageResponse<InstructorCourse>>(
-      `/admin/courses?${query.toString()}`
+      `/admin/courses?${query.toString()}`,
+      { signal }
     );
     return response.data;
   },
@@ -44,7 +45,7 @@ export const adminService = {
     search?: string;
     page?: number;
     size?: number;
-  }): Promise<PageResponse<AdminUser>> => {
+  }, signal?: AbortSignal): Promise<PageResponse<AdminUser>> => {
     const query = new URLSearchParams();
     query.append('filter', params.filter);
     if (params.search) query.append('search', params.search);
@@ -52,8 +53,17 @@ export const adminService = {
     if (params.size !== undefined) query.append('size', params.size.toString());
 
     const response = await apiClient.get<PageResponse<AdminUser>>(
-      `/admin/users?${query.toString()}`
+      `/admin/users?${query.toString()}`,
+      { signal }
     );
     return response.data;
+  },
+
+  lockUser: async (id: number): Promise<void> => {
+    await apiClient.post(`/admin/users/${id}/lock`);
+  },
+
+  unlockUser: async (id: number): Promise<void> => {
+    await apiClient.post(`/admin/users/${id}/unlock`);
   },
 };

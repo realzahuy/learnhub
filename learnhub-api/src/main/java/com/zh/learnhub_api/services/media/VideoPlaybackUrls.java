@@ -7,6 +7,7 @@ public final class VideoPlaybackUrls {
 
     private static final String AUTHENTICATED_PREFIX = "/api/learn/videos/";
     private static final String PREVIEW_PREFIX = "/api/learn/preview/videos/";
+    private static final String INSTRUCTOR_PREFIX = "/api/instructor/videos/";
 
     private VideoPlaybackUrls() {
     }
@@ -17,6 +18,10 @@ public final class VideoPlaybackUrls {
 
     public static String preview(Video video) {
         return build(video, PREVIEW_PREFIX);
+    }
+
+    public static String instructor(Video video) {
+        return build(video, INSTRUCTOR_PREFIX);
     }
 
     private static String build(Video video, String prefix) {

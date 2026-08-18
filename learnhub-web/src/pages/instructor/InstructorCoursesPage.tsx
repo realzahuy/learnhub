@@ -1,8 +1,9 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Dropdown, DropdownOption, Pagination } from '../../components/common';
+import { Dropdown, DropdownOption, PageSkeleton, Pagination } from '../../components/common';
 import { useNotifications } from '../../context/NotificationContext';
 import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
+import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigger';
 import { useCategories } from '../../hooks/useCategories';
 import { instructorService } from '../../services/api/instructor.service';
 import {
@@ -11,6 +12,7 @@ import {
 } from '../../types/course.types';
 import { PageResponse } from '../../types/pagination.types';
 import { formatPrice, formatLongDate } from '../../utils';
+import { shouldRefreshInstructorCourseList } from '../../utils/courseRealtime';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './InstructorCoursesPage.css';
 
@@ -30,12 +32,29 @@ const InstructorCoursesPage: React.FC = () => {
   const [pageData, setPageData] = useState<PageResponse<InstructorCourse> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { lastCourseStatusEvent, realtimeConnectionVersion } = useNotifications();
+  const { lastCourseStatusEvent, realtimeReconnectVersion } = useNotifications();
 
   const currentPage = parseInt(searchParams.get('page') || '0');
   const statusFilter = searchParams.get('status') || '';
   const categoryFilter = searchParams.get('category') || '';
   const searchQuery = searchParams.get('search') || '';
+  const { refreshVersion, scheduleRefresh } = useCoalescedRefreshTrigger();
+  const filtersRef = useRef({ status: statusFilter, category: categoryFilter, search: searchQuery });
+  const seenReconnectVersion = useRef(realtimeReconnectVersion);
+  filtersRef.current = { status: statusFilter, category: categoryFilter, search: searchQuery };
+
+  useEffect(() => {
+    if (!lastCourseStatusEvent) return;
+    if (shouldRefreshInstructorCourseList(lastCourseStatusEvent, filtersRef.current)) {
+      scheduleRefresh();
+    }
+  }, [lastCourseStatusEvent, scheduleRefresh]);
+
+  useEffect(() => {
+    if (realtimeReconnectVersion === seenReconnectVersion.current) return;
+    seenReconnectVersion.current = realtimeReconnectVersion;
+    scheduleRefresh();
+  }, [realtimeReconnectVersion, scheduleRefresh]);
 
   const [localSearch, setLocalSearch] = useState(searchQuery);
 
@@ -87,42 +106,44 @@ const InstructorCoursesPage: React.FC = () => {
   );
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     const fetchCourses = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await instructorService.getMyCourses({
-          page: currentPage,
-          size: 12,
-          status: statusFilter || undefined,
-          category: categoryFilter || undefined,
-          search: searchQuery || undefined,
-        });
-        if (cancelled) return;
+        const data = await instructorService.getMyCourses(
+          {
+            page: currentPage,
+            size: 12,
+            status: statusFilter || undefined,
+            category: categoryFilter || undefined,
+            search: searchQuery || undefined,
+          },
+          controller.signal
+        );
+        if (controller.signal.aborted) return;
         setCourses(data.content);
         setPageData(data);
       } catch (err) {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error('Không thể tải danh sách khóa học của giảng viên:', err);
         setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchCourses();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [
     currentPage,
     statusFilter,
     categoryFilter,
     searchQuery,
-    lastCourseStatusEvent,
-    realtimeConnectionVersion,
+    refreshVersion,
   ]);
 
   const openCourse = useCallback(
@@ -190,19 +211,8 @@ const InstructorCoursesPage: React.FC = () => {
             className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
             aria-busy={loading}
           >
-          {loading && pageData && (
-            <div className="motion-loading-indicator" role="status">
-              <span className="spinner-border text-notion" aria-hidden="true" />
-              Äang cáº­p nháº­t
-            </div>
-          )}
-
           {loading && !pageData ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-notion" role="status">
-                <span className="visually-hidden">Đang tải...</span>
-              </div>
-            </div>
+            <PageSkeleton variant="cards" count={6} />
           ) : error ? (
             <div className="alert alert-danger" role="alert">
               {error}

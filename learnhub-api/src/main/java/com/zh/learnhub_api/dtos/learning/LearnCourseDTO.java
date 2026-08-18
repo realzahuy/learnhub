@@ -30,6 +30,8 @@ public class LearnCourseDTO {
         private Integer position;
         private Boolean isPreview;
         private Boolean completed;
+        private Boolean videoCompleted;
+        private Boolean quizCompleted;
         private List<PlayableVideoDTO> videos;
         private Integer questionCount;
         private Integer quizBestScorePercent;

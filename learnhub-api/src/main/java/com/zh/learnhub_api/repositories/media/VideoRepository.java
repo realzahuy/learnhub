@@ -15,10 +15,36 @@ import java.util.Optional;
 public interface VideoRepository extends JpaRepository<Video, Long> {
 
     @Query("SELECT v.id AS videoId, v.storageKey AS storageKey, v.status AS status, "
-         + "l.isPreview AS lessonPreview, c.id AS courseId, c.status AS courseStatus, "
-         + "c.instructorId.id AS instructorId "
+         + "l.isPreview AS lessonPreview, c.status AS courseStatus "
          + "FROM Video v JOIN v.lesson l JOIN l.courseId c WHERE v.id = :videoId")
     Optional<VideoPlaybackProjection> findPlaybackById(@Param("videoId") Long videoId);
+
+    @Query(value = """
+            SELECT v.id AS videoId,
+                   v.storage_key AS storageKey,
+                   v.status AS status,
+                   l.is_preview AS lessonPreview,
+                   c.status AS courseStatus,
+                   EXISTS (
+                       SELECT 1 FROM enrollment e
+                       WHERE e.user_id = :userId AND e.course_id = c.id
+                   ) AS enrolled
+            FROM video v
+            JOIN lesson l ON l.id = v.lesson_id
+            JOIN course c ON c.id = l.course_id
+            WHERE v.id = :videoId
+            """, nativeQuery = true)
+    Optional<VideoPlaybackProjection> findPlaybackForUserById(
+            @Param("videoId") Long videoId,
+            @Param("userId") Long userId);
+
+    @Query("SELECT v.id AS videoId, v.storageKey AS storageKey, v.status AS status, "
+         + "l.isPreview AS lessonPreview, c.status AS courseStatus "
+         + "FROM Video v JOIN v.lesson l JOIN l.courseId c "
+         + "WHERE v.id = :videoId AND c.instructorId.id = :instructorId")
+    Optional<VideoPlaybackProjection> findPlaybackForInstructorById(
+            @Param("videoId") Long videoId,
+            @Param("instructorId") Long instructorId);
 
     Optional<Video> findByLessonAndPosition(Lesson lesson, Integer position);
 

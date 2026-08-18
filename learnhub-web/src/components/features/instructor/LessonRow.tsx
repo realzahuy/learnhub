@@ -1,14 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import LessonVideoList from './LessonVideoList';
 import LessonQuestionList from './LessonQuestionList';
-import { Lesson, LessonKind, LESSON_KIND_LABELS, Video } from '../../../types/lesson.types';
+import { Lesson, Video } from '../../../types/lesson.types';
 import { Question } from '../../../types/question.types';
+import { Dropdown, DropdownOption } from '../../common';
+
+type AddContentKind = 'VIDEO' | 'QUESTION';
+
+const ADD_CONTENT_OPTIONS: DropdownOption[] = [
+  { value: 'VIDEO', label: 'Thêm video' },
+  { value: 'QUESTION', label: 'Thêm câu hỏi' },
+];
 
 interface LessonRowProps {
   courseId: number;
   lesson: Lesson;
 
-  kind: LessonKind;
   videos: Video[];
   processingProgressByVideoId: Record<number, number>;
   questions: Question[];
@@ -33,7 +40,6 @@ interface LessonRowProps {
 const LessonRow: React.FC<LessonRowProps> = ({
   courseId,
   lesson,
-  kind,
   videos,
   processingProgressByVideoId,
   questions,
@@ -49,6 +55,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
   onDelete,
 }) => {
   const [expanded, setExpanded] = useState(true);
+  const [addingContent, setAddingContent] = useState<AddContentKind | null>(null);
 
   const [editing, setEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState(lesson.title);
@@ -95,13 +102,9 @@ const LessonRow: React.FC<LessonRowProps> = ({
     setSavingPreview(false);
   };
 
-  const contentCount = kind === 'QUIZ' ? questions.length : videos.length;
-  const contentLabel =
-    contentCount === 0
-      ? kind === 'QUIZ'
-        ? 'chưa có câu hỏi'
-        : 'chưa có video'
-      : `${contentCount} ${kind === 'QUIZ' ? 'câu hỏi' : 'video'}`;
+  const contentLabel = videos.length === 0 && questions.length === 0
+    ? 'Chưa có nội dung'
+    : `${videos.length} video · ${questions.length} câu hỏi`;
 
   return (
     <li
@@ -167,30 +170,28 @@ const LessonRow: React.FC<LessonRowProps> = ({
           )}
 
           <span className="lesson-row-kind">
-            {LESSON_KIND_LABELS[kind]} · {contentLabel}
+            {contentLabel}
           </span>
         </div>
 
         {
 
 }
-        {kind === 'VIDEO' && (
-          <button
-            type="button"
-            className={`lesson-row-preview${lesson.isPreview ? ' is-on' : ''}`}
-            onClick={togglePreview}
-            disabled={disabled || savingPreview}
-            aria-pressed={lesson.isPreview}
-            title={
-              lesson.isPreview
-                ? 'Học viên chưa mua vẫn xem được bài này. Bấm để tắt.'
-                : 'Chỉ học viên đã mua mới xem được bài này. Bấm để cho xem thử.'
-            }
-          >
-            <i className={`bi ${lesson.isPreview ? 'bi-eye-fill' : 'bi-eye-slash'}`}></i>
-            {lesson.isPreview ? 'Xem thử' : 'Không xem thử'}
-          </button>
-        )}
+        <button
+          type="button"
+          className={`lesson-row-preview${lesson.isPreview ? ' is-on' : ''}`}
+          onClick={togglePreview}
+          disabled={disabled || savingPreview}
+          aria-pressed={lesson.isPreview}
+          title={
+            lesson.isPreview
+              ? 'Học viên chưa mua vẫn xem được video của bài này. Bấm để tắt.'
+              : 'Chỉ học viên đã mua mới xem được video của bài này. Bấm để cho xem thử.'
+          }
+        >
+          <i className={`bi ${lesson.isPreview ? 'bi-eye-fill' : 'bi-eye-slash'}`}></i>
+          {lesson.isPreview ? 'Xem thử' : 'Không xem thử'}
+        </button>
 
         <button
           type="button"
@@ -218,22 +219,51 @@ const LessonRow: React.FC<LessonRowProps> = ({
       </div>
 
       <div className={`lesson-row-body${expanded ? '' : ' is-collapsed'}`}>
-        {kind === 'VIDEO' ? (
-          <LessonVideoList
-            lesson={lesson}
-            videos={videos}
-            processingProgressByVideoId={processingProgressByVideoId}
-            disabled={disabled}
-            onVideosChange={onVideosChange}
-          />
-        ) : (
-          <LessonQuestionList
-            courseId={courseId}
-            lesson={lesson}
-            questions={questions}
-            disabled={disabled}
-            onQuestionsChange={onQuestionsChange}
-          />
+        {(videos.length > 0 || addingContent === 'VIDEO') && (
+          <section className="lesson-content-section">
+            <h3 className="lesson-content-title">Video bài giảng</h3>
+            <LessonVideoList
+              lesson={lesson}
+              videos={videos}
+              processingProgressByVideoId={processingProgressByVideoId}
+              disabled={disabled}
+              isAdding={addingContent === 'VIDEO'}
+              onVideosChange={onVideosChange}
+              onAddFinished={() => setAddingContent(null)}
+            />
+          </section>
+        )}
+
+        {(questions.length > 0 || addingContent === 'QUESTION') && (
+          <section className="lesson-content-section">
+            <h3 className="lesson-content-title">Câu hỏi trắc nghiệm</h3>
+            <LessonQuestionList
+              courseId={courseId}
+              lesson={lesson}
+              questions={questions}
+              disabled={disabled}
+              isAdding={addingContent === 'QUESTION'}
+              onQuestionsChange={onQuestionsChange}
+              onAddFinished={() => setAddingContent(null)}
+            />
+          </section>
+        )}
+
+        {addingContent === null && (
+          <div className="lesson-content-add">
+            <Dropdown
+              value=""
+              options={ADD_CONTENT_OPTIONS}
+              placeholder="+ Thêm nội dung"
+              className="lesson-content-add-dropdown"
+              ariaLabel={`Thêm nội dung cho bài giảng ${lesson.title}`}
+              disabled={disabled}
+              onChange={(value) => {
+                setAddingContent(value as AddContentKind);
+                setExpanded(true);
+              }}
+            />
+          </div>
         )}
       </div>
     </li>

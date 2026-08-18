@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.security;
 
+import com.zh.learnhub_api.enums.AccountStatus;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,6 +23,7 @@ public class SwaggerAdminUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
+                .accountLocked(AccountStatus.LOCKED.name().equals(user.getAccountStatus()))
                 .authorities(user.getRoles().toArray(String[]::new))
                 .build();
     }

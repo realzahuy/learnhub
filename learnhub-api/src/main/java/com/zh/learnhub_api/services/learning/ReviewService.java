@@ -1,21 +1,21 @@
 package com.zh.learnhub_api.services.learning;
 
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
+import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.learning.RatingSummaryDTO;
 import com.zh.learnhub_api.dtos.learning.ReviewRequestDTO;
 import com.zh.learnhub_api.dtos.learning.ReviewResponseDTO;
-import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
-import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.CourseReview;
 import com.zh.learnhub_api.pojo.User;
-import com.zh.learnhub_api.projections.review.RatingStatsProjection;
+import com.zh.learnhub_api.projections.course.PublishedCourseAccessProjection;
 import com.zh.learnhub_api.projections.review.ReviewListProjection;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.CourseReviewRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
+import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,8 +23,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,20 +35,22 @@ public class ReviewService {
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
+    private final RatingCacheService ratingCacheService;
+    private final ApplicationCacheInvalidator cacheInvalidator;
 
     @Transactional
     public ReviewResponseDTO saveReview(String slug, Long userId, ReviewRequestDTO request) {
-        Course course = findPublishedCourse(slug);
+        PublishedCourseAccessProjection course = findPublishedCourse(slug);
 
-        if (!enrollmentRepository.existsByUserId_IdAndCourseId_Id(userId, course.getId())) {
+        if (!enrollmentRepository.existsByUserId_IdAndCourseId_Id(userId, course.getCourseId())) {
             throw new ForbiddenException("Bạn cần ghi danh khóa học trước khi đánh giá");
         }
 
         CourseReview review = reviewRepository
-            .findByUserId_IdAndCourseId_Id(userId, course.getId())
+            .findByUserId_IdAndCourseId_Id(userId, course.getCourseId())
             .orElseGet(() -> {
                 CourseReview fresh = new CourseReview();
-                fresh.setCourseId(course);
+                fresh.setCourseId(courseRepository.getReferenceById(course.getCourseId()));
                 fresh.setUserId(userRepository.getReferenceById(userId));
                 return fresh;
             });
@@ -58,24 +58,27 @@ public class ReviewService {
         review.setRating(request.getRating());
         review.setComment(normalizeComment(request.getComment()));
 
-        return toDTO(reviewRepository.save(review), userId);
+        ReviewResponseDTO response = toDTO(reviewRepository.save(review), userId);
+        invalidateRatingCaches(course);
+        return response;
     }
 
     @Transactional
     public void deleteMyReview(String slug, Long userId) {
-        Course course = findPublishedCourse(slug);
+        PublishedCourseAccessProjection course = findPublishedCourse(slug);
 
         CourseReview review = reviewRepository
-            .findByUserId_IdAndCourseId_Id(userId, course.getId())
+            .findByUserId_IdAndCourseId_Id(userId, course.getCourseId())
             .orElseThrow(() -> new ResourceNotFoundException("Bạn chưa đánh giá khóa học này"));
 
         reviewRepository.delete(review);
+        invalidateRatingCaches(course);
     }
 
     public ReviewResponseDTO getMyReview(String slug, Long userId) {
-        Course course = findPublishedCourse(slug);
+        PublishedCourseAccessProjection course = findPublishedCourse(slug);
 
-        return reviewRepository.findByUserId_IdAndCourseId_Id(userId, course.getId())
+        return reviewRepository.findByUserId_IdAndCourseId_Id(userId, course.getCourseId())
             .map(review -> toDTO(review, userId))
             .orElse(null);
     }
@@ -83,82 +86,46 @@ public class ReviewService {
     public PageResponseDTO<ReviewResponseDTO> getCourseReviews(
             String slug, Long currentUserId, Pageable requestedPage) {
 
-        Course course = findPublishedCourse(slug);
+        PublishedCourseAccessProjection course = findPublishedCourse(slug);
 
         Pageable pageable = PageRequest.of(
                 requestedPage.getPageNumber(), requestedPage.getPageSize());
         Page<ReviewListProjection> reviewPage = reviewRepository.findListByCourse(
-                course.getId(), pageable);
+                course.getCourseId(), pageable);
 
         return PageResponseDTO.from(reviewPage.map(review -> toDTO(review, currentUserId)));
     }
 
     public RatingSummaryDTO getCourseSummary(String slug) {
-        Course course = findPublishedCourse(slug);
-        return buildSummary(course.getId());
+        PublishedCourseAccessProjection course = findPublishedCourse(slug);
+        return buildSummary(course.getCourseId());
     }
 
     public RatingSummaryDTO buildSummary(Long courseId) {
-
-        Map<Integer, Long> distribution = new LinkedHashMap<>();
-        for (int star = 5; star >= 1; star--) {
-            distribution.put(star, 0L);
-        }
-        long totalReviews = 0L;
-        long ratingSum = 0L;
-        for (var row : reviewRepository.countByRatingForCourse(courseId)) {
-            long count = row.getReviewCount();
-            distribution.put(row.getRating(), count);
-            totalReviews += count;
-            ratingSum += (long) row.getRating() * count;
-        }
-
-        double average = totalReviews == 0L
-                ? 0d
-                : round1((double) ratingSum / totalReviews);
-        return new RatingSummaryDTO(average, totalReviews, distribution);
+        return ratingCacheService.getCourseSummary(courseId);
     }
 
     public Map<Long, RatingStats> getRatingStatsByCourses(List<Long> courseIds) {
-        if (courseIds == null || courseIds.isEmpty()) {
-            return Map.of();
-        }
-
-        Map<Long, RatingStats> statsByCourse = new HashMap<>();
-        for (var row : reviewRepository.findRatingStatsByCourses(courseIds)) {
-            double average = row.getAverageRating() == null ? 0d : round1(row.getAverageRating());
-            long count = row.getReviewCount() == null ? 0L : row.getReviewCount();
-            statsByCourse.put(row.getCourseId(), new RatingStats(average, count));
-        }
-        return statsByCourse;
+        return ratingCacheService.getCourseStats(courseIds);
     }
 
     public RatingStats getInstructorRatingStats(Long instructorId) {
-        return readStats(reviewRepository.findRatingStatsByInstructor(instructorId));
+        return ratingCacheService.getInstructorStats(instructorId);
     }
 
-    private RatingStats readStats(List<RatingStatsProjection> rows) {
-        if (rows.isEmpty()) {
-            return RatingStats.empty();
-        }
-        RatingStatsProjection row = rows.get(0);
-        double average = row.getAverageRating() == null ? 0d : round1(row.getAverageRating());
-        long count = row.getReviewCount() == null ? 0L : row.getReviewCount();
-        return new RatingStats(average, count);
+    private void invalidateRatingCaches(PublishedCourseAccessProjection course) {
+        Long courseId = course.getCourseId();
+        Long instructorId = course.getInstructorId();
+        cacheInvalidator.evictAfterCommit(CacheNames.COURSE_RATING_STATS, courseId);
+        cacheInvalidator.evictAfterCommit(CacheNames.COURSE_RATING_SUMMARIES, courseId);
+        cacheInvalidator.evictAfterCommit(CacheNames.INSTRUCTOR_RATING_STATS, instructorId);
+        cacheInvalidator.evictAfterCommit(CacheNames.PUBLIC_INSTRUCTOR_PROFILES, instructorId);
     }
 
-    private double round1(double value) {
-        return Math.round(value * 10d) / 10d;
-    }
-
-    private Course findPublishedCourse(String slug) {
-        Course course = courseRepository.findBySlug(slug)
+    private PublishedCourseAccessProjection findPublishedCourse(String slug) {
+        return courseRepository.findPublishedAccessBySlug(slug)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-        if (!CourseStatus.PUBLISHED.name().equals(course.getStatus())) {
-            throw new ResourceNotFoundException("Không tìm thấy khóa học");
-        }
-        return course;
     }
 
     private String normalizeComment(String comment) {

@@ -37,6 +37,7 @@ html {
 }
 
 .motion-loading-indicator {
+  display: none;
   position: absolute;
   z-index: 5;
   top: 0.75rem;
@@ -74,7 +75,7 @@ html {
 }
 
 .spinner-border {
-  will-change: transform;
+  display: none !important;
 }
 
 @keyframes motion-content-enter {

@@ -6,7 +6,11 @@ import com.zh.learnhub_api.projections.course.CourseEditAccessProjection;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
 import com.zh.learnhub_api.projections.course.CourseStatusCountProjection;
 import com.zh.learnhub_api.projections.course.InstructorCourseStatusCountProjection;
+import com.zh.learnhub_api.projections.course.LearningCourseProjection;
+import com.zh.learnhub_api.projections.course.PublishedCourseAccessProjection;
 import com.zh.learnhub_api.projections.course.PublicCourseDetailProjection;
+import com.zh.learnhub_api.projections.course.RecommendationCourseProjection;
+import com.zh.learnhub_api.projections.payment.CheckoutCourseProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -54,6 +58,52 @@ public interface CourseRepository extends JpaRepository<Course, Long>, CourseSea
 
     Optional<Course> findBySlug(String slug);
 
+    @Query(value = """
+            SELECT c.id AS courseId,
+                   c.title AS title,
+                   c.slug AS slug,
+                   i.full_name AS instructorName,
+                   EXISTS (
+                       SELECT 1 FROM enrollment e
+                       WHERE e.user_id = :userId AND e.course_id = c.id
+                   ) AS enrolled
+            FROM course c
+            JOIN user i ON i.id = c.instructor_id
+            WHERE c.slug = :slug
+            """, nativeQuery = true)
+    Optional<LearningCourseProjection> findLearningCourseBySlug(
+            @Param("slug") String slug,
+            @Param("userId") Long userId);
+
+    @Query(value = """
+            SELECT c.id AS courseId,
+                   c.title AS title,
+                   cat.name AS categoryName,
+                   c.short_description AS shortDescription,
+                   c.description AS description,
+                   EXISTS (
+                       SELECT 1 FROM enrollment e
+                       WHERE e.user_id = :userId AND e.course_id = c.id
+                   ) AS enrolled
+            FROM course c
+            LEFT JOIN category cat ON cat.id = c.category_id
+            WHERE c.id = :courseId
+            """, nativeQuery = true)
+    Optional<RecommendationCourseProjection> findRecommendationSource(
+            @Param("courseId") Long courseId,
+            @Param("userId") Long userId);
+
+    @Query("SELECT c.id AS courseId, c.instructorId.id AS instructorId "
+         + "FROM Course c WHERE c.slug = :slug AND c.status = 'PUBLISHED'")
+    Optional<PublishedCourseAccessProjection> findPublishedAccessBySlug(
+            @Param("slug") String slug);
+
+    @Query("SELECT c.id AS courseId, c.title AS title, c.slug AS slug, "
+         + "c.price AS price, c.status AS status "
+         + "FROM Course c WHERE c.id IN :courseIds")
+    List<CheckoutCourseProjection> findCheckoutCoursesByIds(
+            @Param("courseIds") List<Long> courseIds);
+
     boolean existsBySlug(String slug);
 
     boolean existsBySlugAndIdNot(String slug, Long courseId);
@@ -70,6 +120,10 @@ public interface CourseRepository extends JpaRepository<Course, Long>, CourseSea
             Pageable pageable);
 
     long countByInstructorId_IdAndStatus(Long instructorId, String status);
+
+    @Query("SELECT c.slug FROM Course c "
+         + "WHERE c.instructorId.id = :instructorId AND c.status = 'PUBLISHED'")
+    List<String> findPublishedSlugsByInstructorId(@Param("instructorId") Long instructorId);
 
     @Query(LIST_PROJECTION +
            "WHERE c.status = 'PUBLISHED' AND c.id IN :courseIds")

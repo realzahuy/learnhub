@@ -7,13 +7,13 @@ import {
   InstructorCard,
 } from '../../components/features/course';
 import { CourseReviewSection } from '../../components/features/review';
+import { LoadingScreen } from '../../components/common';
 import { courseService } from '../../services/api/course.service';
 import { CourseDetail, PublicLesson, PublicVideo } from '../../types/course.types';
 import { RatingSummary } from '../../types/review.types';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
-import { PAYMENT_METHOD_MOMO, paymentService } from '../../services/api/payment.service';
 import { enrollmentService } from '../../services/api/enrollment.service';
 import { getApiErrorMessage } from '../../utils';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
@@ -52,24 +52,30 @@ const CourseDetailPage = () => {
     setPreview({ lesson, videoId });
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchCourse = async () => {
       if (!slug) return;
 
       try {
         setIsLoading(true);
+        setError(null);
         setThumbnailFailed(false);
         setRatingOverride(null);
-        const data = await courseService.getCourseBySlug(slug);
+        const data = await courseService.getCourseBySlug(slug, controller.signal);
+        if (controller.signal.aborted) return;
         setCourse(data);
       } catch (err: any) {
+        if (controller.signal.aborted) return;
         console.error('Không thể tải khóa học:', err);
         setError('Không thể tải thông tin khóa học. Vui lòng thử lại sau.');
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
-    fetchCourse();
+    void fetchCourse();
+    return () => controller.abort();
   }, [slug]);
 
   useEffect(() => {
@@ -107,22 +113,13 @@ const CourseDetailPage = () => {
 
     setIsEnrolling(true);
     try {
-      const payment = await paymentService.create({
-        courseIds: [course.id],
-        paymentMethod: PAYMENT_METHOD_MOMO,
-      });
+      const enrollment = await enrollmentService.enrollFree(course.id);
 
       removeFromCart(course.id);
-
-      if (payment.payUrl) {
-        window.location.href = payment.payUrl;
-        return;
-      }
-
-      showToast(payment.message || 'Đã thêm khóa học vào tài khoản.', 'success');
+      showToast(enrollment.message || 'Đã thêm khóa học vào tài khoản.', 'success');
       navigate(ROUTE_PATHS.myCourses);
     } catch (err) {
-      console.error('Không thể tạo đơn thanh toán:', err);
+      console.error('Không thể đăng ký khóa học miễn phí:', err);
       showToast(getApiErrorMessage(err, 'Không đăng ký được khóa học. Vui lòng thử lại.'), 'error');
       setIsEnrolling(false);
     }
@@ -149,18 +146,7 @@ const CourseDetailPage = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="course-detail-page">
-        <main className="course-detail-main">
-          <div className="container py-5 text-center">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Đang tải...</span>
-            </div>
-            <p className="mt-3 text-muted">Đang tải thông tin khóa học...</p>
-          </div>
-        </main>
-      </div>
-    );
+    return <LoadingScreen variant="detail" />;
   }
 
   if (error || !course) {

@@ -1,5 +1,6 @@
 
-export type AdminUserFilter = 'ALL' | 'INSTRUCTOR';
+export type AdminUserFilter = 'ALL' | 'INSTRUCTOR' | 'LOCKED';
+export type AccountStatus = 'ACTIVE' | 'LOCKED';
 
 export interface AdminUser {
   id: number;
@@ -9,6 +10,7 @@ export interface AdminUser {
   avatar: string | null;
   bio: string | null;
   emailVerified: boolean;
+  accountStatus: AccountStatus;
   roles: string[];
 
   createdAt: string | null;

@@ -1,6 +1,7 @@
 package com.zh.learnhub_api.services.instructor;
 
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
+import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.services.learning.RatingStats;
 import com.zh.learnhub_api.services.learning.ReviewService;
 
@@ -14,6 +15,7 @@ import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.mappers.CourseMapper;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +38,10 @@ public class InstructorProfileService {
     private final ReviewService reviewService;
     private final CourseMapper courseMapper;
 
+    @Cacheable(
+            cacheNames = CacheNames.PUBLIC_INSTRUCTOR_PROFILES,
+            key = "#instructorId",
+            sync = true)
     public InstructorProfileDTO getPublicProfile(Long instructorId) {
         PublicInstructorProjection instructor = userRepository
                 .findPublicInstructor(instructorId, ROLE_INSTRUCTOR)

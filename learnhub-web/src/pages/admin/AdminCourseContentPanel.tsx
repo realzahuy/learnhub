@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { HlsPlayer } from '../../components/common';
+import { HlsPlayer, PageSkeleton } from '../../components/common';
 import { adminService } from '../../services/api/admin.service';
 import { AdminCourseContent, AdminLessonContent } from '../../types/learn.types';
 import { formatDuration, getApiErrorMessage } from '../../utils';
@@ -142,12 +142,7 @@ const AdminCourseContentPanel: React.FC<AdminCourseContentPanelProps> = ({ cours
   }, [courseId]);
 
   if (loading) {
-    return (
-      <div className="admin-content-loading">
-        <div className="spinner-border spinner-border-sm text-notion" role="status" />
-        <span>Đang tải nội dung khóa học...</span>
-      </div>
-    );
+    return <PageSkeleton variant="list" count={4} />;
   }
 
   if (error) {

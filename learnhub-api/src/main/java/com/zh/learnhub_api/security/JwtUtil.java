@@ -1,6 +1,8 @@
 package com.zh.learnhub_api.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import com.zh.learnhub_api.configs.AppProperties;
@@ -105,6 +107,35 @@ public class JwtUtil {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public Optional<AccessTokenIdentity> getAccessTokenIdentityAllowExpired(String token) {
+        if (token == null || token.isBlank()) {
+            return Optional.empty();
+        }
+
+        Claims claims;
+        try {
+            claims = getAllClaimsFromToken(token);
+        } catch (ExpiredJwtException exception) {
+            claims = exception.getClaims();
+        } catch (JwtException | IllegalArgumentException exception) {
+            return Optional.empty();
+        }
+
+        if (!"access".equals(claims.get("type", String.class))) {
+            return Optional.empty();
+        }
+        Number userId = claims.get("userId", Number.class);
+        Number sessionId = claims.get("sessionId", Number.class);
+        if (userId == null || sessionId == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new AccessTokenIdentity(
+                userId.longValue(), sessionId.longValue()));
+    }
+
+    public record AccessTokenIdentity(Long userId, Long sessionId) {
     }
 
 }

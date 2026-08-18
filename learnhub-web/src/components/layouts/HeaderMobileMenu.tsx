@@ -1,6 +1,6 @@
 import { ChangeEventHandler, FormEventHandler, RefObject } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { User } from '../../types/auth.types';
+import { AuthenticatedUser } from '../../types/auth.types';
 import { MobileAccountMenu } from './HeaderAccountMenu';
 import HeaderSearch from './HeaderSearch';
 import { ROUTE_PATHS } from '../../routes/paths';
@@ -12,7 +12,7 @@ interface HeaderMobileMenuProps {
   isCatalogMode: boolean;
   isAuthenticated: boolean;
   isInstructor: boolean;
-  user: User | null;
+  user: AuthenticatedUser | null;
   cartCount: number;
   searchQuery: string;
   isUserMenuOpen: boolean;
@@ -96,10 +96,12 @@ const HeaderMobileMenu = ({
         </>
       ))}
 
-      <Link to={ROUTE_PATHS.cart} className="mobile-menu-item d-flex align-items-center justify-content-between" onClick={onClose}>
-        <span>Giỏ hàng</span>
-        {cartCount > 0 && <span className="cart-badge-inline">{cartCount > 99 ? '99+' : cartCount}</span>}
-      </Link>
+      {!isInstructorMode && (
+        <Link to={ROUTE_PATHS.cart} className="mobile-menu-item d-flex align-items-center justify-content-between" onClick={onClose}>
+          <span>Giỏ hàng</span>
+          {cartCount > 0 && <span className="cart-badge-inline">{cartCount > 99 ? '99+' : cartCount}</span>}
+        </Link>
+      )}
 
       {isAuthenticated && user ? (
         <MobileAccountMenu

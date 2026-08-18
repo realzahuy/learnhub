@@ -3,21 +3,14 @@ import { Navigate } from 'react-router-dom';
 import { ChangePasswordForm } from '../../components/features/profile';
 import { useAuth } from '../../context/AuthContext';
 import { ROUTE_PATHS } from '../../routes/paths';
+import { LoadingScreen } from '../../components/common';
 import './ChangePasswordPage.css';
 
 const ChangePasswordPage: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <main className="change-password-main">
-        <div className="container py-5 text-center">
-          <div className="spinner-border text-notion" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
-        </div>
-      </main>
-    );
+    return <LoadingScreen variant="form" count={3} />;
   }
 
   if (!isAuthenticated) {

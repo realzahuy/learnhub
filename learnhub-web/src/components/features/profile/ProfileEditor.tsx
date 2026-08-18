@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserAvatar, ConfirmDialog } from '../../common';
+import { UserAvatar, ConfirmDialog, PageSkeleton } from '../../common';
 import EmailVerificationPanel from './EmailVerificationPanel';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
@@ -59,11 +59,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState<User | null>(cachedUser);
+  const [profile, setProfile] = useState<User | null>(null);
   const [form, setForm] = useState<ProfileForm>(
-    cachedUser ? toForm(cachedUser) : { fullName: '', bio: '' }
+    cachedUser ? { fullName: cachedUser.fullName, bio: '' } : { fullName: '', bio: '' }
   );
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<'fullName' | null>(null);
 
@@ -122,7 +121,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
     const fetchProfile = async () => {
       try {
-        setIsRefreshing(true);
         setError(null);
         const fresh = await authService.getCurrentUser();
         if (cancelled) return;
@@ -135,8 +133,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         if (cancelled) return;
         console.error('Không thể tải hồ sơ:', err);
         setError('Không thể tải thông tin cá nhân. Vui lòng thử lại sau.');
-      } finally {
-        if (!cancelled) setIsRefreshing(false);
       }
     };
 
@@ -234,14 +230,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     <>
       {
 }
-      {isRefreshing && (
-        <div className="d-flex align-items-center mb-3">
-          <span className="spinner-border spinner-border-sm text-notion" role="status">
-            <span className="visually-hidden">Đang làm mới...</span>
-          </span>
-        </div>
-      )}
-
       {error && (
         <div className="alert alert-danger" role="alert">
           {error}
@@ -249,11 +237,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       )}
 
       {!profile ? (
-        <div className="text-center py-5">
-          <div className="spinner-border text-notion" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
-        </div>
+        <PageSkeleton variant="form" count={4} />
       ) : (
         <form onSubmit={handleSave}>
           { }
@@ -386,7 +370,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       className="btn-profile-outline"
                       onClick={() => navigate(changePasswordPath)}
                     >
-                      <i className="bi bi-lock me-2" aria-hidden="true"></i>
                       Đổi mật khẩu
                     </button>
                     <button
@@ -395,8 +378,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       onClick={() => setIsLogoutOthersConfirmOpen(true)}
                       disabled={isLoggingOutOthers}
                     >
-                      <i className="bi bi-display me-2" aria-hidden="true"></i>
-                      {isLoggingOutOthers ? 'Đang đăng xuất...' : 'Đăng xuất thiết bị khác'}
+                      {isLoggingOutOthers ? 'Đang đăng xuất...' : 'Đăng xuất các thiết bị khác'}
                     </button>
                   </div>
                 </div>

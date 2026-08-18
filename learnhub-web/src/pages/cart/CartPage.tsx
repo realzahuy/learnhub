@@ -53,8 +53,6 @@ const CartPage: React.FC = () => {
         paymentMethod: PAYMENT_METHOD_MOMO,
       });
 
-      payment.freeEnrolled.forEach((free) => removeFromCart(free.courseId));
-
       if (payment.payUrl) {
         window.location.href = payment.payUrl;
         return;

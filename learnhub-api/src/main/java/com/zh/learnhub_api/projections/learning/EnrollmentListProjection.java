@@ -9,5 +9,6 @@ public interface EnrollmentListProjection {
     String getCourseSlug();
     String getCourseThumbnail();
     String getInstructorName();
+    String getCategoryName();
     LocalDateTime getEnrolledAt();
 }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { DropdownOption } from '../../components/common';
+import { DropdownOption, PageSkeleton } from '../../components/common';
 import {
   StatsBarChart,
   StatsFilterBar,
@@ -123,11 +123,7 @@ const InstructorStatsPage: React.FC = () => {
 
           { }
           {loadingOverview && !overview && !error && (
-            <div className="text-center py-5">
-              <div className="spinner-border text-notion" role="status">
-                <span className="visually-hidden">Đang tải...</span>
-              </div>
-            </div>
+            <PageSkeleton variant="stats" />
           )}
 
           {overview && (

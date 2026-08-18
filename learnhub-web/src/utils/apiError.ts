@@ -7,6 +7,7 @@ export interface ApiProblemDetail {
   instance?: string;
   errors?: Record<string, string>;
   suggestions?: string[];
+  code?: string;
 }
 
 const getProblemDetail = (err: unknown): ApiProblemDetail | undefined =>

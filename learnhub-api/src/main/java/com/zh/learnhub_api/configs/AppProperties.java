@@ -37,6 +37,12 @@ public final class AppProperties {
             @DefaultValue("Lax") String refreshCookieSameSite) {
     }
 
+    @ConfigurationProperties("app.auth-cache")
+    public record AuthCache(
+            @DefaultValue("20000") long maximumSize,
+            @DefaultValue("15") long expireAfterWriteMinutes) {
+    }
+
     @ConfigurationProperties("app.cors")
     public record Cors(List<String> allowedOrigins) {
     }

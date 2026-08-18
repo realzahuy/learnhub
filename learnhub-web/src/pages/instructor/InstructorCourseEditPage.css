@@ -135,6 +135,16 @@
   border-top: 1px solid #eef1f5;
 }
 
+.course-edit-next-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.course-edit-next-actions .btn-course-edit-primary {
+  min-width: 160px;
+}
+
 .btn-course-edit-primary,
 .btn-course-edit-outline {
   display: inline-flex;
@@ -184,5 +194,9 @@
 
   .course-edit-side {
     position: static;
+  }
+
+  .course-edit-next-actions .btn-course-edit-primary {
+    width: 100%;
   }
 }

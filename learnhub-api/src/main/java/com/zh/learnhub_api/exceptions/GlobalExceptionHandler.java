@@ -87,6 +87,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return response(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ProblemDetail> handleAccountLocked(
+            AccountLockedException ex, HttpServletRequest request) {
+        ProblemDetail problem = problem(
+                HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI());
+        problem.setProperty("code", "ACCOUNT_LOCKED");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex,

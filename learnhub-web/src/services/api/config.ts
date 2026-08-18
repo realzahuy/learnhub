@@ -2,10 +2,19 @@ import axios, { InternalAxiosRequestConfig } from 'axios';
 import {
   clearAccessToken,
   getAccessToken,
+  getAuthenticatedUser,
   getAuthGeneration,
   setAccessTokenForGeneration,
 } from './tokenStore';
 import { ROUTE_PATHS } from '../../routes/paths';
+import { LoginResponse } from '../../types/auth.types';
+import { beginNetworkActivity } from '../networkActivity';
+import {
+  accountLockedMessageFrom,
+  isAccountLockedError,
+  isRefreshSessionRejected,
+  notifyAccountLocked,
+} from '../authSessionEvents';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -17,13 +26,12 @@ export const apiClient = axios.create({
   },
 });
 
-interface RefreshResponse {
-  accessToken: string;
-}
+type RetryableRequest = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+  _finishLoading?: () => void;
+};
 
-type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
-
-let refreshPromise: Promise<string> | null = null;
+let refreshPromise: Promise<LoginResponse> | null = null;
 let refreshController: AbortController | null = null;
 
 type LockCapableNavigator = Navigator & {
@@ -37,7 +45,7 @@ const clearSessionAndRedirect = () => {
   window.location.href = ROUTE_PATHS.home;
 };
 
-export const refreshAccessToken = (): Promise<string> => {
+export const refreshAuthSession = (): Promise<LoginResponse> => {
   if (refreshPromise) return refreshPromise;
 
   const tokenBeforeLock = getAccessToken();
@@ -45,27 +53,35 @@ export const refreshAccessToken = (): Promise<string> => {
 
   const performRefresh = () => {
     const tokenFromAnotherTab = getAccessToken();
-    if (tokenFromAnotherTab && tokenFromAnotherTab !== tokenBeforeLock) {
-      return Promise.resolve(tokenFromAnotherTab);
+    const userFromAnotherTab = getAuthenticatedUser();
+    if (tokenFromAnotherTab && tokenFromAnotherTab !== tokenBeforeLock && userFromAnotherTab) {
+      return Promise.resolve({ accessToken: tokenFromAnotherTab, user: userFromAnotherTab });
     }
 
     refreshController = new AbortController();
     return axios
-      .post<RefreshResponse>(`${API_BASE_URL}/auth/refresh`, undefined, {
+      .post<LoginResponse>(`${API_BASE_URL}/auth/refresh`, undefined, {
         withCredentials: true,
         signal: refreshController.signal,
+        headers: tokenBeforeLock
+          ? { Authorization: `Bearer ${tokenBeforeLock}` }
+          : undefined,
       })
       .then(({ data }) => {
-        if (!setAccessTokenForGeneration(data.accessToken, generation)) {
+        if (!setAccessTokenForGeneration(data.accessToken, data.user, generation)) {
           throw new Error('Phiên đăng nhập đã thay đổi');
         }
-        return data.accessToken;
+        return data;
       })
       .catch(async (error) => {
         await new Promise((resolve) => window.setTimeout(resolve, 75));
         const tokenFromAnotherTab = getAccessToken();
-        if (tokenFromAnotherTab && tokenFromAnotherTab !== tokenBeforeLock) {
-          return tokenFromAnotherTab;
+        const userFromAnotherTab = getAuthenticatedUser();
+        if (tokenFromAnotherTab && tokenFromAnotherTab !== tokenBeforeLock && userFromAnotherTab) {
+          return { accessToken: tokenFromAnotherTab, user: userFromAnotherTab };
+        }
+        if (isAccountLockedError(error)) {
+          notifyAccountLocked(accountLockedMessageFrom(error));
         }
         throw error;
       });
@@ -82,6 +98,9 @@ export const refreshAccessToken = (): Promise<string> => {
 
   return refreshPromise;
 };
+
+export const refreshAccessToken = async (): Promise<string> =>
+  (await refreshAuthSession()).accessToken;
 
 export const cancelPendingRefresh = (): void => {
   refreshController?.abort();
@@ -104,26 +123,44 @@ export const authenticatedFetch = async (
     response = await send(await refreshAccessToken());
     return response;
   } catch (error) {
-    clearSessionAndRedirect();
+    if (isRefreshSessionRejected(error) && !isAccountLockedError(error)) {
+      clearSessionAndRedirect();
+    }
     throw error;
   }
 };
 
 apiClient.interceptors.request.use(
   (config) => {
+    const request = config as RetryableRequest;
+    if (request.method?.toLowerCase() === 'get' && request.showTopProgress !== false) {
+      request._finishLoading = beginNetworkActivity();
+    }
     const accessToken = getAccessToken();
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    (error.config as RetryableRequest | undefined)?._finishLoading?.();
+    return Promise.reject(error);
+  }
 );
 
+const finishRequestLoading = (config?: RetryableRequest) => {
+  config?._finishLoading?.();
+  if (config) delete config._finishLoading;
+};
+
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    finishRequestLoading(response.config as RetryableRequest);
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config as RetryableRequest | undefined;
+    finishRequestLoading(originalRequest);
     const isAuthRequest = originalRequest?.url?.includes('/auth/') ?? false;
 
     if (
@@ -139,7 +176,12 @@ apiClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
-        clearSessionAndRedirect();
+        if (
+          isRefreshSessionRejected(refreshError)
+          && !isAccountLockedError(refreshError)
+        ) {
+          clearSessionAndRedirect();
+        }
         return Promise.reject(refreshError);
       }
     }

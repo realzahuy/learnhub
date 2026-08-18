@@ -117,7 +117,8 @@ public class VideoManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Video not found with id: " + videoId));
 
-        courseEditPolicy.requireOwner(video.getLesson().getCourseId(), instructorId);
+        Course course = video.getLesson().getCourseId();
+        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
         videoLifecycle.requireDeletable(video);
 
         mediaCleanupService.scheduleVideoCleanup(video.getStorageKey());
@@ -132,7 +133,7 @@ public class VideoManagementService {
                 .status(video.getStatus())
                 .position(video.getPosition())
                 .durationSeconds(video.getDurationSeconds())
-                .playbackUrl(VideoPlaybackUrls.authenticated(video))
+                .playbackUrl(VideoPlaybackUrls.instructor(video))
                 .build();
     }
 

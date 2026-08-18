@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Course } from '../../../types/course.types';
 import { LearnCourse } from '../../../types/learn.types';
-import { StarRating } from '../../common';
+import { PageSkeleton, StarRating } from '../../common';
 import { CourseReviewSection } from '../review';
 import { formatPrice } from '../../../utils';
 import { LearnTab, Viewing } from './learnView.types';
@@ -57,11 +57,7 @@ const LearnCourseTabs = ({
     {activeTab === 'recommendations' && (
       <div className="learn-tab-panel learn-recommendation-panel">
         {recommendationsLoading ? (
-          <div className="learn-center">
-            <div className="spinner-border text-notion" role="status">
-              <span className="visually-hidden">Đang tải đề xuất...</span>
-            </div>
-          </div>
+          <PageSkeleton variant="cards" count={3} />
         ) : recommendations.length === 0 ? (
           <p className="learn-recommendation-empty" role="status">
             Không có khóa học đề xuất

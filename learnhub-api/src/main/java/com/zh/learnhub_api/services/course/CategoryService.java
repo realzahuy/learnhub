@@ -2,16 +2,18 @@ package com.zh.learnhub_api.services.course;
 
 import com.zh.learnhub_api.dtos.course.CategoryRequestDTO;
 import com.zh.learnhub_api.dtos.course.CategoryResponseDTO;
+import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.exceptions.DuplicateResourceException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Category;
 import com.zh.learnhub_api.repositories.course.CategoryRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
+import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -22,12 +24,14 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
 
     private final CourseRepository courseRepository;
+    private final ApplicationCacheInvalidator cacheInvalidator;
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.CATEGORIES, key = "'all'", sync = true)
     public List<CategoryResponseDTO> getAllCategories() {
         return categoryRepository.findAll().stream()
                 .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public CategoryResponseDTO createCategory(CategoryRequestDTO requestDTO) {
@@ -40,6 +44,7 @@ public class CategoryService {
         category.setName(name);
 
         Category savedCategory = categoryRepository.save(category);
+        cacheInvalidator.clearAfterCommit(CacheNames.CATEGORIES);
         return convertToResponseDTO(savedCategory);
     }
 
@@ -56,6 +61,9 @@ public class CategoryService {
         category.setName(name);
 
         Category updatedCategory = categoryRepository.save(category);
+        cacheInvalidator.clearAfterCommit(
+                CacheNames.CATEGORIES,
+                CacheNames.PUBLIC_COURSE_DETAILS);
         return convertToResponseDTO(updatedCategory);
     }
 
@@ -73,6 +81,7 @@ public class CategoryService {
         }
 
         categoryRepository.delete(category);
+        cacheInvalidator.clearAfterCommit(CacheNames.CATEGORIES);
     }
 
     private CategoryResponseDTO convertToResponseDTO(Category category) {

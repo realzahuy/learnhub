@@ -17,17 +17,21 @@ interface LessonVideoListProps {
 
   videos: Video[];
   disabled: boolean;
+  isAdding: boolean;
   processingProgressByVideoId: Record<number, number>;
 
   onVideosChange: (lessonId: number, updater: (prev: Video[]) => Video[]) => void;
+  onAddFinished: () => void;
 }
 
 const LessonVideoList: React.FC<LessonVideoListProps> = ({
   lesson,
   videos,
   disabled,
+  isAdding,
   processingProgressByVideoId,
   onVideosChange,
+  onAddFinished,
 }) => {
   const {
     newTitle,
@@ -95,7 +99,16 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
     [lesson.id, onVideosChange, setError]
   );
 
-  const canPick = !disabled && newTitle.trim() !== '';
+  const uploading = pending.length > 0;
+  const canPick = isAdding && !disabled && !uploading && newTitle.trim() !== '';
+
+  const handleVideoFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const uploaded = await handlePickVideo(event);
+      if (uploaded) onAddFinished();
+    },
+    [handlePickVideo, onAddFinished]
+  );
 
   return (
     <div className="lesson-media">
@@ -149,45 +162,63 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
 
       {
 }
-      <div className="lesson-media-add">
-        <input
-          type="text"
-          className="form-control lesson-media-add-input"
-          placeholder="Tên video"
-          value={newTitle}
-          onChange={(e) => {
-            setError(null);
-            setNewTitle(e.target.value);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && canPick) {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }
-          }}
-          maxLength={255}
-          disabled={disabled}
-          aria-label={`Tên video của bài giảng ${lesson.title}`}
-        />
+      {isAdding && (
+        <div className="lesson-media-add-form">
+          <div className="lesson-media-add">
+            <input
+              type="text"
+              className="form-control lesson-media-add-input"
+              placeholder="Tên video"
+              value={newTitle}
+              onChange={(e) => {
+                setError(null);
+                setNewTitle(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && canPick) {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              maxLength={255}
+              disabled={disabled || uploading}
+              aria-label={`Tên video của bài giảng ${lesson.title}`}
+              autoFocus
+            />
 
-        <button
-          type="button"
-          className="btn-lesson-add-inline"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={!canPick}
-          title={canPick ? undefined : 'Nhập tên video trước đã'}
-        >
-          <i className="bi bi-plus-lg"></i>
-          Chọn video
-        </button>
-      </div>
+            <button
+              type="button"
+              className="btn-lesson-add-inline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!canPick}
+              title={canPick ? undefined : 'Nhập tên video trước đã'}
+            >
+              <i className="bi bi-upload"></i>
+              Chọn video
+            </button>
+
+            <button
+              type="button"
+              className="btn-lesson-ghost"
+              onClick={() => {
+                setNewTitle('');
+                setError(null);
+                onAddFinished();
+              }}
+              disabled={disabled || uploading}
+            >
+              Hủy
+            </button>
+          </div>
+        </div>
+      )}
 
       <input
         ref={fileInputRef}
         type="file"
         className="d-none"
         accept={ALLOWED_VIDEO_EXTENSIONS.join(',')}
-        onChange={handlePickVideo}
+        onChange={handleVideoFileChange}
       />
 
       {previewVideo && (

@@ -3,6 +3,7 @@ package com.zh.learnhub_api.configs;
 import com.zh.learnhub_api.security.JwtAuthenticationEntryPoint;
 import com.zh.learnhub_api.security.JwtAuthenticationFilter;
 import com.zh.learnhub_api.security.SecurityProblemWriter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -110,6 +111,11 @@ public class SecurityConfig {
                             "Không có quyền truy cập"))
             )
             .authorizeHttpRequests(auth -> auth
+
+                // The initial SSE request is authenticated normally. Subsequent async/error
+                // dispatches happen after the response has started and must not be authorized
+                // again without the original thread-bound SecurityContext.
+                .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
 
                 .requestMatchers("/api/auth/**").permitAll()
 

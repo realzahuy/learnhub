@@ -2,19 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { learningService } from '../../../services/api/learning.service';
 import { Quiz, QuizResult } from '../../../types/quiz.types';
 import { getApiErrorMessage } from '../../../utils';
+import { PageSkeleton } from '../../common';
 import './QuizPanel.css';
 
 interface QuizPanelProps {
   lessonId: number;
 
-  onLessonCompleted: (lessonId: number) => void;
+  onQuizPassed: (lessonId: number, lessonCompleted: boolean) => void;
 
   onBestScoreChanged: (lessonId: number, bestScorePercent: number) => void;
 }
 
 type Selections = Record<number, number[]>;
 
-const QuizPanel = ({ lessonId, onLessonCompleted, onBestScoreChanged }: QuizPanelProps) => {
+const QuizPanel = ({ lessonId, onQuizPassed, onBestScoreChanged }: QuizPanelProps) => {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,8 +113,8 @@ const QuizPanel = ({ lessonId, onLessonCompleted, onBestScoreChanged }: QuizPane
 
       setResult(data);
       onBestScoreChanged(lessonId, data.bestScorePercent);
-      if (data.lessonCompleted) {
-        onLessonCompleted(lessonId);
+      if (data.passed) {
+        onQuizPassed(lessonId, data.lessonCompleted);
       }
 
       document.querySelector('.quiz-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -123,7 +124,7 @@ const QuizPanel = ({ lessonId, onLessonCompleted, onBestScoreChanged }: QuizPane
     } finally {
       setSubmitting(false);
     }
-  }, [quiz, lessonId, selections, onBestScoreChanged, onLessonCompleted]);
+  }, [quiz, lessonId, selections, onBestScoreChanged, onQuizPassed]);
 
   const handleRetry = useCallback(() => {
     setSelections({});
@@ -132,13 +133,7 @@ const QuizPanel = ({ lessonId, onLessonCompleted, onBestScoreChanged }: QuizPane
   }, []);
 
   if (loading) {
-    return (
-      <div className="quiz-panel quiz-panel-center">
-        <div className="spinner-border text-notion" role="status">
-          <span className="visually-hidden">Đang tải...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton variant="list" count={4} className="quiz-panel" />;
   }
 
   if (error || !quiz) {

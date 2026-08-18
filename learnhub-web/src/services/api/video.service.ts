@@ -65,7 +65,10 @@ export const videoService = {
     if (videoIds.length === 0) return [];
     const response = await apiClient.get<Video[]>(
       `/instructor/courses/${courseId}/videos/status`,
-      { params: { ids: videoIds.join(',') } }
+      {
+        params: { ids: videoIds.join(',') },
+        showTopProgress: false,
+      }
     );
     return response.data;
   },

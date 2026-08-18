@@ -2,8 +2,8 @@ package com.zh.learnhub_api.services.learning;
 
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
-import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
+import com.zh.learnhub_api.projections.course.RecommendationCourseProjection;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.services.vector.CourseVectorMatch;
 import com.zh.learnhub_api.services.vector.CourseVectorStore;
@@ -40,7 +40,7 @@ public class LearningRecommendationService {
     private final AppProperties.Recommendation recommendationProperties;
 
     public List<CourseListItemDTO> getRecommendations(
-            Course currentCourse, Set<Long> enrolledCourseIds) {
+            RecommendationCourseProjection currentCourse, Set<Long> enrolledCourseIds) {
         if (!courseVectorStore.isEnabled()) {
             return List.of();
         }
@@ -48,21 +48,21 @@ public class LearningRecommendationService {
             return loadVectorRecommendations(currentCourse, enrolledCourseIds);
         } catch (Exception ex) {
             log.warn("Không thể lấy đề xuất AI cho khóa {}: {}",
-                    currentCourse.getId(), ex.getMessage());
+                    currentCourse.getCourseId(), ex.getMessage());
             return List.of();
         }
     }
 
     private List<CourseListItemDTO> loadVectorRecommendations(
-            Course currentCourse, Set<Long> enrolledCourseIds) {
+            RecommendationCourseProjection currentCourse, Set<Long> enrolledCourseIds) {
         Set<Long> qdrantExcludedIds = new HashSet<>(enrolledCourseIds);
-        qdrantExcludedIds.add(currentCourse.getId());
+        qdrantExcludedIds.add(currentCourse.getCourseId());
 
         int candidateLimit = Math.max(
                 MAX_RECOMMENDATIONS,
                 Math.min(recommendationProperties.vectorCandidateLimit(), 100));
         List<CourseVectorMatch> matches = courseVectorStore.findSimilar(
-                currentCourse.getId(),
+                currentCourse.getCourseId(),
                 candidateLimit,
                 qdrantExcludedIds,
                 Math.max(-1d, Math.min(1d, recommendationProperties.minimumVectorScore())));
@@ -82,12 +82,13 @@ public class LearningRecommendationService {
 
         Map<Long, Double> vectorScoreByCourse = new HashMap<>();
         List<CourseListItemDTO> candidates = new ArrayList<>();
+        Set<String> currentTokens = CourseTopicMatcher.courseTokens(currentCourse);
         for (CourseVectorMatch match : matches) {
             CourseListProjection projection = projectionById.get(match.courseId());
             if (projection == null || enrolledCourseIds.contains(match.courseId())) {
                 continue;
             }
-            if (!CourseTopicMatcher.hasMeaningfulTopicOverlap(currentCourse, projection)) {
+            if (!CourseTopicMatcher.hasMeaningfulTopicOverlap(currentTokens, projection)) {
                 continue;
             }
             candidates.add(courseMapper.mapListProjectionToDTO(projection));

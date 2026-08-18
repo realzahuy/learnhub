@@ -11,6 +11,7 @@ import com.zh.learnhub_api.pojo.UserActionCode;
 import com.zh.learnhub_api.repositories.account.UserActionCodeRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.account.UserSessionRepository;
+import com.zh.learnhub_api.security.SessionAuthenticationCache;
 import com.zh.learnhub_api.utils.UserActionCodes;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,6 +38,7 @@ public class PasswordResetService {
     private final UserActionCodeRepository codeRepository;
     private final AccountEmailSender emailService;
     private final PasswordEncoder passwordEncoder;
+    private final SessionAuthenticationCache sessionAuthenticationCache;
 
     private final int codeLength;
     private final int expireMinutes;
@@ -49,12 +51,14 @@ public class PasswordResetService {
             UserActionCodeRepository codeRepository,
             AccountEmailSender emailService,
             PasswordEncoder passwordEncoder,
+            SessionAuthenticationCache sessionAuthenticationCache,
             AppProperties.PasswordReset properties) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.codeRepository = codeRepository;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+        this.sessionAuthenticationCache = sessionAuthenticationCache;
         this.codeLength = properties.codeLength();
         this.expireMinutes = properties.expireMinutes();
         this.resendCooldownSeconds = properties.resendCooldownSeconds();
@@ -141,6 +145,7 @@ public class PasswordResetService {
 
         userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
         sessionRepository.deleteAllByUserId(user.getId());
+        sessionAuthenticationCache.evictUserSessionsAfterCommit(user.getId());
 
         log.info("User {} đã đặt lại mật khẩu qua email", user.getUsername());
     }

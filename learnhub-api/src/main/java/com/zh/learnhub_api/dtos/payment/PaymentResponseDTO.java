@@ -23,17 +23,6 @@ public class PaymentResponseDTO {
     private String transactionId;
     private LocalDateTime createdAt;
 
-    private List<FreeEnrolledItemDTO> freeEnrolled;
     private List<Long> paidCourseIds;
     private String message;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class FreeEnrolledItemDTO {
-        private Long courseId;
-        private String title;
-        private String slug;
-    }
 }

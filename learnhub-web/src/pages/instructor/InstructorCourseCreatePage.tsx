@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { ConfirmDialog, DropdownOption, Stepper } from '../../components/common';
+import { ConfirmDialog, DropdownOption, LoadingScreen, Stepper } from '../../components/common';
 import CourseInfoForm from '../../components/features/instructor/CourseInfoForm';
 import CourseReviewStep from '../../components/features/instructor/CourseReviewStep';
 import CourseLessonsEditor from '../../components/features/instructor/CourseLessonsEditor';
+import InstructorCourseContentViewer from '../../components/features/instructor/InstructorCourseContentViewer';
 import { useToast } from '../../context/ToastContext';
 import { useCategories } from '../../hooks/useCategories';
 import { useCourseThumbnail } from '../../hooks/useCourseThumbnail';
@@ -59,7 +60,6 @@ const InstructorCourseCreatePage: React.FC = () => {
 
   const {
     lessons,
-    lessonKinds,
     videos,
     questions,
     processingProgressByVideoId,
@@ -70,7 +70,10 @@ const InstructorCourseCreatePage: React.FC = () => {
     removeLesson: handleLessonRemove,
     changeVideos: handleVideosChange,
     changeQuestions: handleQuestionsChange,
-  } = useCourseBuilder(courseId);
+  } = useCourseBuilder(
+    courseId,
+    status === null || BUILDABLE.includes(status)
+  );
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,12 +104,6 @@ const InstructorCourseCreatePage: React.FC = () => {
 
         const detail = await instructorService.getCourseDetail(reopenId as number);
         if (cancelled) return;
-
-        if (!BUILDABLE.includes(detail.status)) {
-          setStatus(detail.status);
-          setLoading(false);
-          return;
-        }
 
         setStatus(detail.status);
         setForm(toCourseForm(detail));
@@ -297,17 +294,45 @@ const InstructorCourseCreatePage: React.FC = () => {
     return <Navigate to={ROUTE_PATHS.instructorCourses} replace />;
   }
 
-  if (status !== null && !BUILDABLE.includes(status)) {
-    return <Navigate to={routeTo.instructorCourseEdit(reopenId as number)} replace />;
+  if (loading) {
+    return <LoadingScreen variant="form" count={5} />;
   }
 
-  if (loading) {
+  const isReadOnlyContent = status !== null && !BUILDABLE.includes(status);
+
+  if (isReadOnlyContent && courseId !== null) {
     return (
       <div className="course-create-page">
         <main className="course-create-main">
-          <div className="container py-5 text-center">
-            <div className="spinner-border text-notion" role="status">
-              <span className="visually-hidden">Đang tải...</span>
+          <div className="container py-4">
+            <div className="course-create-heading">
+              <h1 className="course-create-title">Nội dung khóa học</h1>
+            </div>
+
+            {loadError ? (
+              <div className="alert alert-danger">{loadError}</div>
+            ) : (
+              <>
+                <div className="alert alert-info">
+                  Khóa học đang ở trạng thái không cho phép sửa nội dung. Bạn vẫn có thể xem lại
+                  các bài giảng đã tạo bên dưới.
+                </div>
+                <InstructorCourseContentViewer
+                  lessons={lessons}
+                  videos={videos}
+                  questions={questions}
+                />
+              </>
+            )}
+
+            <div className="course-create-nav">
+              <button
+                type="button"
+                className="btn-course-create-outline"
+                onClick={() => navigate(routeTo.instructorCourseEdit(courseId))}
+              >
+                Quay lại
+              </button>
             </div>
           </div>
         </main>
@@ -403,7 +428,6 @@ const InstructorCourseCreatePage: React.FC = () => {
               <CourseLessonsEditor
                 courseId={courseId}
                 lessons={lessons}
-                kinds={lessonKinds}
                 videos={videos}
                 processingProgressByVideoId={processingProgressByVideoId}
                 questions={questions}
@@ -424,7 +448,6 @@ const InstructorCourseCreatePage: React.FC = () => {
               categoryName={categories.find((category) => String(category.id) === form.categoryId)?.name}
               currentThumbnail={currentThumbnail}
               lessons={lessons}
-              lessonKinds={lessonKinds}
               videos={videos}
               questions={questions}
             />

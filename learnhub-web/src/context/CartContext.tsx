@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { CartItem } from '../types/cart.types';
+import { enrollmentService } from '../services/api/enrollment.service';
+import { useAuth } from './AuthContext';
 
 const CART_STORAGE_KEY = 'cart';
 
@@ -20,14 +22,18 @@ const loadCart = (): CartItem[] => {
     const raw = sessionStorage.getItem(CART_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item) => typeof item?.price === 'number' && item.price > 0)
+      : [];
   } catch {
     return [];
   }
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
+  const { isAuthenticated } = useAuth();
   const [items, setItems] = useState<CartItem[]>(loadCart);
+  const reconciledAuthenticationRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -36,6 +42,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       console.error('Không thể lưu giỏ hàng:', error);
     }
   }, [items]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      reconciledAuthenticationRef.current = false;
+      return;
+    }
+    if (reconciledAuthenticationRef.current || items.length === 0) return;
+
+    reconciledAuthenticationRef.current = true;
+    let cancelled = false;
+    const courseIds = items.map((item) => item.id);
+
+    enrollmentService.checkEnrolledBatch(courseIds)
+      .then((enrolledCourseIds) => {
+        if (cancelled || enrolledCourseIds.length === 0) return;
+        const enrolledIds = new Set(enrolledCourseIds);
+        setItems((current) => current.filter((item) => !enrolledIds.has(item.id)));
+      })
+      .catch((error) => {
+        console.error('Không thể đối chiếu giỏ hàng với các khóa học đã đăng ký:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const isInCart = useCallback(
     (courseId: number) => items.some((item) => item.id === courseId),

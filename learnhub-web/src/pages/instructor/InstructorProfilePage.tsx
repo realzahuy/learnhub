@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { BackButton, LoadingScreen, Pagination, StarRating } from '../../components/common';
+import { BackButton, LoadingScreen, PageSkeleton, Pagination, StarRating } from '../../components/common';
 import { reviewService } from '../../services/api/review.service';
 import { Course } from '../../types/course.types';
 import { PageResponse } from '../../types/pagination.types';
@@ -70,7 +70,7 @@ const InstructorProfilePage = () => {
   };
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen variant="detail" />;
   }
 
   if (error || !profile) {
@@ -172,9 +172,7 @@ const InstructorProfilePage = () => {
             </h2>
 
             {coursesLoading ? (
-              <div className="py-5 text-center" aria-label="Đang tải khóa học">
-                <div className="spinner-border text-primary" role="status" />
-              </div>
+              <PageSkeleton variant="cards" count={3} />
             ) : coursesError ? (
               <p className="text-danger">{coursesError}</p>
             ) : profile.totalCourses === 0 ? (

@@ -1,6 +1,6 @@
 import { RefObject } from 'react';
 import { Link } from 'react-router-dom';
-import { User } from '../../types/auth.types';
+import { AuthenticatedUser } from '../../types/auth.types';
 import UserAvatar from '../common/UserAvatar';
 import { ROUTE_PATHS } from '../../routes/paths';
 
@@ -12,7 +12,7 @@ export const DesktopAccountMenu = ({
   onClose,
   onLogout,
 }: {
-  user: User;
+  user: AuthenticatedUser;
   isOpen: boolean;
   rootRef: RefObject<HTMLDivElement | null>;
   onToggle: () => void;
@@ -62,7 +62,7 @@ export const MobileAccountMenu = ({
   onClose,
   onLogout,
 }: {
-  user: User;
+  user: AuthenticatedUser;
   isOpen: boolean;
   onToggle: () => void;
   onClose: () => void;

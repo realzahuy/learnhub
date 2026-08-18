@@ -28,6 +28,14 @@ public class LessonProgress implements Serializable {
     @NotNull
     @Column(name = "is_completed")
     private boolean isCompleted;
+
+    @NotNull
+    @Column(name = "video_completed")
+    private boolean videoCompleted;
+
+    @NotNull
+    @Column(name = "quiz_completed")
+    private boolean quizCompleted;
     
     @JoinColumn(name = "lesson_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)

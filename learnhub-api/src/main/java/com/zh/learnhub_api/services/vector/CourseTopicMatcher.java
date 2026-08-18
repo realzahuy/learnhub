@@ -2,6 +2,7 @@ package com.zh.learnhub_api.services.vector;
 
 import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
+import com.zh.learnhub_api.projections.course.RecommendationCourseProjection;
 
 import java.text.Normalizer;
 import java.util.Arrays;
@@ -45,12 +46,28 @@ public final class CourseTopicMatcher {
 
     public static boolean hasMeaningfulTopicOverlap(
             Course currentCourse, CourseListProjection candidate) {
-        Set<String> currentTokens = meaningfulTokens(String.join(" ",
-                valueOrEmpty(currentCourse.getTitle()),
-                currentCourse.getCategoryId() == null
-                        ? "" : valueOrEmpty(currentCourse.getCategoryId().getName()),
-                valueOrEmpty(currentCourse.getShortDescription()),
-                valueOrEmpty(currentCourse.getDescription())));
+        return hasMeaningfulTopicOverlap(courseTokens(currentCourse), candidate);
+    }
+
+    public static Set<String> courseTokens(Course course) {
+        return Set.copyOf(meaningfulTokens(String.join(" ",
+                valueOrEmpty(course.getTitle()),
+                course.getCategoryId() == null
+                        ? "" : valueOrEmpty(course.getCategoryId().getName()),
+                valueOrEmpty(course.getShortDescription()),
+                valueOrEmpty(course.getDescription()))));
+    }
+
+    public static Set<String> courseTokens(RecommendationCourseProjection course) {
+        return Set.copyOf(meaningfulTokens(String.join(" ",
+                valueOrEmpty(course.getTitle()),
+                valueOrEmpty(course.getCategoryName()),
+                valueOrEmpty(course.getShortDescription()),
+                valueOrEmpty(course.getDescription()))));
+    }
+
+    public static boolean hasMeaningfulTopicOverlap(
+            Set<String> currentTokens, CourseListProjection candidate) {
         Set<String> candidateTokens = meaningfulTokens(String.join(" ",
                 valueOrEmpty(candidate.getTitle()),
                 valueOrEmpty(candidate.getCategoryName()),

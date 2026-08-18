@@ -150,7 +150,7 @@ const AdminStatsPage: React.FC = () => {
         {error && <div className="alert alert-danger">{error}</div>}
 
         { }
-        {loadingOverview && !overview && !error && <LoadingScreen />}
+        {loadingOverview && !overview && !error && <LoadingScreen variant="stats" />}
 
         {overview && (
           <>

@@ -1,4 +1,4 @@
-import apiClient, { cancelPendingRefresh, refreshAccessToken } from './config';
+import apiClient, { cancelPendingRefresh, refreshAuthSession } from './config';
 import { clearAccessToken, getAccessToken, setAccessToken } from './tokenStore';
 import { LoginRequest, LoginResponse, RegisterRequest, User } from '../../types/auth.types';
 
@@ -10,7 +10,7 @@ export const authService = {
 
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
-    setAccessToken(response.data.accessToken);
+    setAccessToken(response.data.accessToken, response.data.user);
     return response.data;
   },
 
@@ -19,9 +19,7 @@ export const authService = {
     return response.data;
   },
 
-  refreshTokens: async (): Promise<LoginResponse> => ({
-    accessToken: await refreshAccessToken(),
-  }),
+  refreshTokens: async (): Promise<LoginResponse> => refreshAuthSession(),
 
   logout: async (): Promise<void> => {
     cancelPendingRefresh();

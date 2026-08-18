@@ -6,5 +6,7 @@ public record CourseStatusChangedEvent(
         Long courseId,
         Long instructorId,
         CourseStatus status,
+        String title,
+        String categoryName,
         CourseRealtimeAudience audience) {
 }

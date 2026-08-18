@@ -35,7 +35,7 @@ const HomePage = () => {
                 </button>
                 {!isAuthenticated && (
                   <button
-                    className="btn btn-outline-notion btn-lg px-4"
+                    className="btn btn-outline-notion home-register-button btn-lg px-4"
                     onClick={() => navigate(ROUTE_PATHS.register)}
                   >
                     Đăng ký ngay

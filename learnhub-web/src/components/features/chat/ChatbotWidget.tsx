@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { StarRating, UserAvatar } from '../../common';
 import { chatService } from '../../../services/api/chat.service';
@@ -109,7 +110,13 @@ const ChatbotWidget = () => {
 
   useEffect(() => {
     if (!isOpen) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: isTyping ? 'auto' : 'smooth' });
+    const messagesContainer = messagesEndRef.current?.parentElement;
+    if (!messagesContainer) return;
+
+    messagesContainer.scrollTo({
+      top: messagesContainer.scrollHeight,
+      behavior: isTyping ? 'auto' : 'smooth',
+    });
   }, [isOpen, messages, isTyping]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -161,7 +168,7 @@ const ChatbotWidget = () => {
     setIsOpen((current) => !current);
   };
 
-  return (
+  return createPortal(
     <div
       ref={widgetRef}
       className={`chatbot-widget${isOpen ? ' is-open' : ''} is-panel-${panelPlacement}`}
@@ -224,7 +231,8 @@ const ChatbotWidget = () => {
       >
         <i className={`bi ${isOpen ? 'bi-x-lg' : 'bi-chat-dots-fill'}`}></i>
       </button>
-    </div>
+    </div>,
+    document.body
   );
 };
 

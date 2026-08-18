@@ -62,12 +62,8 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   const [submitting, setSubmitting] = useState(false);
 
   const goBackToProfile = useCallback(() => {
-    if (location.key !== 'default') {
-      navigate(-1);
-    } else {
-      navigate(backTo, { replace: true });
-    }
-  }, [backTo, location.key, navigate]);
+    navigate(backTo, { replace: true });
+  }, [backTo, navigate]);
 
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};

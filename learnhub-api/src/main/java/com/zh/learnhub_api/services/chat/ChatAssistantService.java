@@ -23,7 +23,8 @@ public class ChatAssistantService {
     public ChatResponseDTO respond(ChatRequestDTO request, String username) {
         ChatPlan plan = chatModelClient.generatePlan(request);
         List<CourseListItemDTO> courses = plan.shouldSearchCourses()
-                ? recommendationService.recommend(plan.searchKeywords(), username)
+                ? recommendationService.recommend(
+                        request.getMessage(), plan.searchKeywords(), username)
                 : List.of();
 
         String reply = plan.reply();

@@ -1,10 +1,14 @@
 import './LoadingScreen.css';
+import PageSkeleton, { PageSkeletonVariant } from './PageSkeleton';
 
-const LoadingScreen = () => (
-  <div className="loading-screen">
-    <div className="spinner-border text-notion" role="status">
-      <span className="visually-hidden">Đang tải...</span>
-    </div>
+interface LoadingScreenProps {
+  variant?: PageSkeletonVariant;
+  count?: number;
+}
+
+const LoadingScreen = ({ variant = 'detail', count }: LoadingScreenProps) => (
+  <div className="loading-screen" aria-live="polite">
+    <PageSkeleton variant={variant} count={count} />
   </div>
 );
 

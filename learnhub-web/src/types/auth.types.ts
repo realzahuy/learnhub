@@ -9,6 +9,12 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken: string;
+  user: AuthenticatedUser;
+}
+
+export interface AuthenticatedUser {
+  fullName: string;
+  avatar: string | null;
 }
 
 export interface RegisterRequest {

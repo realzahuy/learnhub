@@ -26,6 +26,11 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Set<Long> findCourseIdsByUserAndCourseIds(@Param("user") User user,
                                               @Param("courseIds") List<Long> courseIds);
 
+    @Query("SELECT e.courseId.id FROM Enrollment e "
+         + "WHERE e.userId.id = :userId AND e.courseId.id IN :courseIds")
+    Set<Long> findCourseIdsByUserIdAndCourseIds(@Param("userId") Long userId,
+                                                @Param("courseIds") List<Long> courseIds);
+
     @Query("SELECT e.courseId.id FROM Enrollment e WHERE e.userId.id = :userId")
     Set<Long> findCourseIdsByUserId(@Param("userId") Long userId);
 
@@ -35,12 +40,21 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     @Query(value = "SELECT e.id AS enrollmentId, c.id AS courseId, "
                  + "c.title AS courseTitle, c.slug AS courseSlug, "
                  + "c.thumbnail AS courseThumbnail, i.fullName AS instructorName, "
+                 + "cat.name AS categoryName, "
                  + "e.enrolledAt AS enrolledAt FROM Enrollment e "
-                 + "JOIN e.courseId c JOIN c.instructorId i "
-                 + "WHERE e.userId.id = :userId",
-           countQuery = "SELECT COUNT(e) FROM Enrollment e WHERE e.userId.id = :userId")
+                 + "JOIN e.courseId c JOIN c.instructorId i JOIN c.categoryId cat "
+                 + "WHERE e.userId.id = :userId "
+                 + "AND (:category IS NULL OR cat.name = :category) "
+                 + "AND (:search IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%')))",
+           countQuery = "SELECT COUNT(e) FROM Enrollment e "
+                      + "JOIN e.courseId c JOIN c.categoryId cat "
+                      + "WHERE e.userId.id = :userId "
+                      + "AND (:category IS NULL OR cat.name = :category) "
+                      + "AND (:search IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<EnrollmentListProjection> findListByUserId(
             @Param("userId") Long userId,
+            @Param("category") String category,
+            @Param("search") String search,
             Pageable pageable);
 
     @Query("SELECT c.instructorId.id AS instructorId, "

@@ -16,6 +16,7 @@ import com.zh.learnhub_api.projections.account.UserUpgradeProjection;
 import com.zh.learnhub_api.repositories.account.RoleRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.account.UserSessionRepository;
+import com.zh.learnhub_api.security.SessionAuthenticationCache;
 import com.zh.learnhub_api.mappers.UserMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -37,6 +39,8 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final RoleLookupService roleLookupService;
     private final UserSessionRepository sessionRepository;
+    private final SessionAuthenticationCache sessionAuthenticationCache;
+    private final UserProfileUpdateService userProfileUpdateService;
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
     private final UserMapper userMapper;
@@ -118,7 +122,15 @@ public class UserService {
             avatarUrl = uploaded.secureUrl();
         }
 
-        userRepository.updateProfile(user.getId(), request.getFullName(), request.getBio(), avatarUrl);
+        boolean publicIdentityChanged = !Objects.equals(user.getFullName(), request.getFullName())
+                || !Objects.equals(user.getAvatar(), avatarUrl);
+
+        userProfileUpdateService.updateProfile(
+                user.getId(),
+                request.getFullName(),
+                request.getBio(),
+                avatarUrl,
+                publicIdentityChanged);
 
         user.setFullName(request.getFullName());
         user.setBio(request.getBio());
@@ -144,6 +156,10 @@ public class UserService {
         }
 
         userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
-        sessionRepository.deleteOtherSessions(user.getId(), currentSessionId);
+        int deleted = sessionRepository.deleteOtherSessions(user.getId(), currentSessionId);
+        if (deleted > 0) {
+            sessionAuthenticationCache.evictOtherSessionsAfterCommit(
+                    user.getId(), currentSessionId);
+        }
     }
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { HlsPlayer } from '../../components/common';
+import { HlsPlayer, LoadingScreen, PageSkeleton } from '../../components/common';
 import {
   LearnCourseSidebar,
   LearnCourseTabs,
@@ -133,19 +133,43 @@ const LearnPage = () => {
     [setCourse]
   );
 
+  const markVideoCompleted = useCallback(async (lessonId: number) => {
+    try {
+      const progress = await learningService.markLessonVideoCompleted(lessonId);
+      setCourse((prev) => {
+        if (!prev) return prev;
+        const lessons = prev.lessons.map((lesson) =>
+          lesson.id === lessonId
+            ? {
+                ...lesson,
+                completed: progress.completed,
+                videoCompleted: progress.videoCompleted,
+                quizCompleted: progress.quizCompleted,
+              }
+            : lesson
+        );
+        return {
+          ...prev,
+          lessons,
+          completedLessons: lessons.filter((lesson) => lesson.completed).length,
+        };
+      });
+    } catch (err) {
+      console.error('Không thể lưu tiến độ xem video:', err);
+    }
+  }, [setCourse]);
+
   const handleVideoWatched = useCallback(() => {
     if (!course || viewing?.kind !== 'video') return;
 
     const lesson = course.lessons.find((item) => item.id === viewing.lessonId);
-    if (!lesson || lesson.completed) return;
-
-    if (lesson.questionCount > 0) return;
+    if (!lesson || lesson.videoCompleted) return;
 
     const videoIndex = lesson.videos.findIndex((video) => video.id === viewing.video.id);
     if (videoIndex === lesson.videos.length - 1) {
-      toggleCompleted(lesson.id, true);
+      void markVideoCompleted(lesson.id);
     }
-  }, [course, viewing, toggleCompleted]);
+  }, [course, viewing, markVideoCompleted]);
 
   const handleVideoEnded = useCallback(() => {
     if (!course || viewing?.kind !== 'video') return;
@@ -176,11 +200,13 @@ const LearnPage = () => {
     }
   }, [course, viewing, openVideo, openQuiz]);
 
-  const handleQuizPassed = useCallback((lessonId: number) => {
+  const handleQuizPassed = useCallback((lessonId: number, lessonCompleted: boolean) => {
     setCourse((prev) => {
       if (!prev) return prev;
       const lessons = prev.lessons.map((lesson) =>
-        lesson.id === lessonId ? { ...lesson, completed: true } : lesson
+        lesson.id === lessonId
+          ? { ...lesson, quizCompleted: true, completed: lessonCompleted }
+          : lesson
       );
       return {
         ...prev,
@@ -208,15 +234,7 @@ const LearnPage = () => {
   }, [course]);
 
   if (isAuthLoading) {
-    return (
-      <div className="learn-page">
-        <div className="learn-center">
-          <div className="spinner-border text-notion" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen variant="detail" />;
   }
 
   if (!slug) {
@@ -231,11 +249,7 @@ const LearnPage = () => {
     <div className="learn-page">
 
       {loading ? (
-        <div className="learn-center">
-          <div className="spinner-border text-notion" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
-        </div>
+        <PageSkeleton variant="detail" />
       ) : error ? (
         <div className="learn-center learn-error">
           <p>{error}</p>
@@ -253,7 +267,7 @@ const LearnPage = () => {
 
                   key={viewing.lessonId}
                   lessonId={viewing.lessonId}
-                  onLessonCompleted={handleQuizPassed}
+                  onQuizPassed={handleQuizPassed}
                   onBestScoreChanged={handleQuizScored}
                 />
               ) : (

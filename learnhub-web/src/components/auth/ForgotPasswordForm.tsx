@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PasswordInput from './PasswordInput';
 import { passwordResetService } from '../../services/api/passwordReset.service';
+import { authService } from '../../services/api/auth.service';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatCountdown, useOtpCountdown } from '../../hooks/useOtpCountdown';
@@ -18,9 +19,9 @@ interface ForgotPasswordFormProps {
 const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { isAuthenticated, isLoading: authLoading, user, logout } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
 
-  const accountEmail = isAuthenticated ? (user?.email ?? null) : null;
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
 
   const [step, setStep] = useState<'email' | 'reset'>('email');
 
@@ -40,8 +41,24 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
   const codeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (accountEmail) setEmail(accountEmail);
-  }, [accountEmail]);
+    if (!isAuthenticated) {
+      setAccountEmail(null);
+      return;
+    }
+
+    let cancelled = false;
+    authService.getCurrentUser().then((currentUser) => {
+      if (cancelled) return;
+      setAccountEmail(currentUser.email);
+      setEmail(currentUser.email);
+    }).catch(() => {
+      if (!cancelled) setAccountEmail(null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const requestCode = useCallback(async () => {
     const trimmed = email.trim();

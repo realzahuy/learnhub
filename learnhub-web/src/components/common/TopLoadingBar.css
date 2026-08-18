@@ -1,0 +1,42 @@
+.top-loading-bar {
+  position: fixed;
+  z-index: 2147483647;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgba(35, 131, 226, 0.14);
+}
+
+.top-loading-bar span {
+  display: block;
+  width: 38%;
+  height: 100%;
+  background: var(--notion-blue, #2383e2);
+  box-shadow: 0 0 8px rgba(35, 131, 226, 0.72);
+  transform: translateX(-110%);
+  animation: top-loading-bar-running 1.15s ease-in-out infinite;
+}
+
+.top-loading-bar.is-completing span {
+  width: 100%;
+  transform: translateX(0);
+  animation: none;
+  transition: transform 180ms ease-out;
+}
+
+@keyframes top-loading-bar-running {
+  0% { transform: translateX(-110%); }
+  65% { transform: translateX(165%); }
+  100% { transform: translateX(300%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-loading-bar span {
+    width: 100%;
+    transform: none;
+    animation: none;
+  }
+}

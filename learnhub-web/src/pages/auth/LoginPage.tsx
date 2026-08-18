@@ -11,7 +11,11 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const state = location.state as { from?: string; registeredUsername?: string } | null;
+  const state = location.state as {
+    from?: string;
+    registeredUsername?: string;
+    authError?: string;
+  } | null;
 
   const from = state?.from;
   const redirectTo =
@@ -21,7 +25,7 @@ const LoginPage = () => {
 
   const [form, setForm] = useState({ login: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(state?.authError ?? null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {

@@ -1,7 +1,11 @@
 package com.zh.learnhub_api.services.media;
 
+import com.zh.learnhub_api.configs.CacheNames;
+import com.zh.learnhub_api.enums.CourseStatus;
+import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Video;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
+import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +24,7 @@ public class VideoTranscodeCallbackService {
     private final VideoStorageService videoStorageService;
     private final VideoLifecycle videoLifecycle;
     private final VideoProgressSseService videoProgressSseService;
+    private final ApplicationCacheInvalidator cacheInvalidator;
 
     @Transactional
     public void handleJobStateChange(
@@ -56,6 +61,7 @@ public class VideoTranscodeCallbackService {
         if ("ERROR".equals(status) || "CANCELED".equals(status)) {
             videoLifecycle.markFailed(video, LocalDateTime.now());
             videoRepository.save(video);
+            evictPublishedCourseDetail(video);
             publishProgressAfterCommit(courseId, video.getId(), "FAILED", progress);
             log.error("Video {} -> FAILED (MediaConvert job {} {})",
                     video.getId(), jobId, status);
@@ -73,6 +79,7 @@ public class VideoTranscodeCallbackService {
         video.setStorageKey(masterPlaylistKey);
         video.setDurationSeconds(durationSeconds);
         videoRepository.save(video);
+        evictPublishedCourseDetail(video);
 
         log.info("Video {} -> READY. Duration: {}s, HLS master: {}",
                 video.getId(), durationSeconds, masterPlaylistKey);
@@ -106,5 +113,14 @@ public class VideoTranscodeCallbackService {
                         publish.run();
                     }
                 });
+    }
+
+    private void evictPublishedCourseDetail(Video video) {
+        Course course = video.getLesson().getCourseId();
+        if (CourseStatus.PUBLISHED.name().equals(course.getStatus())) {
+            cacheInvalidator.evictAfterCommit(
+                    CacheNames.PUBLIC_COURSE_DETAILS,
+                    course.getSlug());
+        }
     }
 }

@@ -38,7 +38,9 @@ const Header: React.FC = () => {
     matchPath(ROUTE_MATCH_PATTERNS.coursesArea, location.pathname)
   ) && !isLearningMode;
   const [searchQuery, setSearchQuery] = useState(
-    () => new URLSearchParams(location.search).get('search') ?? ''
+    () => location.pathname === ROUTE_PATHS.courses
+      ? new URLSearchParams(location.search).get('search') ?? ''
+      : ''
   );
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -48,7 +50,11 @@ const Header: React.FC = () => {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setSearchQuery(new URLSearchParams(location.search).get('search') ?? '');
+    setSearchQuery(
+      location.pathname === ROUTE_PATHS.courses
+        ? new URLSearchParams(location.search).get('search') ?? ''
+        : ''
+    );
     setShowDropdown(false);
     setShowMobileUserMenu(false);
   }, [location.pathname, location.search]);
@@ -164,7 +170,7 @@ const Header: React.FC = () => {
 
         { }
         <div className="d-flex d-lg-none align-items-center gap-2 ms-auto">
-          {isAuthenticated && <NotificationBell />}
+          {isAuthenticated && isInstructorMode && <NotificationBell />}
           <button
             className={`navbar-toggler user-menu-toggle${showMobileMenu ? ' is-open' : ''}`}
             type="button"
@@ -254,18 +260,20 @@ const Header: React.FC = () => {
               </>
             ))}
 
-          {isAuthenticated && <NotificationBell />}
+          {isAuthenticated && isInstructorMode && <NotificationBell />}
 
-          <NavLink
-            to={ROUTE_PATHS.cart}
-            className="btn btn-link text-dark cart-hover position-relative cart-link"
-            aria-label="Giỏ hàng"
-          >
-            <CartIcon />
-            {cartCount > 0 && (
-              <span className="cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>
-            )}
-          </NavLink>
+          {!isInstructorMode && (
+            <NavLink
+              to={ROUTE_PATHS.cart}
+              className="btn btn-link text-dark cart-hover position-relative cart-link"
+              aria-label="Giỏ hàng"
+            >
+              <CartIcon />
+              {cartCount > 0 && (
+                <span className="cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>
+              )}
+            </NavLink>
+          )}
 
           {isAuthenticated && user ? (
             <DesktopAccountMenu

@@ -1,31 +1,31 @@
 import React from 'react';
 import { CourseFormState } from '../../../utils/courseForm';
 import { formatPrice } from '../../../utils';
-import { Lesson, LessonKind, Video } from '../../../types/lesson.types';
+import { Lesson, Video } from '../../../types/lesson.types';
 import { Question } from '../../../types/question.types';
 
 interface CourseReviewStepProps {
+  title?: string;
   form: CourseFormState;
   categoryName?: string;
   currentThumbnail: string | null;
   lessons: Lesson[];
-  lessonKinds: Record<number, LessonKind>;
   videos: Record<number, Video[]>;
   questions: Record<number, Question[]>;
 }
 
 const CourseReviewStep: React.FC<CourseReviewStepProps> = ({
+  title = 'Xem lại trước khi hoàn tất',
   form,
   categoryName,
   currentThumbnail,
   lessons,
-  lessonKinds,
   videos,
   questions,
 }) => {
   return (
     <div className="course-create-card">
-      <h2 className="course-create-section-title">Xem lại trước khi hoàn tất</h2>
+      <h2 className="course-create-section-title">{title}</h2>
       <div className="course-review">
         <div className="course-review-thumb">
           {currentThumbnail ? (
@@ -43,27 +43,25 @@ const CourseReviewStep: React.FC<CourseReviewStepProps> = ({
         </dl>
       </div>
 
-      {lessons.length > 0 && (
+      {lessons.length > 0 ? (
         <ol className="course-review-lessons">
           {lessons.map((lesson) => {
-            const kind = lessonKinds[lesson.id] ?? 'VIDEO';
             const lessonVideos = videos[lesson.id] ?? [];
             const lessonQuestions = questions[lesson.id] ?? [];
             const processing = lessonVideos.filter((video) => video.status !== 'READY').length;
-            const count = kind === 'QUIZ' ? lessonQuestions.length : lessonVideos.length;
-            const summary = count === 0
-              ? (kind === 'QUIZ' ? 'Chưa có câu hỏi' : 'Chưa có video')
-              : kind === 'QUIZ'
-                ? `${count} câu hỏi`
-                : processing > 0
-                  ? `${count} video (${processing} đang xử lý)`
-                  : `${count} video`;
+            const contentCount = lessonVideos.length + lessonQuestions.length;
+            const videoSummary = processing > 0
+              ? `${lessonVideos.length} video (${processing} đang xử lý)`
+              : `${lessonVideos.length} video`;
+            const summary = contentCount === 0
+              ? 'Chưa có nội dung'
+              : `${videoSummary} · ${lessonQuestions.length} câu hỏi`;
 
             return (
               <li key={lesson.id}>
                 <span className="course-review-lesson-title">{lesson.title}</span>
                 <span className={`lesson-status ${
-                  count === 0
+                  contentCount === 0
                     ? 'lesson-status-empty'
                     : processing > 0
                       ? 'lesson-status-processing'
@@ -75,6 +73,10 @@ const CourseReviewStep: React.FC<CourseReviewStepProps> = ({
             );
           })}
         </ol>
+      ) : (
+        <p className="course-create-section-hint course-review-lessons-empty">
+          Khóa học chưa có bài giảng nào.
+        </p>
       )}
 
     </div>

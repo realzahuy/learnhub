@@ -64,11 +64,13 @@ public class NotificationService {
                 ? notificationRepository.findFirstNotificationPage(resolvedUserId, pageSize + 1)
                 : notificationRepository.findNotificationPageAfter(
                         resolvedUserId, cursorCreatedAt, cursorId, pageSize + 1);
-        long unreadCount = notificationRepository
-                .countByRecipientId_IdAndReadAtIsNull(resolvedUserId);
-        boolean last = rows.size() <= pageSize;
+        long unreadCount = rows.isEmpty() ? 0 : rows.getFirst().getUnreadCount();
+        List<NotificationRepository.NotificationPageRow> notificationRows = rows.stream()
+                .filter(row -> row.getId() != null)
+                .toList();
+        boolean last = notificationRows.size() <= pageSize;
 
-        List<NotificationResponseDTO> content = rows.stream()
+        List<NotificationResponseDTO> content = notificationRows.stream()
                 .limit(pageSize)
                 .map(this::toResponse)
                 .toList();

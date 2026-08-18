@@ -1,9 +1,11 @@
 import { AppNotification } from '../../types/notification.types';
 import {
+  AccountLockedEvent,
   CourseStatusChangedEvent,
   RealtimeConnectedEvent,
   SSE_EVENT_NAMES,
 } from '../../types/realtime.types';
+import { notifyAccountLocked } from '../authSessionEvents';
 import apiClient, { API_BASE_URL, authenticatedFetch } from './config';
 import { consumeJsonSseEvents } from './sse';
 
@@ -27,13 +29,19 @@ export interface NotificationCursor {
 }
 
 export const notificationService = {
-  list: async (cursor: NotificationCursor | null = null, size = 30): Promise<NotificationPage> => {
+  list: async (
+    cursor: NotificationCursor | null = null,
+    size = 30,
+    signal?: AbortSignal
+  ): Promise<NotificationPage> => {
     const response = await apiClient.get<NotificationPage>('/notifications', {
       params: {
         size,
         cursorCreatedAt: cursor?.createdAt,
         cursorId: cursor?.id,
       },
+      signal,
+      showTopProgress: false,
     });
     return response.data;
   },
@@ -60,6 +68,8 @@ export const notificationService = {
         handlers.onNotification?.(data as AppNotification),
       [SSE_EVENT_NAMES.COURSE_STATUS_CHANGED]: (data) =>
         handlers.onCourseStatusChanged?.(data as CourseStatusChangedEvent),
+      [SSE_EVENT_NAMES.ACCOUNT_LOCKED]: (data) =>
+        notifyAccountLocked((data as AccountLockedEvent).message),
     });
   },
 };

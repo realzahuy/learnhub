@@ -11,4 +11,6 @@ import lombok.NoArgsConstructor;
 public class CourseStatusChangedDTO {
     private Long courseId;
     private CourseStatus status;
+    private String title;
+    private String categoryName;
 }

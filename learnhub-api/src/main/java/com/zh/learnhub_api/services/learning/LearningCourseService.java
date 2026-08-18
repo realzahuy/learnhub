@@ -5,10 +5,11 @@ import com.zh.learnhub_api.dtos.learning.LearnCourseDTO;
 import com.zh.learnhub_api.dtos.learning.LearnCourseDTO.LearnLessonDTO;
 import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
-import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Lesson;
 import com.zh.learnhub_api.pojo.LessonProgress;
 import com.zh.learnhub_api.pojo.Video;
+import com.zh.learnhub_api.projections.course.LearningCourseProjection;
+import com.zh.learnhub_api.projections.course.RecommendationCourseProjection;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.learning.LessonProgressRepository;
@@ -43,14 +44,14 @@ public class LearningCourseService {
     private final AppProperties.Quiz quizProperties;
 
     public LearnCourseDTO getCourseForLearningBySlug(String slug, Long userId) {
-        Course course = courseRepository.findBySlug(slug)
+        LearningCourseProjection course = courseRepository.findLearningCourseBySlug(slug, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
         return getCourseForLearning(course, userId);
     }
 
-    private LearnCourseDTO getCourseForLearning(Course course, Long userId) {
-        lessonProgressService.checkCanLearn(course, userId);
-        Long courseId = course.getId();
+    private LearnCourseDTO getCourseForLearning(LearningCourseProjection course, Long userId) {
+        Long courseId = course.getCourseId();
+        lessonProgressService.requireEnrollment(course.getEnrolled());
 
         List<Lesson> lessons = lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId);
         Map<Long, List<Video>> videosByLesson = videoRepository.findPublicByCourseId(courseId)
@@ -66,31 +67,40 @@ public class LearningCourseService {
                 .collect(Collectors.toMap(
                         row -> row.getLessonId(),
                         row -> row.getBestScore()));
-        Set<Long> completedLessonIds = lessonProgressRepository
+        Map<Long, LessonProgress> progressByLesson = lessonProgressRepository
                 .findByUserAndCourse(userId, courseId).stream()
+                .collect(Collectors.toMap(
+                        progress -> progress.getLessonId().getId(),
+                        progress -> progress));
+        Set<Long> completedLessonIds = progressByLesson.values().stream()
                 .filter(LessonProgress::isCompleted)
                 .map(progress -> progress.getLessonId().getId())
                 .collect(Collectors.toSet());
 
         List<LearnLessonDTO> lessonDTOs = lessons.stream()
-                .map(lesson -> new LearnLessonDTO(
-                        lesson.getId(),
-                        lesson.getTitle(),
-                        lesson.getPosition(),
-                        lesson.isPreview(),
-                        completedLessonIds.contains(lesson.getId()),
-                        videosByLesson.getOrDefault(lesson.getId(), List.of()).stream()
-                                .map(videoPlaybackService::toPlayableVideo)
-                                .collect(Collectors.toList()),
-                        questionCounts.getOrDefault(lesson.getId(), 0),
-                        bestQuizScores.get(lesson.getId())))
+                .map(lesson -> {
+                    LessonProgress progress = progressByLesson.get(lesson.getId());
+                    return new LearnLessonDTO(
+                            lesson.getId(),
+                            lesson.getTitle(),
+                            lesson.getPosition(),
+                            lesson.isPreview(),
+                            progress != null && progress.isCompleted(),
+                            progress != null && progress.isVideoCompleted(),
+                            progress != null && progress.isQuizCompleted(),
+                            videosByLesson.getOrDefault(lesson.getId(), List.of()).stream()
+                                    .map(videoPlaybackService::toPlayableVideo)
+                                    .collect(Collectors.toList()),
+                            questionCounts.getOrDefault(lesson.getId(), 0),
+                            bestQuizScores.get(lesson.getId()));
+                })
                 .collect(Collectors.toList());
 
         return new LearnCourseDTO(
-                course.getId(),
+                courseId,
                 course.getTitle(),
                 course.getSlug(),
-                course.getInstructorId().getFullName(),
+                course.getInstructorName(),
                 lessonDTOs,
                 completedLessonIds.size(),
                 lessons.size(),
@@ -98,9 +108,10 @@ public class LearningCourseService {
     }
 
     public List<CourseListItemDTO> getRecommendations(Long courseId, Long userId) {
-        Course course = courseRepository.findById(courseId)
+        RecommendationCourseProjection course = courseRepository
+                .findRecommendationSource(courseId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
-        lessonProgressService.checkCanLearn(course, userId);
+        lessonProgressService.requireEnrollment(course.getEnrolled());
 
         Set<Long> enrolledCourseIds = enrollmentRepository.findCourseIdsByUserId(userId);
         return recommendationService.getRecommendations(course, enrolledCourseIds);

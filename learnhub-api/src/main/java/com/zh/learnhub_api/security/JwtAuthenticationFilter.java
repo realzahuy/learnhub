@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final SessionAuthenticationCache sessionAuthenticationCache;
 
     @Override
     protected void doFilterInternal(
@@ -53,6 +55,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     Long userId = jwtUtil.getUserIdFromToken(jwt);
                     Long sessionId = jwtUtil.getSessionIdFromToken(jwt);
                     if (userId == null || sessionId == null) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+                    if (!sessionAuthenticationCache.isActive(
+                            sessionId, userId, LocalDateTime.now())) {
                         filterChain.doFilter(request, response);
                         return;
                     }

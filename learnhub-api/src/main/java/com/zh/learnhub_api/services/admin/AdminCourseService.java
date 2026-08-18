@@ -1,6 +1,7 @@
 package com.zh.learnhub_api.services.admin;
 
 import com.zh.learnhub_api.dtos.admin.AdminCourseContentDTO;
+import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.admin.AdminCourseContentDTO.AdminLessonContentDTO;
 import com.zh.learnhub_api.dtos.course.CourseRejectRequestDTO;
 import com.zh.learnhub_api.dtos.course.CourseResponseDTO;
@@ -21,6 +22,7 @@ import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.services.learning.VideoPlaybackService;
 import com.zh.learnhub_api.services.notification.NotificationService;
+import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import com.zh.learnhub_api.services.realtime.CourseRealtimeAudience;
 import com.zh.learnhub_api.services.realtime.CourseStatusChangedEvent;
 import com.zh.learnhub_api.services.vector.CourseVectorUpsertEvent;
@@ -57,6 +59,7 @@ public class AdminCourseService {
     private final QuestionRepository questionRepository;
     private final VideoPlaybackService videoPlaybackService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ApplicationCacheInvalidator cacheInvalidator;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -155,10 +158,15 @@ public class AdminCourseService {
             courseId,
             course.getInstructorId().getId(),
             CourseStatus.PUBLISHED,
+            course.getTitle(),
+            course.getCategoryId().getName(),
             CourseRealtimeAudience.INSTRUCTOR
         ));
 
         eventPublisher.publishEvent(new CourseVectorUpsertEvent(courseId));
+        cacheInvalidator.evictAfterCommit(
+                CacheNames.PUBLIC_INSTRUCTOR_PROFILES,
+                course.getInstructorId().getId());
 
     }
 
@@ -201,9 +209,10 @@ public class AdminCourseService {
             courseId,
             course.getInstructorId().getId(),
             CourseStatus.REJECTED,
+            course.getTitle(),
+            course.getCategoryId().getName(),
             CourseRealtimeAudience.INSTRUCTOR
         ));
-
     }
 
 }

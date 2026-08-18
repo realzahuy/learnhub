@@ -2,3 +2,20 @@
 .footer {
   background-color: #1a1a1a !important;
 }
+
+.footer-contact {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.92rem;
+}
+
+.footer-contact a {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer-contact a:hover,
+.footer-contact a:focus-visible {
+  color: #9ecbff;
+  text-decoration: underline;
+}

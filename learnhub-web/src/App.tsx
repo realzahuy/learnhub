@@ -8,6 +8,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import AppRoutes from './routes/AppRoutes';
 import ScrollToTop from './components/layouts/ScrollToTop';
 import RouteTransition from './components/layouts/RouteTransition';
+import TopLoadingBar from './components/common/TopLoadingBar';
 import './App.css';
 import './assets/styles/motion.css';
 
@@ -19,6 +20,7 @@ function App() {
           <NotificationProvider>
             <CartProvider>
               <div className="App">
+                <TopLoadingBar />
                 <RouteTransition>
                   <AppRoutes />
                 </RouteTransition>

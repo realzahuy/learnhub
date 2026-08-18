@@ -13,16 +13,9 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
-
-    @Query("SELECT DISTINCT pi.courseId.id FROM PaymentItem pi "
-         + "WHERE pi.paymentId.userId = :user AND pi.paymentId.status = 'PENDING' "
-         + "AND pi.courseId.id IN :courseIds")
-    Set<Long> findPendingCourseIds(@Param("user") User user,
-                                   @Param("courseIds") List<Long> courseIds);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Payment p SET p.status = 'EXPIRED', p.updatedAt = :now "

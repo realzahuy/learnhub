@@ -19,13 +19,6 @@ export interface LessonReorderPayload {
   position: number;
 }
 
-export type LessonKind = 'VIDEO' | 'QUIZ';
-
-export const LESSON_KIND_LABELS: Record<LessonKind, string> = {
-  VIDEO: 'Video bài giảng',
-  QUIZ: 'Câu hỏi trắc nghiệm',
-};
-
 export type VideoStatus = 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED';
 
 export const VIDEO_STATUS_LABELS: Record<VideoStatus, string> = {
