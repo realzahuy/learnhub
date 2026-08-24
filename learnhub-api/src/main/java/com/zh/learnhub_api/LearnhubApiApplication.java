@@ -1,13 +1,12 @@
 package com.zh.learnhub_api;
 
+import com.zh.learnhub_api.configs.TimeZoneEnvironmentListener;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
-
-import java.util.TimeZone;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
@@ -17,9 +16,9 @@ import java.util.TimeZone;
 public class LearnhubApiApplication {
 
 	public static void main(String[] args) {
-
-		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
-		SpringApplication.run(LearnhubApiApplication.class, args);
+		SpringApplication application = new SpringApplication(LearnhubApiApplication.class);
+		application.addListeners(new TimeZoneEnvironmentListener());
+		application.run(args);
 	}
 
 }

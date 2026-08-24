@@ -15,6 +15,8 @@ public final class CacheNames {
     public static final String PUBLIC_COURSE_DETAILS = "publicCourseDetails";
     public static final String PUBLIC_INSTRUCTOR_PROFILES = "publicInstructorProfiles";
     public static final String PUBLIC_COURSE_CATALOG = "publicCourseCatalog";
+    public static final String PUBLISHED_VIDEO_PLAYBACK = "publishedVideoPlayback";
+    public static final String COURSE_PLAYBACK_ACCESS = "coursePlaybackAccess";
 
     private CacheNames() {
     }

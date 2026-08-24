@@ -13,25 +13,47 @@ import java.util.Collections;
 public class CacheConfiguration {
 
     @Bean
-    public CacheManager cacheManager() {
+    public CacheManager cacheManager(
+            AppProperties.ApplicationCache applicationCache,
+            AppProperties.VideoPlaybackCache videoPlaybackCache) {
         CaffeineCacheManager manager = new CaffeineCacheManager();
         manager.setAllowNullValues(false);
         manager.setCacheNames(Collections.emptyList());
 
-        register(manager, CacheNames.ROLE_IDS, 32, Duration.ofHours(24));
-        register(manager, CacheNames.CATEGORIES, 4, Duration.ofHours(12));
-        register(manager, CacheNames.ADMIN_OVERVIEW, 2, Duration.ofMinutes(1));
-        register(manager, CacheNames.ADMIN_TIME_SERIES, 256, Duration.ofMinutes(2));
-        register(manager, CacheNames.INSTRUCTOR_OVERVIEW, 2_000, Duration.ofMinutes(1));
-        register(manager, CacheNames.INSTRUCTOR_TIME_SERIES, 4_000, Duration.ofMinutes(2));
-        register(manager, CacheNames.QUERY_EMBEDDINGS, 500, Duration.ofHours(24));
-        register(manager, CacheNames.COURSE_RATING_STATS, 10_000, Duration.ofMinutes(30));
-        register(manager, CacheNames.COURSE_RATING_SUMMARIES, 10_000, Duration.ofMinutes(30));
-        register(manager, CacheNames.INSTRUCTOR_RATING_STATS, 5_000, Duration.ofMinutes(30));
-        register(manager, CacheNames.PUBLIC_COURSE_DETAILS, 2_000, Duration.ofHours(2));
-        register(manager, CacheNames.PUBLIC_INSTRUCTOR_PROFILES, 2_000, Duration.ofMinutes(30));
-        register(manager, CacheNames.PUBLIC_COURSE_CATALOG, 32, Duration.ofMinutes(1));
+        register(manager, CacheNames.ROLE_IDS, applicationCache.roleIds());
+        register(manager, CacheNames.CATEGORIES, applicationCache.categories());
+        register(manager, CacheNames.ADMIN_OVERVIEW, applicationCache.adminOverview());
+        register(manager, CacheNames.ADMIN_TIME_SERIES, applicationCache.adminTimeSeries());
+        register(manager, CacheNames.INSTRUCTOR_OVERVIEW, applicationCache.instructorOverview());
+        register(manager, CacheNames.INSTRUCTOR_TIME_SERIES, applicationCache.instructorTimeSeries());
+        register(manager, CacheNames.QUERY_EMBEDDINGS, applicationCache.queryEmbeddings());
+        register(manager, CacheNames.COURSE_RATING_STATS, applicationCache.courseRatingStats());
+        register(manager, CacheNames.COURSE_RATING_SUMMARIES, applicationCache.courseRatingSummaries());
+        register(manager, CacheNames.INSTRUCTOR_RATING_STATS, applicationCache.instructorRatingStats());
+        register(manager, CacheNames.PUBLIC_COURSE_DETAILS, applicationCache.publicCourseDetails());
+        register(
+                manager,
+                CacheNames.PUBLIC_INSTRUCTOR_PROFILES,
+                applicationCache.publicInstructorProfiles());
+        register(manager, CacheNames.PUBLIC_COURSE_CATALOG, applicationCache.publicCourseCatalog());
+        register(
+                manager,
+                CacheNames.PUBLISHED_VIDEO_PLAYBACK,
+                videoPlaybackCache.metadataMaximumSize(),
+                Duration.ofMinutes(videoPlaybackCache.metadataExpireAfterWriteMinutes()));
+        register(
+                manager,
+                CacheNames.COURSE_PLAYBACK_ACCESS,
+                videoPlaybackCache.accessMaximumSize(),
+                Duration.ofMinutes(videoPlaybackCache.accessExpireAfterWriteMinutes()));
         return manager;
+    }
+
+    private void register(
+            CaffeineCacheManager manager,
+            String name,
+            AppProperties.CacheSpec spec) {
+        register(manager, name, spec.maximumSize(), spec.expireAfterWrite());
     }
 
     private void register(
@@ -44,4 +66,5 @@ public class CacheConfiguration {
                 .expireAfterWrite(ttl)
                 .build());
     }
+
 }

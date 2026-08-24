@@ -1,18 +1,20 @@
 package com.zh.learnhub_api.configs;
 
+import io.awspring.cloud.autoconfigure.s3.S3ClientCustomizer;
+import io.awspring.cloud.autoconfigure.sqs.SqsAsyncClientCustomizer;
+import io.awspring.cloud.sqs.config.SqsMessageListenerContainerFactory;
+import io.awspring.cloud.sqs.listener.acknowledgement.handler.AcknowledgementMode;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import io.awspring.cloud.sqs.config.SqsMessageListenerContainerFactory;
-import io.awspring.cloud.sqs.listener.acknowledgement.handler.AcknowledgementMode;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.http.apache5.Apache5HttpClient;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.regions.providers.AwsRegionProvider;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-
-import java.time.Duration;
 
 @Configuration
 @ConditionalOnProperty(name = "video.storage.provider", havingValue = "s3")
@@ -31,17 +33,49 @@ public class AwsConfig {
         return () -> configuredRegion;
     }
 
+    @Bean
+    public S3ClientCustomizer s3ClientCustomizer(AppProperties.AwsClient properties) {
+        return builder -> {
+            builder.httpClientBuilder(Apache5HttpClient.builder()
+                    .connectionTimeout(properties.connectionTimeout()));
+            builder.overrideConfiguration(builder.overrideConfiguration().copy(override -> override
+                    .apiCallAttemptTimeout(properties.apiCallAttemptTimeout())
+                    .apiCallTimeout(properties.apiCallTimeout())
+                    .retryStrategy(retry -> retry.maxAttempts(properties.maxAttempts()))));
+        };
+    }
+
+    @Bean
+    public SqsAsyncClientCustomizer sqsAsyncClientCustomizer(
+            AppProperties.AwsClient properties) {
+        return builder -> {
+            builder.httpClientBuilder(NettyNioAsyncHttpClient.builder()
+                    .connectionTimeout(properties.connectionTimeout()));
+            builder.overrideConfiguration(builder.overrideConfiguration().copy(override -> override
+                    .apiCallAttemptTimeout(properties.apiCallAttemptTimeout())
+                    .apiCallTimeout(properties.apiCallTimeout())
+                    .retryStrategy(retry -> retry.maxAttempts(properties.maxAttempts()))));
+        };
+    }
+
     @Bean("videoJobSqsListenerContainerFactory")
     public SqsMessageListenerContainerFactory<Object> videoJobSqsListenerContainerFactory(
             SqsAsyncClient sqsAsyncClient,
-            AppProperties.AwsSqsListener listenerProperties) {
+            AppProperties.AwsSqsListener listenerProperties,
+            AppProperties.AwsClient clientProperties) {
+        if (clientProperties.apiCallAttemptTimeout()
+                .compareTo(listenerProperties.pollTimeout()) <= 0) {
+            throw new IllegalStateException(
+                    "aws.client.api-call-attempt-timeout phải lớn hơn "
+                            + "spring.cloud.aws.sqs.listener.poll-timeout");
+        }
         return SqsMessageListenerContainerFactory.builder()
                 .sqsAsyncClient(sqsAsyncClient)
                 .configure(options -> options
                         .autoStartup(listenerProperties.autoStartup())
-                        .maxConcurrentMessages(1)
-                        .maxMessagesPerPoll(1)
-                        .pollTimeout(Duration.ofSeconds(20))
+                        .maxConcurrentMessages(listenerProperties.maxConcurrentMessages())
+                        .maxMessagesPerPoll(listenerProperties.maxMessagesPerPoll())
+                        .pollTimeout(listenerProperties.pollTimeout())
                         .acknowledgementMode(AcknowledgementMode.ON_SUCCESS))
                 .build();
     }

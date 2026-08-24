@@ -6,6 +6,7 @@ import com.zh.learnhub_api.security.SecurityProblemWriter;
 import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -27,9 +28,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -56,6 +54,10 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
+    @ConditionalOnProperty(
+            name = "app.swagger.enabled",
+            havingValue = "true",
+            matchIfMissing = true)
     public SecurityFilterChain swaggerFilterChain(
             HttpSecurity http,
             @Qualifier("swaggerAdminUserDetailsService") UserDetailsService userDetailsService,
@@ -155,9 +157,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(corsProperties.allowedOrigins());
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+        configuration.setAllowedMethods(corsProperties.allowedMethods());
+        configuration.setAllowedHeaders(corsProperties.allowedHeaders());
+        configuration.setAllowCredentials(corsProperties.allowCredentials());
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

@@ -89,6 +89,12 @@
             <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.paypal.sdk</groupId>
+            <artifactId>paypal-server-sdk</artifactId>
+            <version>2.3.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
@@ -172,6 +178,14 @@
             <artifactId>mediaconvert</artifactId>
         </dependency>
         <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache5-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>netty-nio-client</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>3.0.3</version>
@@ -208,36 +222,6 @@
                         <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <annotationProcessorPaths>
-                                <path>
-                                    <groupId>org.projectlombok</groupId>
-                                    <artifactId>lombok</artifactId>
-                                </path>
-                                <path>
-                                    <groupId>org.projectlombok</groupId>
-                                    <artifactId>lombok-mapstruct-binding</artifactId>
-                                    <version>0.2.0</version>
-                                </path>
-                                <path>
-                                    <groupId>org.mapstruct</groupId>
-                                    <artifactId>mapstruct-processor</artifactId>
-                                    <version>${mapstruct.version}</version>
-                                </path>
-                            </annotationProcessorPaths>
-                            <compilerArgs>
-                                <arg>-Amapstruct.defaultComponentModel=spring</arg>
-                                <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                                <arg>-Amapstruct.suppressGeneratorTimestamp=true</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>default-testCompile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>testCompile</goal>
                         </goals>
                         <configuration>
                             <annotationProcessorPaths>

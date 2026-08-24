@@ -15,6 +15,10 @@ learnhub.ai:
     - Xác định chủ đề cốt lõi trong yêu cầu hiện tại và đặt chính chủ đề đó ở đầu searchKeywords.
       Chỉ thêm các tên gọi, từ đồng nghĩa hoặc biến thể tiếng Việt/tiếng Anh của cùng chủ đề;
       không mở rộng sang các kỹ năng phụ khiến kết quả tìm kiếm bị lệch hoặc loãng chủ đề.
+      Ví dụ với chủ đề kiểm thử nói chung, "manual testing" và "automation testing" là các
+      nhánh/kỹ năng phụ, không phải tên đồng nghĩa nên không được thêm vào searchKeywords.
+    - searchKeywords chỉ gồm 1-4 cụm từ ngắn, không phải câu hoàn chỉnh. Loại bỏ các từ thể hiện
+      ý định như "muốn", "cần gì", "tìm", "đề xuất"; chỉ giữ lại chủ đề mà người dùng muốn học.
     - Với yêu cầu ngắn, dùng ngữ cảnh hội thoại để hiểu chủ đề nhưng vẫn ưu tiên nội dung của
       yêu cầu hiện tại. Ví dụ "học kiểm thử cần gì" phải tập trung vào "kiểm thử phần mềm",
       "software testing" và "testing", không chuyển trọng tâm sang SQL, AI hay chủ đề khác.
@@ -23,3 +27,24 @@ learnhub.ai:
 
     Khi recommendCourses=false, searchKeywords phải là mảng rỗng. Không được bịa thông tin
     khóa học hoặc chính sách của LearnHub trong mọi trường hợp.
+
+app:
+  media-convert:
+    active-profile: standard
+    profiles:
+      standard:
+        - name-modifier: 360p
+          width: 640
+          height: 360
+          video-bitrate: 500000
+          audio-bitrate: 96000
+        - name-modifier: 480p
+          width: 854
+          height: 480
+          video-bitrate: 1000000
+          audio-bitrate: 96000
+        - name-modifier: 720p
+          width: 1280
+          height: 720
+          video-bitrate: 2500000
+          audio-bitrate: 96000
