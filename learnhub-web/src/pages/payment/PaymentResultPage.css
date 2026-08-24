@@ -1,5 +1,6 @@
 .payment-result-page {
-  min-height: 100vh;
+  min-height: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
 }

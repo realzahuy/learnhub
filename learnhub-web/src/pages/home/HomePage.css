@@ -31,19 +31,6 @@
   animation: float 3s ease-in-out infinite;
 }
 
-.btn.home-register-button {
-  background-color: #fff;
-  border-color: #c9ced6;
-  color: var(--notion-blue);
-}
-
-.btn.home-register-button:hover,
-.btn.home-register-button:focus-visible {
-  background-color: #fff;
-  border-color: var(--notion-blue);
-  color: var(--notion-blue);
-}
-
 @keyframes float {
   0%, 100% {
     transform: translateY(0px);

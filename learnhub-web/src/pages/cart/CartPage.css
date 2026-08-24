@@ -1,5 +1,6 @@
 .cart-page {
-  min-height: 100vh;
+  min-height: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
 }
@@ -107,13 +108,9 @@
 .clear-cart-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   font-size: 0.875rem;
   font-weight: 500;
-}
-
-.remove-item-btn:hover,
-.clear-cart-btn:hover {
-  color: #b02a37 !important;
 }
 
 .cart-summary {
@@ -128,6 +125,90 @@
 .cart-summary-total {
   font-size: 2rem;
   line-height: 1.2;
+}
+
+.payment-method-fieldset {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+}
+
+.payment-method-fieldset legend {
+  margin-bottom: 0.25rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.payment-method-option {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.payment-method-option:hover {
+  border-color: #84adf4;
+  background: #f8fbff;
+}
+
+.payment-method-option.is-selected {
+  border-color: var(--notion-blue);
+  background: #f2f8ff;
+  box-shadow: 0 0 0 2px rgba(35, 131, 226, 0.12);
+}
+
+.payment-method-option input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--notion-blue);
+}
+
+.payment-method-option strong,
+.payment-method-option small {
+  display: block;
+}
+
+.payment-method-option strong {
+  color: #101828;
+  font-size: 0.925rem;
+}
+
+.payment-method-option small {
+  margin-top: 0.1rem;
+  color: #667085;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.payment-method-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 8px;
+  background: #fde7f1;
+  color: #a50064;
+  font-size: 1rem;
+}
+
+.payment-method-icon-paypal {
+  background: #e7f0fb;
+  color: #003087;
+}
+
+.payment-method-fieldset:disabled .payment-method-option {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 @media (max-width: 575.98px) {

@@ -113,7 +113,7 @@ export const CourseCurriculum = ({
                 <i className={`bi bi-chevron-down curriculum-chevron${
                   expanded ? '' : ' is-collapsed'
                 }${canExpand ? '' : ' is-hidden'}`} />
-                <i className={`bi ${isQuiz ? 'bi-patch-question' : 'bi-play-btn'} curriculum-icon`} />
+                {isQuiz && <i className="bi bi-patch-question curriculum-icon" />}
                 <span className="curriculum-title">{lesson.title}</span>
                 {hasQuiz && <span className="curriculum-meta">{lesson.questionCount} câu hỏi</span>}
                 {lesson.isPreview && hasVideos && <span className="curriculum-preview">Xem thử</span>}
@@ -137,6 +137,7 @@ export const CourseCurriculum = ({
                         </button>
                       ) : (
                         <div className="curriculum-subrow">
+                          <i className="bi bi-play-circle curriculum-subicon" />
                           <span className="curriculum-subtitle">{video.title}</span>
                           {video.durationSeconds != null && (
                             <span className="curriculum-duration">{formatDuration(video.durationSeconds)}</span>

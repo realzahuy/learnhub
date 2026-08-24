@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   CourseCurriculum,
   CourseHero,
@@ -26,9 +27,19 @@ const CourseDetailPage = () => {
   const { addToCart, isInCart, removeFromCart } = useCart();
   const { showToast } = useToast();
   const [isEnrolling, setIsEnrolling] = useState(false);
-  const [course, setCourse] = useState<CourseDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const courseQuery = useQuery<CourseDetail>({
+    queryKey: ['course-detail', slug],
+    enabled: Boolean(slug),
+    queryFn: ({ signal }) => courseService.getCourseBySlug(slug!, signal),
+  });
+  const course = courseQuery.data ?? null;
+  const isLoading = courseQuery.isPending;
+  const error = courseQuery.error
+    ? getApiErrorMessage(
+        courseQuery.error,
+        'Không thể tải thông tin khóa học. Vui lòng thử lại sau.'
+      )
+    : null;
 
   const [isEnrolled, setIsEnrolled] = useState(false);
 
@@ -52,30 +63,8 @@ const CourseDetailPage = () => {
     setPreview({ lesson, videoId });
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchCourse = async () => {
-      if (!slug) return;
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        setThumbnailFailed(false);
-        setRatingOverride(null);
-        const data = await courseService.getCourseBySlug(slug, controller.signal);
-        if (controller.signal.aborted) return;
-        setCourse(data);
-      } catch (err: any) {
-        if (controller.signal.aborted) return;
-        console.error('Không thể tải khóa học:', err);
-        setError('Không thể tải thông tin khóa học. Vui lòng thử lại sau.');
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
-      }
-    };
-
-    void fetchCourse();
-    return () => controller.abort();
+    setThumbnailFailed(false);
+    setRatingOverride(null);
   }, [slug]);
 
   useEffect(() => {
@@ -84,21 +73,19 @@ const CourseDetailPage = () => {
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
 
     enrollmentService
-      .checkEnrolled(course.id)
+      .checkEnrolled(course.id, controller.signal)
       .then((enrolled) => {
-        if (!cancelled) setIsEnrolled(enrolled);
+        if (!controller.signal.aborted) setIsEnrolled(enrolled);
       })
       .catch((err) => {
-
+        if (controller.signal.aborted) return;
         console.error('Không thể kiểm tra trạng thái ghi danh:', err);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [isAuthenticated, course]);
 
   const handleEnroll = async () => {
@@ -249,7 +236,7 @@ const CourseDetailPage = () => {
                       Đang xử lý...
                     </>
                   ) : (
-                    'Đăng ký học ngay'
+                    'Mua ngay'
                   )}
                 </button>
               ) : (

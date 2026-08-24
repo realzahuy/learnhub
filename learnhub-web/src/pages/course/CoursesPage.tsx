@@ -1,11 +1,21 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useMemo } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { uiConfig } from '../../config/uiConfig';
 import { useCategories } from '../../hooks/useCategories';
-import { Dropdown, DropdownOption, PageSkeleton, Pagination, StarRating } from '../../components/common';
+import { usePagedSearchParams } from '../../hooks/usePagedSearchParams';
+import {
+  CourseThumbnail,
+  Dropdown,
+  DropdownOption,
+  PageSkeleton,
+  Pagination,
+  StarRating,
+} from '../../components/common';
 import { formatPrice } from '../../utils';
 import { courseService } from '../../services/api/course.service';
 import { Course, CourseSort } from '../../types/course.types';
-import { PageResponse } from '../../types/pagination.types';
+import { queryKeys } from '../../query/queryKeys';
 import { routeTo } from '../../routes/paths';
 import './CoursesPage.css';
 
@@ -19,15 +29,15 @@ const SORT_OPTIONS: DropdownOption[] = [
 
 const CoursesPage = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pageData, setPageData] = useState<PageResponse<Course> | null>(null);
+  const {
+    searchParams,
+    page: currentPage,
+    search: searchQuery,
+    setPage,
+    setParam,
+  } = usePagedSearchParams();
   const { categories } = useCategories();
 
-  const currentPage = parseInt(searchParams.get('page') || '0');
-  const searchQuery = searchParams.get('search') || '';
   const categoryFilter = searchParams.get('category') || '';
   const requestedSort = searchParams.get('sort') || 'newest';
   const sortFilter: CourseSort = SORT_OPTIONS.some((option) => option.value === requestedSort)
@@ -45,61 +55,39 @@ const CoursesPage = () => {
     [categories]
   );
 
-  const handlePageChange = (newPage: number) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('page', newPage.toString());
-    setSearchParams(newParams);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const handleFilterChange = useCallback(
     (key: 'category' | 'sort', value: string) => {
-      const next = new URLSearchParams(searchParams);
       const isDefault = (key === 'category' && !value)
         || (key === 'sort' && value === 'newest');
-      if (isDefault) next.delete(key);
-      else next.set(key, value);
-      next.set('page', '0');
-      setSearchParams(next);
+      setParam(key, isDefault ? '' : value);
     },
-    [searchParams, setSearchParams]
+    [setParam]
   );
 
   const handleCourseClick = (slug: string) => {
     navigate(routeTo.courseDetail(slug));
   };
 
-  const fetchCourses = useCallback(async (signal: AbortSignal) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const params = {
-        page: currentPage,
-        size: 12,
-        search: searchQuery || undefined,
-        category: categoryFilter || undefined,
-        sort: sortFilter,
-      };
-
-      const response = await courseService.getPublishedCourses(params, signal);
-      if (signal.aborted) return;
-      setCourses(response.content);
-      setPageData(response);
-    } catch (err) {
-      if (signal.aborted) return;
-      console.error('Lỗi khi tải danh sách khóa học:', err);
-      setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
-    } finally {
-      if (!signal.aborted) setLoading(false);
-    }
-  }, [currentPage, searchQuery, categoryFilter, sortFilter]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetchCourses(controller.signal);
-    return () => controller.abort();
-  }, [fetchCourses]);
+  const courseFilters = {
+    page: currentPage,
+    search: searchQuery || undefined,
+    category: categoryFilter || undefined,
+    sort: sortFilter,
+  };
+  const courseQuery = useQuery({
+    queryKey: queryKeys.publishedCourses.list(courseFilters),
+    queryFn: ({ signal }) => courseService.getPublishedCourses(
+      { ...courseFilters, size: uiConfig.pagination.coursePageSize },
+      signal
+    ),
+    placeholderData: keepPreviousData,
+  });
+  const pageData = courseQuery.data ?? null;
+  const courses: Course[] = pageData?.content ?? [];
+  const loading = courseQuery.isFetching;
+  const error = courseQuery.error
+    ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
+    : null;
 
   const getCategoryColor = (categoryName: string) => {
     const colors = [
@@ -180,18 +168,11 @@ const CoursesPage = () => {
                       }}
                     >
                       <div className="course-thumbnail">
-                        {course.thumbnail ? (
-                          <img
-                            src={course.thumbnail}
-                            alt={course.title}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="course-thumbnail-placeholder"></div>
-                        )}
+                        <CourseThumbnail
+                          src={course.thumbnail}
+                          alt={course.title}
+                          placeholder={<div className="course-thumbnail-placeholder" />}
+                        />
                       </div>
                       <div className="course-content">
                         <h3 className="course-title">{course.title}</h3>
@@ -239,7 +220,7 @@ const CoursesPage = () => {
                   totalPages={pageData.totalPages}
                   isFirst={pageData.first}
                   isLast={pageData.last}
-                  onPageChange={handlePageChange}
+                  onPageChange={setPage}
                 />
               )}
             </>

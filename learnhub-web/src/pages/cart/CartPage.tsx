@@ -4,7 +4,12 @@ import { ConfirmDialog } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
-import { PAYMENT_METHOD_MOMO, paymentService } from '../../services/api/payment.service';
+import {
+  PAYMENT_METHOD_MOMO,
+  PAYMENT_METHOD_PAYPAL,
+  paymentService,
+} from '../../services/api/payment.service';
+import { PaymentMethod } from '../../types/payment.types';
 import { formatPrice, getApiErrorMessage } from '../../utils';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './CartPage.css';
@@ -15,12 +20,6 @@ const EmptyCartIcon: React.FC = () => (
   </svg>
 );
 
-const TrashIcon: React.FC = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M20,6H16.5V5A3,3,0,0,0,13.5,2h-3A3,3,0,0,0,7.5,5V6H4a1,1,0,0,0,0,2H5V19a3,3,0,0,0,3,3h8a3,3,0,0,0,3-3V8h1a1,1,0,0,0,0-2ZM9.5,5a1,1,0,0,1,1-1h3a1,1,0,0,1,1,1V6h-5Zm7.5,14a1,1,0,0,1-1,1H8a1,1,0,0,1-1-1V8H17ZM10,17a1,1,0,0,0,1-1V12a1,1,0,0,0-2,0v4A1,1,0,0,0,10,17Zm4,0a1,1,0,0,0,1-1V12a1,1,0,0,0-2,0v4A1,1,0,0,0,14,17Z" />
-  </svg>
-);
-
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -28,6 +27,7 @@ const CartPage: React.FC = () => {
   const { showToast } = useToast();
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PAYMENT_METHOD_MOMO);
 
   const handleConfirmClearCart = useCallback(() => {
     clearCart();
@@ -50,11 +50,11 @@ const CartPage: React.FC = () => {
     try {
       const payment = await paymentService.create({
         courseIds: items.map((item) => item.id),
-        paymentMethod: PAYMENT_METHOD_MOMO,
+        paymentMethod,
       });
 
       if (payment.payUrl) {
-        window.location.href = payment.payUrl;
+        window.location.assign(payment.payUrl);
         return;
       }
 
@@ -74,7 +74,6 @@ const CartPage: React.FC = () => {
         <div className="container py-5">
           {cartCount === 0 ? (
             <div className="cart-empty text-center py-5">
-              <EmptyCartIcon />
               <h2 className="h4 fw-bold mt-4 mb-2">Giỏ hàng của bạn đang trống</h2>
               <p className="text-muted mb-4">
                 Hãy khám phá các khóa học và thêm vào giỏ hàng để bắt đầu học.
@@ -92,7 +91,7 @@ const CartPage: React.FC = () => {
                     <span className="fw-semibold text-dark">{cartCount}</span> khóa học trong giỏ hàng
                   </p>
                   <button
-                    className="btn btn-link text-danger p-0 clear-cart-btn"
+                    className="btn btn-danger btn-sm clear-cart-btn"
                     onClick={() => setIsClearConfirmOpen(true)}
                   >
                     Xóa toàn bộ
@@ -107,6 +106,8 @@ const CartPage: React.FC = () => {
                           <img
                             src={item.thumbnail}
                             alt={item.title}
+                            loading="lazy"
+                            decoding="async"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
@@ -129,12 +130,11 @@ const CartPage: React.FC = () => {
                           {formatPrice(item.price)}
                         </span>
                         <button
-                          className="btn btn-link text-danger p-0 remove-item-btn"
+                          className="btn btn-danger btn-sm remove-item-btn"
                           onClick={() => removeFromCart(item.id)}
                           aria-label={`Xóa ${item.title} khỏi giỏ hàng`}
                         >
-                          <TrashIcon />
-                          <span className="ms-1">Xóa</span>
+                          Xóa
                         </button>
                       </div>
                     </div>
@@ -150,6 +150,51 @@ const CartPage: React.FC = () => {
                     {formatPrice(totalPrice)}
                   </p>
 
+                  <fieldset className="payment-method-fieldset" disabled={isCheckingOut}>
+                    <legend>Phương thức thanh toán</legend>
+                    <label
+                      className={`payment-method-option ${
+                        paymentMethod === PAYMENT_METHOD_MOMO ? 'is-selected' : ''
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={PAYMENT_METHOD_MOMO}
+                        checked={paymentMethod === PAYMENT_METHOD_MOMO}
+                        onChange={() => setPaymentMethod(PAYMENT_METHOD_MOMO)}
+                      />
+                      <span className="payment-method-icon" aria-hidden="true">
+                        <i className="bi bi-wallet2"></i>
+                      </span>
+                      <span>
+                        <strong>MoMo</strong>
+                        <small>Thẻ ATM Napas hoặc ví MoMo</small>
+                      </span>
+                    </label>
+
+                    <label
+                      className={`payment-method-option ${
+                        paymentMethod === PAYMENT_METHOD_PAYPAL ? 'is-selected' : ''
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={PAYMENT_METHOD_PAYPAL}
+                        checked={paymentMethod === PAYMENT_METHOD_PAYPAL}
+                        onChange={() => setPaymentMethod(PAYMENT_METHOD_PAYPAL)}
+                      />
+                      <span className="payment-method-icon payment-method-icon-paypal" aria-hidden="true">
+                        <i className="bi bi-paypal"></i>
+                      </span>
+                      <span>
+                        <strong>PayPal</strong>
+                        <small>Thanh toán bằng PayPal, quy đổi sang USD</small>
+                      </span>
+                    </label>
+                  </fieldset>
+
                   <button
                     className="btn btn-notion w-100 btn-lg mb-2"
                     onClick={handleCheckout}
@@ -162,10 +207,10 @@ const CartPage: React.FC = () => {
                           role="status"
                           aria-hidden="true"
                         ></span>
-                        Đang chuyển tới MoMo...
+                        Đang chuyển tới trang thanh toán...
                       </>
                     ) : (
-                      'Thanh toán với MoMo'
+                      'Thanh toán'
                     )}
                   </button>
                   <button
