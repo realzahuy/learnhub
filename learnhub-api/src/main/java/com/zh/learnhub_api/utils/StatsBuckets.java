@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.utils;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.projections.stats.TimeBucketAmountProjection;
 import com.zh.learnhub_api.projections.stats.TimeBucketCountProjection;
 import lombok.Getter;
@@ -17,10 +18,6 @@ import java.util.Map;
 
 @Getter
 public final class StatsBuckets {
-
-    private static final int MAX_DAY_BUCKETS = 90;
-    private static final int MAX_MONTH_BUCKETS = 120;
-    private static final int MAX_QUARTER_BUCKETS = 40;
 
     private static final DateTimeFormatter DAY_LABEL = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter MONTH_LABEL = DateTimeFormatter.ofPattern("yyyy-MM");
@@ -44,7 +41,11 @@ public final class StatsBuckets {
         this.to = endDate.plusDays(1).atStartOfDay();
     }
 
-    public static StatsBuckets plan(String groupBy, LocalDate fromDate, LocalDate toDate) {
+    public static StatsBuckets plan(
+            String groupBy,
+            LocalDate fromDate,
+            LocalDate toDate,
+            AppProperties.Stats properties) {
         String granularity = normalizeGranularity(groupBy);
         boolean hasFrom = fromDate != null;
         boolean hasTo = toDate != null;
@@ -73,7 +74,7 @@ public final class StatsBuckets {
                     : today.withDayOfYear(1);
         }
 
-        validateBucketCount(granularity, countBuckets(granularity, start, end));
+        validateBucketCount(granularity, countBuckets(granularity, start, end), properties);
         List<String> labels = switch (granularity) {
             case "month" -> buildMonthLabels(start, end);
             case "quarter" -> buildQuarterLabels(start, end);
@@ -102,17 +103,20 @@ public final class StatsBuckets {
         };
     }
 
-    private static void validateBucketCount(String granularity, long count) {
+    private static void validateBucketCount(
+            String granularity,
+            long count,
+            AppProperties.Stats properties) {
         int maximum = switch (granularity) {
-            case "month" -> MAX_MONTH_BUCKETS;
-            case "quarter" -> MAX_QUARTER_BUCKETS;
-            default -> MAX_DAY_BUCKETS;
+            case "month" -> properties.maxMonthBuckets();
+            case "quarter" -> properties.maxQuarterBuckets();
+            default -> properties.maxDayBuckets();
         };
         if (count > maximum) {
             String unit = switch (granularity) {
-                case "month" -> "120 tháng";
-                case "quarter" -> "40 quý";
-                default -> "90 ngày";
+                case "month" -> maximum + " tháng";
+                case "quarter" -> maximum + " quý";
+                default -> maximum + " ngày";
             };
             throw new IllegalArgumentException("Khoảng thống kê theo " + granularity
                     + " không được vượt quá " + unit);

@@ -25,7 +25,7 @@ import com.zh.learnhub_api.services.notification.NotificationService;
 import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import com.zh.learnhub_api.services.realtime.CourseRealtimeAudience;
 import com.zh.learnhub_api.services.realtime.CourseStatusChangedEvent;
-import com.zh.learnhub_api.services.vector.CourseVectorUpsertEvent;
+import com.zh.learnhub_api.services.vector.CourseVectorIndexer.SyncEvent;
 import com.zh.learnhub_api.mappers.CourseMapper;
 import com.zh.learnhub_api.mappers.QuestionMapper;
 import com.zh.learnhub_api.projections.course.CourseDetailProjection;
@@ -163,7 +163,7 @@ public class AdminCourseService {
             CourseRealtimeAudience.INSTRUCTOR
         ));
 
-        eventPublisher.publishEvent(new CourseVectorUpsertEvent(courseId));
+        eventPublisher.publishEvent(new SyncEvent(courseId));
         cacheInvalidator.evictAfterCommit(
                 CacheNames.PUBLIC_INSTRUCTOR_PROFILES,
                 course.getInstructorId().getId());
