@@ -9,17 +9,13 @@ public class MoMoUtils {
 
     public static Long parsePaymentId(String orderId) {
         if (orderId == null || orderId.isBlank()) {
-            throw new IllegalArgumentException("orderId rỗng");
+            throw new IllegalArgumentException("Mã đơn hàng không được để trống");
         }
 
         int separator = orderId.indexOf('_');
         String rawId = separator >= 0 ? orderId.substring(0, separator) : orderId;
 
-        try {
-            return Long.parseLong(rawId);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("orderId không hợp lệ: " + orderId, e);
-        }
+        return Long.parseLong(rawId);
     }
 
     public static String hmacSHA256(String key, String data) {

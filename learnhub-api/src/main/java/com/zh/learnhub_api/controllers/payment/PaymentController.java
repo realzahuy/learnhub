@@ -1,16 +1,24 @@
 package com.zh.learnhub_api.controllers.payment;
 
 import com.zh.learnhub_api.dtos.payment.CreatePaymentRequestDTO;
+import com.zh.learnhub_api.dtos.payment.PayPalCaptureRequestDTO;
 import com.zh.learnhub_api.dtos.payment.PaymentResponseDTO;
+import com.zh.learnhub_api.enums.PaymentMethod;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
-import com.zh.learnhub_api.services.payment.PaymentService;
+import com.zh.learnhub_api.services.payment.PaymentFactory;
+import com.zh.learnhub_api.services.payment.momo.MoMoPaymentService;
+import com.zh.learnhub_api.services.payment.paypal.PayPalPaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -18,36 +26,39 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final PaymentService paymentService;
+    private final PaymentFactory paymentFactory;
 
     @PostMapping
     public ResponseEntity<PaymentResponseDTO> createPayment(
-        @Valid @RequestBody CreatePaymentRequestDTO request,
-        @AuthenticationPrincipal AuthenticatedUserPrincipal principal
-    ) {
-        PaymentResponseDTO response = paymentService.createPayment(
-                request, principal.getUserId());
-        return ResponseEntity.ok(response);
+            @Valid @RequestBody CreatePaymentRequestDTO request,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
+        return ResponseEntity.ok(paymentFactory
+                .getMethod(request.getPaymentMethod().name())
+                .createPayment(request, principal.getUserId()));
     }
 
     @PostMapping("/momo/notify")
     public ResponseEntity<Void> momoNotify(@RequestBody Map<String, Object> data) {
-        Map<String, String> params = new HashMap<>();
-        data.forEach((key, value) ->
-                params.put(key, value == null ? "" : String.valueOf(value)));
+        ((MoMoPaymentService) paymentFactory.getMethod(PaymentMethod.MOMO.name()))
+                .handleNotify(data);
+        return ResponseEntity.noContent().build();
+    }
 
-        paymentService.handlePaymentCallback("MOMO", params);
-        return ResponseEntity.ok().build();
+    @PostMapping("/{id}/paypal/capture")
+    public ResponseEntity<PaymentResponseDTO> capturePayPal(
+            @PathVariable Long id,
+            @Valid @RequestBody PayPalCaptureRequestDTO request,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
+        return ResponseEntity.ok(((PayPalPaymentService) paymentFactory
+                .getMethod(PaymentMethod.PAYPAL.name()))
+                .capturePayment(id, request.orderId(), principal.getUserId()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PaymentResponseDTO> getPaymentStatus(
-        @PathVariable Long id,
-        @AuthenticationPrincipal AuthenticatedUserPrincipal principal
-    ) {
-        PaymentResponseDTO response = paymentService.getPaymentStatus(
-                id, principal.getUserId());
-        return ResponseEntity.ok(response);
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
+        return ResponseEntity.ok(paymentFactory.getMethod(PaymentMethod.MOMO.name())
+                .getPaymentStatus(id, principal.getUserId()));
     }
-
 }

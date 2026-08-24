@@ -1,63 +1,48 @@
 package com.zh.learnhub_api.services.payment;
 
 import com.zh.learnhub_api.configs.AppProperties;
+import com.zh.learnhub_api.enums.PaymentStatus;
+import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Payment;
-import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.repositories.payment.PaymentRepository;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 public class PaymentExpirationService {
 
     private final PaymentRepository paymentRepository;
-    private final PaymentLifecycle paymentLifecycle;
     private final int expireMinutes;
 
     public PaymentExpirationService(
             PaymentRepository paymentRepository,
-            PaymentLifecycle paymentLifecycle,
             AppProperties.Payment properties) {
         this.paymentRepository = paymentRepository;
-        this.paymentLifecycle = paymentLifecycle;
         this.expireMinutes = properties.expireMinutes();
     }
 
+    @Scheduled(fixedDelayString = "${app.scheduler.payment-expiration-scan-delay-ms}")
     @Transactional
-    public int expireAllOverdue() {
+    public void expireOverduePayments() {
         LocalDateTime now = LocalDateTime.now();
-        return paymentRepository.expireAllOverdue(threshold(now), now);
+        paymentRepository.expireAllOverdue(now.minusMinutes(expireMinutes), now);
     }
 
     @Transactional
-    public int expireOverdueForCourses(User user, List<Long> courseIds) {
-        if (courseIds.isEmpty()) {
-            return 0;
-        }
+    public Payment expireIfOverdue(Payment payment, Long userId) {
         LocalDateTime now = LocalDateTime.now();
-        return paymentRepository.expireOverdueByUserAndCourseIds(
-                user, courseIds, threshold(now), now);
-    }
-
-    @Transactional
-    public Payment expireIfOverdue(Payment payment) {
-        LocalDateTime now = LocalDateTime.now();
-        if (paymentLifecycle.isPending(payment)
+        if (PaymentStatus.PENDING.name().equals(payment.getStatus())
                 && payment.getCreatedAt() != null
-                && !payment.getCreatedAt().isAfter(threshold(now))) {
-            paymentLifecycle.markExpired(payment, now);
+                && !payment.getCreatedAt().isAfter(now.minusMinutes(expireMinutes))) {
+            paymentRepository.expireOverdueByIdAndUserId(
+                    payment.getId(), userId, now.minusMinutes(expireMinutes), now);
+            return paymentRepository.findByIdAndUserId_Id(payment.getId(), userId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy đơn thanh toán"));
         }
         return payment;
-    }
-
-    public int getExpireMinutes() {
-        return expireMinutes;
-    }
-
-    private LocalDateTime threshold(LocalDateTime now) {
-        return now.minusMinutes(expireMinutes);
     }
 }

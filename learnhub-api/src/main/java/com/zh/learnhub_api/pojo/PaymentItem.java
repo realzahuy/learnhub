@@ -8,7 +8,11 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "payment_item")
+@Table(name = "payment_item",
+       uniqueConstraints = @UniqueConstraint(
+               name = "uk_payment_item_payment_course",
+               columnNames = {"payment_id", "course_id"}),
+       indexes = @Index(name = "idx_payment_item_course", columnList = "course_id"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,7 +31,7 @@ public class PaymentItem implements Serializable {
     private Long id;
 
     @NotNull
-    @Column(name = "price")
+    @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     
     @JoinColumn(name = "course_id", referencedColumnName = "id")

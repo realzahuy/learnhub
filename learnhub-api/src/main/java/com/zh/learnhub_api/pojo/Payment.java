@@ -34,12 +34,12 @@ public class Payment implements Serializable {
     private Long id;
 
     @NotNull
-    @Column(name = "total_price")
+    @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
 
     @NotNull
     @Size(min = 1, max = 50)
-    @Column(name = "method")
+    @Column(name = "method", nullable = false, length = 50)
     private String method;
 
     @Size(max = 255)
@@ -49,18 +49,18 @@ public class Payment implements Serializable {
 
     @NotNull
     @Size(min = 1, max = 20)
-    @Column(name = "status", length = 20)
+    @Column(name = "status", nullable = false, length = 20)
     private String status;
 
     @NotNull
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @NotNull
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
     
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "paymentId", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "paymentId", fetch = FetchType.LAZY)
     private Set<PaymentItem> paymentItemSet;
     
     @JoinColumn(name = "user_id", referencedColumnName = "id")

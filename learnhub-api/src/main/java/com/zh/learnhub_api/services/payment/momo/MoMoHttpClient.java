@@ -34,7 +34,7 @@ public interface MoMoHttpClient {
         private final String requestType;
         private final String signature;
         private final String lang;
-        private final String orderExpireTime;
+        private final Integer orderExpireTime;
     }
 
     @Getter

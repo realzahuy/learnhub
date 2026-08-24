@@ -3,113 +3,132 @@ package com.zh.learnhub_api.services.payment;
 import com.zh.learnhub_api.dtos.payment.CreatePaymentRequestDTO;
 import com.zh.learnhub_api.dtos.payment.PaymentResponseDTO;
 import com.zh.learnhub_api.enums.PaymentStatus;
+import com.zh.learnhub_api.exceptions.PaymentGatewayException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Enrollment;
 import com.zh.learnhub_api.pojo.Payment;
 import com.zh.learnhub_api.pojo.PaymentItem;
+import com.zh.learnhub_api.pojo.User;
+import com.zh.learnhub_api.projections.payment.CheckoutCourseProjection;
+import com.zh.learnhub_api.repositories.account.UserRepository;
+import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.payment.PaymentItemRepository;
 import com.zh.learnhub_api.repositories.payment.PaymentRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-@Service
-@RequiredArgsConstructor
-public class PaymentService {
+public abstract class PaymentService {
 
-    private final PaymentRepository paymentRepository;
-    private final PaymentItemRepository paymentItemRepository;
-    private final EnrollmentRepository enrollmentRepository;
-    private final PaymentGatewayRegistry paymentGatewayRegistry;
-    private final PaymentLifecycle paymentLifecycle;
-    private final PaymentCheckoutTransactionService checkoutTransactionService;
-    private final PaymentExpirationService expirationService;
+    @Autowired
+    protected UserRepository userRepository;
 
+    @Autowired
+    protected CourseRepository courseRepository;
+
+    @Autowired
+    protected EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    protected PaymentRepository paymentRepository;
+
+    @Autowired
+    protected PaymentItemRepository paymentItemRepository;
+
+    @Autowired
+    protected PaymentExpirationService expirationService;
+
+    public abstract String getProviderName();
+
+    protected abstract String createPaymentUrl(Payment payment);
+
+    @Transactional(noRollbackFor = {PaymentGatewayException.class, RestClientException.class})
     public PaymentResponseDTO createPayment(CreatePaymentRequestDTO request, Long userId) {
-        PaymentCheckoutTransactionService.CheckoutDraft draft =
-                checkoutTransactionService.createPendingCheckout(request, userId);
-
-        Payment payment = draft.payment();
-        String payUrl;
-        try {
-            PaymentGateway paymentGateway =
-                    paymentGatewayRegistry.getProvider(draft.paymentMethod());
-            payUrl = paymentGateway.createPaymentUrl(payment);
-        } catch (RuntimeException gatewayError) {
-
-            try {
-                checkoutTransactionService.markGatewayCreationFailed(payment.getId());
-            } catch (RuntimeException statusUpdateError) {
-                gatewayError.addSuppressed(statusUpdateError);
-            }
-            throw gatewayError;
+        List<Long> requestCourseIds = request.getCourseIds().stream()
+                .distinct()
+                .toList();
+        List<CheckoutCourseProjection> courses = courseRepository.findCheckoutCourses(requestCourseIds, userId);
+        if (courses.isEmpty()) {
+            throw new IllegalArgumentException("Không có khóa học nào cần thanh toán");
         }
 
+        List<Long> courseIds = courses.stream()
+                .map(CheckoutCourseProjection::getCourseId)
+                .toList();
+        BigDecimal totalPrice = courses.stream()
+                .map(CheckoutCourseProjection::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+        LocalDateTime now = LocalDateTime.now();
+
+        Payment payment = new Payment();
+        payment.setUserId(user);
+        payment.setTotalPrice(totalPrice);
+        payment.setMethod(getProviderName());
+        payment.setStatus(PaymentStatus.PENDING.name());
+        payment.setCreatedAt(now);
+        payment.setUpdatedAt(now);
+        payment = paymentRepository.save(payment);
+
+        Payment savedPayment = payment;
+        List<PaymentItem> items = courses.stream()
+                .map(course -> {
+                    PaymentItem item = new PaymentItem();
+                    item.setPaymentId(savedPayment);
+                    item.setCourseId(courseRepository.getReferenceById(course.getCourseId()));
+                    item.setPrice(course.getPrice());
+                    return item;
+                })
+                .toList();
+        paymentItemRepository.saveAll(items);
+
+        String payUrl;
+        try {
+            payUrl = createPaymentUrl(payment);
+        } catch (PaymentGatewayException | RestClientException exception) {
+            failPayment(payment);
+            throw exception;
+        }
         return PaymentResponseDTO.builder()
                 .paymentId(payment.getId())
                 .payUrl(payUrl)
-                .totalPrice(draft.totalPrice())
-                .paymentMethod(draft.paymentMethod())
+                .totalPrice(totalPrice)
+                .paymentMethod(getProviderName())
                 .status(PaymentStatus.PENDING.name())
-                .paidCourseIds(draft.paidCourseIds())
-                .message("Tiếp tục thanh toán " + draft.paidCourseIds().size() + " khóa học.")
+                .paidCourseIds(courseIds)
+                .message("Tiếp tục thanh toán " + courseIds.size() + " khóa học.")
                 .build();
     }
 
-    @Transactional(noRollbackFor = SecurityException.class)
-    public void handlePaymentCallback(String providerName, Map<String, String> params) {
-        PaymentGateway paymentGateway = paymentGatewayRegistry.getProvider(providerName);
+    @Transactional
+    public PaymentResponseDTO getPaymentStatus(Long paymentId, Long userId) {
+        Payment payment = paymentRepository.findByIdAndUserId_Id(paymentId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn thanh toán"));
+        payment = expirationService.expireIfOverdue(payment, userId);
+        return toPaymentResponse(payment);
+    }
 
-        if (!paymentGateway.verifyCallback(params)) {
-            throw new SecurityException("Chữ ký thanh toán không hợp lệ");
-        }
-
-        PaymentGateway.CallbackResult result = paymentGateway.parseCallback(params);
-        Payment payment = paymentRepository.findByIdForUpdate(result.paymentId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy đơn thanh toán"));
-
-        if (!paymentLifecycle.isPending(payment)) {
-            return;
-        }
-
+    protected void completePayment(Payment payment, String transactionId) {
         LocalDateTime now = LocalDateTime.now();
-        if (!result.successful()) {
-            paymentLifecycle.markFailed(payment, now);
-            return;
-        }
-
-        BigDecimal expectedAmount = payment.getTotalPrice();
-        BigDecimal actualAmount = result.amount();
-        if (actualAmount.compareTo(expectedAmount) != 0) {
-            paymentLifecycle.markFailed(payment, now);
-            throw new SecurityException(
-                    "Số tiền không khớp: mong đợi " + expectedAmount
-                            + " nhưng nhận " + actualAmount);
-        }
-
-        paymentLifecycle.markSuccessful(payment, result.transactionId(), now);
-
+        payment.setStatus(PaymentStatus.SUCCESS.name());
+        payment.setTransactionId(transactionId);
+        payment.setUpdatedAt(now);
         List<PaymentItem> items = paymentItemRepository.findByPaymentId(payment);
         if (items.isEmpty()) {
             return;
         }
-
         List<Long> courseIds = items.stream()
                 .map(item -> item.getCourseId().getId())
                 .toList();
-        Set<Long> enrolledCourseIds = enrollmentRepository
-                .findCourseIdsByUserAndCourseIds(payment.getUserId(), courseIds);
-
-        List<Enrollment> newEnrollments = items.stream()
+        Set<Long> enrolledCourseIds = enrollmentRepository.findCourseIdsByUserAndCourseIds(payment.getUserId(), courseIds);
+        List<Enrollment> enrollments = items.stream()
                 .filter(item -> !enrolledCourseIds.contains(item.getCourseId().getId()))
                 .map(item -> {
                     Enrollment enrollment = new Enrollment();
@@ -119,24 +138,18 @@ public class PaymentService {
                     return enrollment;
                 })
                 .toList();
-        if (!newEnrollments.isEmpty()) {
-            enrollmentRepository.saveAll(newEnrollments);
-        }
+        enrollmentRepository.saveAll(enrollments);
     }
 
-    @Transactional
-    public PaymentResponseDTO getPaymentStatus(Long paymentId, Long userId) {
-        Payment payment = paymentRepository.findByIdAndUserId_Id(paymentId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy đơn thanh toán"));
+    protected void failPayment(Payment payment) {
+        payment.setStatus(PaymentStatus.FAILED.name());
+        payment.setUpdatedAt(LocalDateTime.now());
+    }
 
-        payment = expirationService.expireIfOverdue(payment);
-
-        List<Long> paidCourseIds = paymentItemRepository.findByPaymentId(payment)
-                .stream()
+    protected PaymentResponseDTO toPaymentResponse(Payment payment) {
+        List<Long> courseIds = paymentItemRepository.findByPaymentId(payment).stream()
                 .map(item -> item.getCourseId().getId())
-                .collect(Collectors.toList());
-
+                .toList();
         return PaymentResponseDTO.builder()
                 .paymentId(payment.getId())
                 .totalPrice(payment.getTotalPrice())
@@ -144,8 +157,7 @@ public class PaymentService {
                 .status(payment.getStatus())
                 .transactionId(payment.getTransactionId())
                 .createdAt(payment.getCreatedAt())
-                .paidCourseIds(paidCourseIds)
+                .paidCourseIds(courseIds)
                 .build();
     }
-
 }

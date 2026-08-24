@@ -34,10 +34,23 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                                         @Param("threshold") LocalDateTime threshold,
                                         @Param("now") LocalDateTime now);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Payment p SET p.status = 'EXPIRED', p.updatedAt = :now "
+         + "WHERE p.id = :paymentId AND p.userId.id = :userId "
+         + "AND p.status = 'PENDING' AND p.createdAt <= :threshold")
+    int expireOverdueByIdAndUserId(@Param("paymentId") Long paymentId,
+                                   @Param("userId") Long userId,
+                                   @Param("threshold") LocalDateTime threshold,
+                                   @Param("now") LocalDateTime now);
+
     Optional<Payment> findByIdAndUserId_Id(Long id, Long userId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Payment p WHERE p.id = :id")
     Optional<Payment> findByIdForUpdate(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Payment p WHERE p.id = :id AND p.userId.id = :userId")
+    Optional<Payment> findByIdAndUserIdForUpdate(@Param("id") Long id,
+                                                 @Param("userId") Long userId);
 }
