@@ -92,16 +92,16 @@ public class InstructorCourseController {
         return videoProgressSseService.subscribe(id, userDetails.getUserId());
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CourseCreateResponseDTO> createCourse(
-            @Valid @RequestBody CourseUpsertRequestDTO request,
-            @RequestParam(required = false) String status,
+            @Valid @ModelAttribute CourseUpsertRequestDTO request,
+            @RequestPart(value = "thumbnailFile", required = false) MultipartFile thumbnailFile,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         CourseCreateResponseDTO created = instructorCourseService.createCourse(
             request,
             userDetails.getUserId(),
-            status
+            thumbnailFile
         );
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
@@ -111,15 +111,23 @@ public class InstructorCourseController {
             @PathVariable Long id,
             @Valid @ModelAttribute CourseUpsertRequestDTO request,
             @RequestPart(value = "thumbnailFile", required = false) MultipartFile thumbnailFile,
-            @RequestParam(required = false, defaultValue = "false") boolean submit,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
-            request.setThumbnail(instructorCourseService.uploadThumbnail(id, userDetails.getUserId(), thumbnailFile));
-        }
-
-        CourseResponseDTO updated = instructorCourseService.updateCourse(id, request, userDetails.getUserId(), submit);
+        CourseResponseDTO updated = instructorCourseService.updateCourse(
+                id,
+                request,
+                userDetails.getUserId(),
+                thumbnailFile);
         return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<MessageResponseDTO> submitCourse(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
+
+        instructorCourseService.submitCourse(id, userDetails.getUserId());
+        return ResponseEntity.ok(new MessageResponseDTO("Gửi khóa học kiểm duyệt thành công"));
     }
 
     @DeleteMapping("/{id}")

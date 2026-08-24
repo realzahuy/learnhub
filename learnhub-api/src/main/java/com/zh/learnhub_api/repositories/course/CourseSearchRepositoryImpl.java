@@ -178,7 +178,7 @@ public class CourseSearchRepositoryImpl implements CourseSearchRepository {
             String field = SORT_FIELDS.get(order.getProperty());
             if (field == null) {
                 throw new IllegalArgumentException(
-                        "KhÃ´ng há»— trá»£ sáº¯p xáº¿p khÃ³a há»c theo " + order.getProperty());
+                        "Không hỗ trợ sắp xếp khóa học theo " + order.getProperty());
             }
             orders.add(field + (order.isAscending() ? " ASC" : " DESC"));
         }

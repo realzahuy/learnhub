@@ -43,20 +43,15 @@ public class Lesson implements Serializable {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", insertable = false, updatable = false)
-    private LocalDateTime updatedAt;
     
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "lesson", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "lesson", fetch = FetchType.LAZY)
     private Set<Video> videoSet;
     
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "lessonId", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "lessonId", fetch = FetchType.LAZY)
     private Set<Question> questionSet;
     
     @JoinColumn(name = "course_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Course courseId;
     
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "lessonId", fetch = FetchType.LAZY)
-    private Set<LessonProgress> lessonProgressSet;
 }

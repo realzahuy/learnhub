@@ -52,16 +52,12 @@ public class CourseCatalogService {
         if ("rating_desc".equals(normalizedSort)) {
             Pageable pageable = PageRequest.of(
                     requestedPage.getPageNumber(), requestedPage.getPageSize());
-            double ratingPrior = Math.max(
-                    1d, Math.min(5d, recommendationProperties.ratingPrior()));
-            double ratingPriorCount = Math.max(
-                    0d, recommendationProperties.ratingPriorCount());
             Page<RatedCourseListProjection> coursePage =
                     courseRepository.findPublishedCoursesOrderByRating(
                             normalizedCategory,
                             normalizedKeyword,
-                            ratingPrior,
-                            ratingPriorCount,
+                            recommendationProperties.ratingPrior(),
+                            recommendationProperties.ratingPriorCount(),
                             pageable);
             List<CourseListItemDTO> content = coursePage.getContent().stream()
                     .map(courseMapper::mapRatedListProjectionToDTO)

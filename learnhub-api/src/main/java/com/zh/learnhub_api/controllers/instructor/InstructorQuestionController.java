@@ -6,6 +6,7 @@ import com.zh.learnhub_api.dtos.course.QuestionResponseDTO;
 import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.services.course.QuestionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,7 +52,7 @@ public class InstructorQuestionController {
     public ResponseEntity<List<QuestionResponseDTO>> reorderQuestions(
             @PathVariable Long courseId,
             @PathVariable Long lessonId,
-            @Valid @RequestBody List<@Valid QuestionReorderRequestDTO> requests,
+            @NotEmpty(message = "Danh sách sắp xếp không được rỗng") @RequestBody List<@Valid QuestionReorderRequestDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         List<QuestionResponseDTO> reordered =

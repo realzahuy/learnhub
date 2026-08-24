@@ -78,10 +78,6 @@ public class QuestionService {
     @Transactional
     public List<QuestionResponseDTO> reorderQuestions(Long courseId, Long lessonId,
                                                       List<QuestionReorderRequestDTO> requests, Long instructorId) {
-        if (requests == null || requests.isEmpty()) {
-            throw new IllegalArgumentException("Danh sách sắp xếp không được rỗng");
-        }
-
         loadLessonForMutation(courseId, lessonId, instructorId);
 
         long distinctPositions = requests.stream().map(QuestionReorderRequestDTO::getPosition).distinct().count();

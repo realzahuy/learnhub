@@ -113,7 +113,7 @@ public class RatingCacheService {
     private Cache requireCache(String cacheName) {
         Cache cache = cacheManager.getCache(cacheName);
         if (cache == null) {
-            throw new IllegalStateException("Cache is not registered: " + cacheName);
+            throw new IllegalStateException("Bộ nhớ đệm chưa được đăng ký: " + cacheName);
         }
         return cache;
     }

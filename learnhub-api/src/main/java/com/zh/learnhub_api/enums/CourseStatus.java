@@ -12,16 +12,9 @@ public enum CourseStatus {
 
     public static CourseStatus fromString(String status) {
         if (status == null || status.trim().isEmpty()) {
-            throw new IllegalArgumentException("Status không được để trống");
+            throw new IllegalArgumentException("Trạng thái không được để trống");
         }
 
-        try {
-            return CourseStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                "Trạng thái không hợp lệ: " + status +
-                ". Các trạng thái hợp lệ: DRAFT, PENDING, REJECTED, PUBLISHED"
-            );
-        }
+        return CourseStatus.valueOf(status.toUpperCase());
     }
 }

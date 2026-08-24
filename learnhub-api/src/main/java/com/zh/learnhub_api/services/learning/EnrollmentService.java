@@ -8,13 +8,11 @@ import com.zh.learnhub_api.exceptions.DuplicateResourceException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Enrollment;
-import com.zh.learnhub_api.pojo.LessonProgress;
 import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.projections.learning.EnrollmentListProjection;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
-import com.zh.learnhub_api.repositories.learning.LessonProgressRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -40,16 +38,12 @@ public class EnrollmentService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
-    private final LessonProgressRepository lessonProgressRepository;
 
     public FreeEnrollmentResponseDTO enrollFreeCourse(Long userId, Long courseId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
         if (!CourseStatus.PUBLISHED.name().equals(course.getStatus())) {
             throw new IllegalStateException("Khóa học không khả dụng để đăng ký");
-        }
-        if (course.getPrice() == null) {
-            throw new IllegalStateException("Khóa học chưa có giá");
         }
         if (course.getPrice().compareTo(BigDecimal.ZERO) != 0) {
             throw new IllegalArgumentException("Chỉ có thể đăng ký trực tiếp khóa học miễn phí");
@@ -122,13 +116,6 @@ public class EnrollmentService {
                     row -> row.getCourseId(),
                     row -> row.getLessonCount().intValue()));
 
-        Map<Long, Integer> completedByCourse = lessonProgressRepository
-            .findByUserAndCourseIds(userId, courseIds).stream()
-            .filter(LessonProgress::isCompleted)
-            .collect(Collectors.groupingBy(
-                progress -> progress.getLessonId().getCourseId().getId(),
-                Collectors.summingInt(progress -> 1)));
-
         List<EnrollmentResponseDTO> content = enrollments.stream()
             .map(enrollment -> {
                 Long courseId = enrollment.getCourseId();
@@ -140,7 +127,6 @@ public class EnrollmentService {
                     .courseThumbnail(enrollment.getCourseThumbnail())
                     .instructorName(enrollment.getInstructorName())
                     .categoryName(enrollment.getCategoryName())
-                    .completedLessons(completedByCourse.getOrDefault(courseId, 0))
                     .totalLessons(totalByCourse.getOrDefault(courseId, 0))
                     .enrolledAt(enrollment.getEnrolledAt())
                     .build();

@@ -34,11 +34,6 @@ public class LessonService {
 
     @Transactional
     public List<LessonResponseDTO> createLessons(Long courseId, List<LessonRequestDTO> requests, Long instructorId) {
-
-        if (requests == null || requests.isEmpty()) {
-            throw new IllegalArgumentException("Danh sách lessons không được rỗng");
-        }
-
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
@@ -94,11 +89,6 @@ public class LessonService {
 
     @Transactional
     public List<LessonResponseDTO> reorderLessons(Long courseId, List<LessonReorderDTO> requests, Long instructorId) {
-
-        if (requests == null || requests.isEmpty()) {
-            throw new IllegalArgumentException("Danh sách sắp xếp không được rỗng");
-        }
-
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 

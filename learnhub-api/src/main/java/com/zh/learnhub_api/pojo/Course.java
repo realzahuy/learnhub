@@ -58,10 +58,13 @@ public class Course implements Serializable {
     @Column(name = "thumbnail")
     private String thumbnail;
 
-    @Column(name = "price")
+    @NotNull
+    @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(name = "status")
+    @NotNull
+    @Size(min = 1, max = 20)
+    @Column(name = "status", nullable = false, length = 20)
     private String status;
 
     @ManyToOne(fetch = FetchType.LAZY)

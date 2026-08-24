@@ -14,8 +14,6 @@ public class QuizResultDTO {
     private Integer scorePercent;
     private Integer passPercent;
     private Boolean passed;
-    private Integer bestScorePercent;
-    private Boolean lessonCompleted;
     private List<QuizQuestionResultDTO> questions;
 
     @Data

@@ -30,14 +30,14 @@ public class CourseUpsertRequestDTO {
     @NotBlank(message = "Mô tả không được để trống")
     private String description;
 
-    @Size(max = 500, message = "Link thumbnail không được quá 500 ký tự")
+    @Size(max = 500, message = "Đường dẫn ảnh thu nhỏ không được quá 500 ký tự")
     private String thumbnail;
 
     @NotNull(message = "Giá không được để trống")
     @DecimalMin(value = "0.0", inclusive = true, message = "Giá phải >= 0")
     private BigDecimal price;
 
-    @NotNull(message = "Category không được để trống")
-    @Positive(message = "Category không hợp lệ")
+    @NotNull(message = "Danh mục không được để trống")
+    @Positive(message = "Danh mục không hợp lệ")
     private Short categoryId;
 }

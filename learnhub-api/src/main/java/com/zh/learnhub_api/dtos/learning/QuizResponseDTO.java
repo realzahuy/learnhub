@@ -13,9 +13,6 @@ public class QuizResponseDTO {
     private String lessonTitle;
     private Integer passPercent;
     private List<QuizQuestionDTO> questions;
-    private Integer bestScorePercent;
-    private Long attemptCount;
-    private QuizResultDTO latestResult;
 
     @Data
     @NoArgsConstructor

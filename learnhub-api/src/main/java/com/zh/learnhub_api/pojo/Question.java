@@ -40,6 +40,6 @@ public class Question implements Serializable {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Lesson lessonId;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "questionId", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "questionId", fetch = FetchType.LAZY)
     private Set<Answer> answerSet;
 }

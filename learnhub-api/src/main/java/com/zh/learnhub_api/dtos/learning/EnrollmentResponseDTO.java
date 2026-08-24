@@ -22,7 +22,6 @@ public class EnrollmentResponseDTO {
     private String instructorName;
     private String categoryName;
 
-    private Integer completedLessons;
     private Integer totalLessons;
     private LocalDateTime enrolledAt;
 

@@ -17,7 +17,6 @@ public class LearnCourseDTO {
     private String slug;
     private String instructorName;
     private List<LearnLessonDTO> lessons;
-    private Integer completedLessons;
     private Integer totalLessons;
     private Integer quizPassPercent;
 
@@ -29,11 +28,7 @@ public class LearnCourseDTO {
         private String title;
         private Integer position;
         private Boolean isPreview;
-        private Boolean completed;
-        private Boolean videoCompleted;
-        private Boolean quizCompleted;
         private List<PlayableVideoDTO> videos;
         private Integer questionCount;
-        private Integer quizBestScorePercent;
     }
 }

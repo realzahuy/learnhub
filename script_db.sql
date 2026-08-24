@@ -24,9 +24,7 @@ CREATE TABLE user (
     account_status ENUM('ACTIVE', 'LOCKED') NOT NULL DEFAULT 'ACTIVE',
     last_login DATETIME,
 
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE user_session (
@@ -160,8 +158,6 @@ CREATE TABLE lesson (
     course_id BIGINT NOT NULL,
 
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_lesson_course
         FOREIGN KEY (course_id)
@@ -304,30 +300,6 @@ CREATE TABLE enrollment (
         ON DELETE CASCADE
 );
 
-CREATE TABLE lesson_progress (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-
-    user_id BIGINT NOT NULL,
-    lesson_id BIGINT NOT NULL,
-
-    is_completed BOOLEAN NOT NULL DEFAULT FALSE,
-    video_completed BOOLEAN NOT NULL DEFAULT FALSE,
-    quiz_completed BOOLEAN NOT NULL DEFAULT FALSE,
-
-    CONSTRAINT uk_user_lesson
-        UNIQUE(user_id, lesson_id),
-
-    CONSTRAINT fk_progress_user
-        FOREIGN KEY(user_id)
-        REFERENCES user(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_progress_lesson
-        FOREIGN KEY(lesson_id)
-        REFERENCES lesson(id)
-        ON DELETE CASCADE
-);
-
 CREATE TABLE user_action_code (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -350,35 +322,6 @@ CREATE TABLE user_action_code (
     CONSTRAINT fk_user_action_code_user
         FOREIGN KEY (user_id)
         REFERENCES user(id)
-        ON DELETE CASCADE
-);
-
-CREATE TABLE quiz_attempt (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-
-    user_id BIGINT NOT NULL,
-    lesson_id BIGINT NOT NULL,
-
-    correct_count INT NOT NULL,
-
-    total_questions INT NOT NULL,
-
-    score_percent INT NOT NULL,
-
-    passed BOOLEAN NOT NULL DEFAULT FALSE,
-
-    answer_snapshot JSON NULL,
-
-    submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_quiz_attempt_user
-        FOREIGN KEY (user_id)
-        REFERENCES user(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_quiz_attempt_lesson
-        FOREIGN KEY (lesson_id)
-        REFERENCES lesson(id)
         ON DELETE CASCADE
 );
 
@@ -445,12 +388,6 @@ ON enrollment(course_id);
 
 CREATE INDEX idx_enrollment_user_enrolled
 ON enrollment(user_id, enrolled_at, id);
-
-CREATE INDEX idx_lesson_progress_lesson
-ON lesson_progress(lesson_id);
-
-CREATE INDEX idx_quiz_attempt_user_lesson_latest
-ON quiz_attempt(user_id, lesson_id, submitted_at, id);
 
 CREATE INDEX idx_review_course_created
 ON course_review(course_id, created_at DESC);

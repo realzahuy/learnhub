@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.services.instructor;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.instructor.InstructorOverviewDTO;
 import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.instructor.InstructorTimeSeriesDTO;
@@ -26,18 +27,18 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class InstructorStatsService {
 
-    private static final int PERIOD_DAYS = 30;
-
     private final EnrollmentRepository enrollmentRepository;
     private final PaymentItemRepository paymentItemRepository;
     private final CourseRepository courseRepository;
+    private final AppProperties.Stats statsProperties;
 
     @Cacheable(cacheNames = CacheNames.INSTRUCTOR_OVERVIEW, key = "#instructorId", sync = true)
     public InstructorOverviewDTO getOverview(Long instructorId) {
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime currentFrom = now.minusDays(PERIOD_DAYS);
-        LocalDateTime previousFrom = currentFrom.minusDays(PERIOD_DAYS);
+        int periodDays = statsProperties.overviewPeriodDays();
+        LocalDateTime currentFrom = now.minusDays(periodDays);
+        LocalDateTime previousFrom = currentFrom.minusDays(periodDays);
 
         Map<String, Long> byStatus = new HashMap<>();
         for (var row : courseRepository.countCoursesByStatusForInstructor(instructorId)) {
@@ -59,14 +60,14 @@ public class InstructorStatsService {
                         paymentItemRepository.sumRevenueBetween(instructorId, currentFrom, now))
                 .revenuePreviousPeriod(
                         paymentItemRepository.sumRevenueBetween(instructorId, previousFrom, currentFrom))
-                .periodDays(PERIOD_DAYS)
+                .periodDays(periodDays)
                 .build();
     }
 
     @Cacheable(cacheNames = CacheNames.INSTRUCTOR_TIME_SERIES)
     public InstructorTimeSeriesDTO getTimeSeries(Long instructorId, String groupBy,
                                                  LocalDate fromDate, LocalDate toDate) {
-        StatsBuckets buckets = StatsBuckets.plan(groupBy, fromDate, toDate);
+        StatsBuckets buckets = StatsBuckets.plan(groupBy, fromDate, toDate, statsProperties);
 
         LocalDateTime from = buckets.getFrom();
         LocalDateTime to = buckets.getTo();

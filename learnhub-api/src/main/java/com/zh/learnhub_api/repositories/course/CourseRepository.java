@@ -2,14 +2,12 @@ package com.zh.learnhub_api.repositories.course;
 
 import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.projections.course.CourseDetailProjection;
-import com.zh.learnhub_api.projections.course.CourseEditAccessProjection;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
 import com.zh.learnhub_api.projections.course.CourseStatusCountProjection;
 import com.zh.learnhub_api.projections.course.InstructorCourseStatusCountProjection;
 import com.zh.learnhub_api.projections.course.LearningCourseProjection;
 import com.zh.learnhub_api.projections.course.PublishedCourseAccessProjection;
 import com.zh.learnhub_api.projections.course.PublicCourseDetailProjection;
-import com.zh.learnhub_api.projections.course.RecommendationCourseProjection;
 import com.zh.learnhub_api.projections.payment.CheckoutCourseProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -75,34 +73,23 @@ public interface CourseRepository extends JpaRepository<Course, Long>, CourseSea
             @Param("slug") String slug,
             @Param("userId") Long userId);
 
-    @Query(value = """
-            SELECT c.id AS courseId,
-                   c.title AS title,
-                   cat.name AS categoryName,
-                   c.short_description AS shortDescription,
-                   c.description AS description,
-                   EXISTS (
-                       SELECT 1 FROM enrollment e
-                       WHERE e.user_id = :userId AND e.course_id = c.id
-                   ) AS enrolled
-            FROM course c
-            LEFT JOIN category cat ON cat.id = c.category_id
-            WHERE c.id = :courseId
-            """, nativeQuery = true)
-    Optional<RecommendationCourseProjection> findRecommendationSource(
-            @Param("courseId") Long courseId,
-            @Param("userId") Long userId);
-
     @Query("SELECT c.id AS courseId, c.instructorId.id AS instructorId "
          + "FROM Course c WHERE c.slug = :slug AND c.status = 'PUBLISHED'")
     Optional<PublishedCourseAccessProjection> findPublishedAccessBySlug(
             @Param("slug") String slug);
 
-    @Query("SELECT c.id AS courseId, c.title AS title, c.slug AS slug, "
-         + "c.price AS price, c.status AS status "
-         + "FROM Course c WHERE c.id IN :courseIds")
-    List<CheckoutCourseProjection> findCheckoutCoursesByIds(
-            @Param("courseIds") List<Long> courseIds);
+    @Query("""
+            SELECT c.id AS courseId, c.price AS price
+            FROM Course c
+            WHERE c.id IN :courseIds
+            AND NOT EXISTS (
+                SELECT e.id
+                FROM Enrollment e
+                WHERE e.userId.id = :userId
+                AND e.courseId.id = c.id
+            )
+            """)
+    List<CheckoutCourseProjection> findCheckoutCourses(@Param("courseIds") List<Long> courseIds, @Param("userId") Long userId);
 
     boolean existsBySlug(String slug);
 
@@ -144,13 +131,19 @@ public interface CourseRepository extends JpaRepository<Course, Long>, CourseSea
                      @Param("currentStatus") String currentStatus,
                      @Param("newStatus") String newStatus);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Course c SET c.status = :pendingStatus "
+         + "WHERE c.id = :courseId "
+         + "AND c.instructorId.id = :instructorId "
+         + "AND c.status IN :allowedStatuses "
+         + "AND EXISTS (SELECT l.id FROM Lesson l WHERE l.courseId.id = c.id)")
+    int submitForReview(@Param("courseId") Long courseId,
+                        @Param("instructorId") Long instructorId,
+                        @Param("allowedStatuses") List<String> allowedStatuses,
+                        @Param("pendingStatus") String pendingStatus);
+
     @Query("SELECT c.instructorId.id FROM Course c WHERE c.id = :courseId")
     Optional<Long> findInstructorIdByCourseId(@Param("courseId") Long courseId);
-
-    @Query("SELECT c.instructorId.id AS instructorId, c.status AS status "
-         + "FROM Course c WHERE c.id = :courseId")
-    Optional<CourseEditAccessProjection> findEditAccessByCourseId(
-            @Param("courseId") Long courseId);
 
     @Query("SELECT c.instructorId.id AS instructorId, c.status AS status, "
          + "COUNT(c) AS courseCount FROM Course c "

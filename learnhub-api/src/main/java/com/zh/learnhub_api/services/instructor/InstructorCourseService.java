@@ -16,6 +16,7 @@ import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.repositories.course.CategoryRepository;
 import com.zh.learnhub_api.repositories.course.CourseRejectRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
+import com.zh.learnhub_api.repositories.course.LessonRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.services.course.CourseUpdatePolicy;
 import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
@@ -24,10 +25,9 @@ import com.zh.learnhub_api.services.media.ImageStorageService;
 import com.zh.learnhub_api.services.media.MediaCleanupService;
 import com.zh.learnhub_api.services.realtime.CourseRealtimeAudience;
 import com.zh.learnhub_api.services.realtime.CourseStatusChangedEvent;
-import com.zh.learnhub_api.services.vector.CourseVectorUpsertEvent;
+import com.zh.learnhub_api.services.vector.CourseVectorIndexer.SyncEvent;
 import com.zh.learnhub_api.mappers.CourseMapper;
 import com.zh.learnhub_api.projections.course.CourseDetailProjection;
-import com.zh.learnhub_api.projections.course.CourseEditAccessProjection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,10 +35,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -47,6 +48,7 @@ import java.util.Objects;
 public class InstructorCourseService {
 
     private final CourseRepository courseRepository;
+    private final LessonRepository lessonRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final CourseRejectRepository courseRejectRepository;
@@ -60,22 +62,13 @@ public class InstructorCourseService {
 
     @Transactional
     public CourseCreateResponseDTO createCourse(
-            CourseUpsertRequestDTO request, Long instructorId, String status) {
+            CourseUpsertRequestDTO request,
+            Long instructorId,
+            MultipartFile thumbnailFile) {
         User instructor = userRepository.getReferenceById(instructorId);
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh mục"));
         String slug = slugService.processSlug(request.getSlug(), request.getTitle(), null);
-
-        CourseStatus courseStatus;
-        if (status == null || status.trim().isEmpty()) {
-            courseStatus = CourseStatus.PENDING;
-        } else {
-            courseStatus = CourseStatus.fromString(status);
-            if (courseStatus != CourseStatus.DRAFT && courseStatus != CourseStatus.PENDING) {
-                throw new IllegalArgumentException(
-                        "Status không hợp lệ. Chỉ chấp nhận: DRAFT hoặc PENDING");
-            }
-        }
 
         Course course = new Course();
         course.setTitle(request.getTitle());
@@ -84,19 +77,16 @@ public class InstructorCourseService {
         course.setDescription(request.getDescription());
         course.setThumbnail(request.getThumbnail());
         course.setPrice(request.getPrice());
-        course.setStatus(courseStatus.name());
+        course.setStatus(CourseStatus.DRAFT.name());
         course.setInstructorId(instructor);
         course.setCategoryId(category);
 
         Course savedCourse = courseRepository.save(course);
-        if (courseStatus == CourseStatus.PENDING) {
-            eventPublisher.publishEvent(new CourseStatusChangedEvent(
-                    savedCourse.getId(),
-                    instructor.getId(),
-                    CourseStatus.PENDING,
-                    savedCourse.getTitle(),
-                    category.getName(),
-                    CourseRealtimeAudience.ADMINS));
+        if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
+            String thumbnailUrl = imageStorageService
+                    .uploadCourseThumbnail(thumbnailFile, savedCourse.getId())
+                    .secureUrl();
+            savedCourse.setThumbnail(thumbnailUrl);
         }
         return new CourseCreateResponseDTO(
                 savedCourse.getId(),
@@ -116,67 +106,80 @@ public class InstructorCourseService {
                     "Chỉ có thể xóa khóa học ở trạng thái DRAFT hoặc REJECTED. "
                             + "Trạng thái hiện tại: " + status);
         }
-        if (course.getEnrollmentSet() != null && !course.getEnrollmentSet().isEmpty()) {
-            throw new IllegalArgumentException("Không thể xóa khóa học đã có học viên đăng ký");
-        }
-
         mediaCleanupService.scheduleCourseCleanup(courseId, course.getThumbnail() != null);
         courseRepository.delete(course);
     }
 
     @Transactional
     public CourseResponseDTO updateCourse(
-            Long courseId, CourseUpsertRequestDTO request, Long instructorId, boolean submit) {
+            Long courseId,
+            CourseUpsertRequestDTO request,
+            Long instructorId,
+            MultipartFile thumbnailFile) {
         Course course = findOwnedCourse(courseId, instructorId, "chỉnh sửa");
         CourseStatus statusBeforeUpdate = CourseStatus.fromString(course.getStatus());
         String oldTitle = course.getTitle();
         String oldShortDescription = course.getShortDescription();
         String oldDescription = course.getDescription();
+        String oldThumbnail = course.getThumbnail();
+        BigDecimal oldPrice = course.getPrice();
 
         courseUpdatePolicy.applyUpdate(course, request);
-        CourseStatus currentStatus = CourseStatus.fromString(course.getStatus());
-        boolean submittedForReview = submit && (currentStatus == CourseStatus.DRAFT
-                || currentStatus == CourseStatus.REJECTED);
-        if (submittedForReview) {
-            course.setStatus(CourseStatus.PENDING.name());
+        if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
+            String thumbnailUrl = imageStorageService
+                    .uploadCourseThumbnail(thumbnailFile, courseId)
+                    .secureUrl();
+            course.setThumbnail(thumbnailUrl);
         }
-
         Course updatedCourse = courseRepository.save(course);
         if (statusBeforeUpdate == CourseStatus.PUBLISHED) {
             cacheInvalidator.evictAfterCommit(
                     CacheNames.PUBLIC_COURSE_DETAILS,
                     updatedCourse.getSlug());
         }
-        boolean semanticContentChanged = !Objects.equals(oldTitle, updatedCourse.getTitle())
+        boolean indexedCourseDataChanged = !Objects.equals(oldTitle, updatedCourse.getTitle())
                 || !Objects.equals(oldShortDescription, updatedCourse.getShortDescription())
-                || !Objects.equals(oldDescription, updatedCourse.getDescription());
-        if (statusBeforeUpdate == CourseStatus.PUBLISHED && semanticContentChanged) {
-            eventPublisher.publishEvent(new CourseVectorUpsertEvent(courseId));
-        }
-        if (submittedForReview) {
-            eventPublisher.publishEvent(new CourseStatusChangedEvent(
-                    updatedCourse.getId(),
-                    updatedCourse.getInstructorId().getId(),
-                    CourseStatus.PENDING,
-                    updatedCourse.getTitle(),
-                    updatedCourse.getCategoryId().getName(),
-                    CourseRealtimeAudience.ADMINS));
+                || !Objects.equals(oldDescription, updatedCourse.getDescription())
+                || !Objects.equals(oldThumbnail, updatedCourse.getThumbnail())
+                || !Objects.equals(oldPrice, updatedCourse.getPrice());
+        if (statusBeforeUpdate == CourseStatus.PUBLISHED && indexedCourseDataChanged) {
+            eventPublisher.publishEvent(new SyncEvent(courseId));
         }
         return mapToDTO(updatedCourse);
     }
 
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public String uploadThumbnail(Long courseId, Long instructorId, MultipartFile file) {
-        CourseEditAccessProjection access = courseRepository.findEditAccessByCourseId(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
-        if (!access.getInstructorId().equals(instructorId)) {
-            throw new ForbiddenException("Bạn không có quyền chỉnh sửa khóa học này");
+    @Transactional
+    public void submitCourse(Long courseId, Long instructorId) {
+        Course course = findOwnedCourse(courseId, instructorId, "gửi kiểm duyệt");
+        CourseStatus currentStatus = CourseStatus.fromString(course.getStatus());
+        if (currentStatus != CourseStatus.DRAFT && currentStatus != CourseStatus.REJECTED) {
+            throw new IllegalStateException(
+                    "Chỉ có thể gửi kiểm duyệt khóa học ở trạng thái DRAFT hoặc REJECTED");
         }
-        if (CourseStatus.fromString(access.getStatus()) == CourseStatus.PENDING) {
-            throw new IllegalArgumentException(
-                    "Không thể chỉnh sửa khóa học ở trạng thái " + access.getStatus());
+        if (!lessonRepository.existsByCourseId_Id(courseId)) {
+            throw new IllegalStateException(
+                    "Khóa học phải có ít nhất một bài giảng trước khi gửi kiểm duyệt");
         }
-        return imageStorageService.uploadCourseThumbnail(file, courseId).secureUrl();
+
+        String title = course.getTitle();
+        String categoryName = course.getCategoryId().getName();
+        int updated = courseRepository.submitForReview(
+                courseId,
+                instructorId,
+                List.of(CourseStatus.DRAFT.name(), CourseStatus.REJECTED.name()),
+                CourseStatus.PENDING.name());
+        if (updated == 0) {
+            throw new IllegalStateException(
+                    "Khóa học đã thay đổi; vui lòng tải lại trước khi gửi kiểm duyệt");
+        }
+
+        eventPublisher.publishEvent(new CourseStatusChangedEvent(
+                courseId,
+                instructorId,
+                CourseStatus.PENDING,
+                title,
+                categoryName,
+                CourseRealtimeAudience.ADMINS));
     }
 
     public CourseRejectResponseDTO getCourseRejectReason(Long courseId, Long instructorId) {
