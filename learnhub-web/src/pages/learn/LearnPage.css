@@ -1,5 +1,6 @@
 .learn-page {
-  min-height: 100vh;
+  min-height: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   background-color: #f5f7fa;
@@ -35,6 +36,11 @@
   overflow: hidden;
 }
 
+.learn-video-frame.is-empty {
+  background: #fff;
+  border: 1px solid #d0d5dd;
+}
+
 .learn-video {
   width: 100%;
   height: 100%;
@@ -49,12 +55,8 @@
   justify-content: center;
   gap: 0.75rem;
   height: 100%;
-  color: #98a2b3;
+  color: #475467;
   text-align: center;
-}
-
-.learn-video-empty i {
-  font-size: 3rem;
 }
 
 .learn-stage-info {
@@ -274,27 +276,6 @@
   color: #101828;
 }
 
-.learn-progress-text {
-  margin: 0 0 0.5rem;
-  color: #667085;
-  font-size: 0.875rem;
-}
-
-.learn-progress-bar {
-  height: 6px;
-  border-radius: 999px;
-  background-color: #eceff3;
-  overflow: hidden;
-}
-
-.learn-progress-bar span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background-color: #12b76a;
-  transition: width 0.3s ease;
-}
-
 .learn-lesson-list {
   flex: 1;
   list-style: none;
@@ -312,12 +293,6 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.85rem 1rem 0.5rem;
-}
-
-.learn-lesson-check {
-  flex: 0 0 auto;
-  margin: 0;
-  cursor: pointer;
 }
 
 .learn-lesson-title {

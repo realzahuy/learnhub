@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { useMemo } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { uiConfig } from '../../config/uiConfig';
 import {
+  CourseThumbnail,
   Dropdown,
   DropdownOption,
   LoadingScreen,
@@ -9,10 +12,9 @@ import {
 } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import { useCategories } from '../../hooks/useCategories';
-import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
+import { usePagedSearchParams } from '../../hooks/usePagedSearchParams';
+import { queryKeys } from '../../query/queryKeys';
 import { enrollmentService } from '../../services/api/enrollment.service';
-import { Enrollment } from '../../types/enrollment.types';
-import { PageResponse } from '../../types/pagination.types';
 import { formatLongDate, getApiErrorMessage } from '../../utils';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './MyCoursesPage.css';
@@ -20,17 +22,18 @@ import './MyCoursesPage.css';
 const MyCoursesPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    searchParams,
+    page: currentPage,
+    search: searchQuery,
+    searchInput: localSearch,
+    setPage,
+    setParam,
+    setSearch,
+  } = usePagedSearchParams();
 
-  const currentPage = parseInt(searchParams.get('page') || '0');
   const categoryFilter = searchParams.get('category') || '';
-  const searchQuery = searchParams.get('search') || '';
-  const [localSearch, setLocalSearch] = useState(searchQuery);
   const { categories } = useCategories();
-
-  const [pageData, setPageData] = useState<PageResponse<Enrollment> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const categoryOptions = useMemo<DropdownOption[]>(
     () => [
@@ -43,74 +46,28 @@ const MyCoursesPage = () => {
     [categories]
   );
 
-  const updateFilter = useCallback(
-    (key: 'category' | 'search', value: string) => {
-      const next = new URLSearchParams(searchParams);
-      if (value) next.set(key, value);
-      else next.delete(key);
-      next.set('page', '0');
-      setSearchParams(next);
-    },
-    [searchParams, setSearchParams]
-  );
-
-  const [pushSearchToUrl] = useDebouncedCallback(
-    (value: string) => updateFilter('search', value.trim()),
-    500
-  );
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setLocalSearch(value);
-      pushSearchToUrl(value);
-    },
-    [pushSearchToUrl]
-  );
-
-  useEffect(() => {
-    setLocalSearch(searchQuery);
-  }, [searchQuery]);
-
-  const handlePageChange = useCallback(
-    (page: number) => {
-      const next = new URLSearchParams(searchParams);
-      next.set('page', page.toString());
-      setSearchParams(next);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    },
-    [searchParams, setSearchParams]
-  );
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    enrollmentService
-      .list({
-        page: currentPage,
-        size: 12,
-        category: categoryFilter || undefined,
-        search: searchQuery || undefined,
-      })
-      .then((data) => {
-        if (!cancelled) setPageData(data);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error('Không thể tải danh sách ghi danh:', err);
-        setError(getApiErrorMessage(err, 'Không tải được danh sách khóa học của bạn.'));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, currentPage, categoryFilter, searchQuery]);
+  const enrollmentFilters = {
+    page: currentPage,
+    category: categoryFilter || undefined,
+    search: searchQuery || undefined,
+  };
+  const enrollmentQuery = useQuery({
+    queryKey: queryKeys.enrollments.list(enrollmentFilters),
+    queryFn: ({ signal }) => enrollmentService.list(
+      { ...enrollmentFilters, size: uiConfig.pagination.coursePageSize },
+      signal
+    ),
+    placeholderData: keepPreviousData,
+    enabled: isAuthenticated,
+  });
+  const pageData = enrollmentQuery.data ?? null;
+  const loading = enrollmentQuery.isFetching;
+  const error = enrollmentQuery.error
+    ? getApiErrorMessage(
+        enrollmentQuery.error,
+        'Không tải được danh sách khóa học của bạn.'
+      )
+    : null;
 
   if (isAuthLoading) {
     return <LoadingScreen variant="cards" count={6} />;
@@ -134,7 +91,7 @@ const MyCoursesPage = () => {
               className="my-courses-category"
               value={categoryFilter}
               options={categoryOptions}
-              onChange={(value) => updateFilter('category', value)}
+              onChange={(value) => setParam('category', value)}
               ariaLabel="Lọc khóa học của tôi theo danh mục"
             />
 
@@ -143,7 +100,7 @@ const MyCoursesPage = () => {
                 type="text"
                 placeholder="Tìm kiếm khóa học của tôi"
                 value={localSearch}
-                onChange={(event) => handleSearchChange(event.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
                 aria-label="Tìm kiếm khóa học của tôi"
               />
               <i className="bi bi-search" aria-hidden="true" />
@@ -177,11 +134,6 @@ const MyCoursesPage = () => {
               {enrollments.map((enrollment) => {
                 const enrolled = formatLongDate(enrollment.enrolledAt);
 
-                const percent =
-                  enrollment.totalLessons > 0
-                    ? Math.round((enrollment.completedLessons / enrollment.totalLessons) * 100)
-                    : 0;
-
                 return (
 
                   <div key={enrollment.enrollmentId} className="col-12 col-sm-6 col-lg-4 col-xl-3">
@@ -192,11 +144,11 @@ const MyCoursesPage = () => {
                       className="my-course-card h-100"
                     >
                       <div className="my-course-thumb">
-                        {enrollment.courseThumbnail ? (
-                          <img src={enrollment.courseThumbnail} alt={enrollment.courseTitle} />
-                        ) : (
-                          <div className="my-course-thumb-empty" />
-                        )}
+                        <CourseThumbnail
+                          src={enrollment.courseThumbnail}
+                          alt={enrollment.courseTitle}
+                          placeholder={<div className="my-course-thumb-empty" />}
+                        />
                       </div>
 
                       <div className="my-course-body">
@@ -205,18 +157,10 @@ const MyCoursesPage = () => {
 
                         {
 }
-                        <div className="my-course-progress">
-                          <div className="my-course-progress-bar">
-                            <span style={{ width: `${percent}%` }} />
-                          </div>
-                          <p className="my-course-progress-text">
-                            {percent === 0
-                              ? enrolled
-                                ? `Chưa học · ghi danh ${enrolled}`
-                                : 'Chưa học'
-                              : `${percent}% hoàn thành · ${enrollment.completedLessons}/${enrollment.totalLessons} bài`}
-                          </p>
-                        </div>
+                        <p className="my-course-meta">
+                          {enrollment.totalLessons} bài học
+                          {enrolled ? ` · Ghi danh ${enrolled}` : ''}
+                        </p>
                       </div>
                     </Link>
                   </div>
@@ -230,7 +174,7 @@ const MyCoursesPage = () => {
                 totalPages={pageData.totalPages}
                 isFirst={pageData.first}
                 isLast={pageData.last}
-                onPageChange={handlePageChange}
+                onPageChange={setPage}
               />
             )}
             </>

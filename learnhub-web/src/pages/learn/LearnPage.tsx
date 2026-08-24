@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HlsPlayer, LoadingScreen, PageSkeleton } from '../../components/common';
 import {
@@ -10,7 +10,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useLearningCourse } from '../../hooks/useLearningCourse';
 import { learningService } from '../../services/api/learning.service';
-import { Course } from '../../types/course.types';
+import { RecommendationCard } from '../../types/course.types';
 import { LearnVideo } from '../../types/learn.types';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './LearnPage.css';
@@ -24,14 +24,14 @@ const LearnPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
-  const { course, setCourse, viewing, setViewing, loading, error } = useLearningCourse(
+  const { course, viewing, setViewing, loading, error } = useLearningCourse(
     isAuthenticated,
     slug,
     videoId,
     quizLessonId
   );
   const [activeTab, setActiveTab] = useState<LearnTab>('overview');
-  const [recommendations, setRecommendations] = useState<Course[]>([]);
+  const [recommendations, setRecommendations] = useState<RecommendationCard[]>([]);
   const [recommendationsActivated, setRecommendationsActivated] = useState(false);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [recommendationsLoaded, setRecommendationsLoaded] = useState(false);
@@ -74,102 +74,27 @@ const LearnPage = () => {
     const courseId = course?.id;
     if (!recommendationsActivated || !courseId || recommendationsLoaded) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
     setRecommendationsLoading(true);
 
     learningService
-      .getRecommendations(courseId)
+      .getRecommendations(courseId, controller.signal)
       .then((data) => {
-        if (!cancelled) setRecommendations(data);
+        if (!controller.signal.aborted) setRecommendations(data);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error('Không thể tải đề xuất khóa học:', err);
         setRecommendations([]);
       })
       .finally(() => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setRecommendationsLoading(false);
         setRecommendationsLoaded(true);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [recommendationsActivated, course?.id, recommendationsLoaded]);
-
-  const toggleCompleted = useCallback(
-    async (lessonId: number, completed: boolean) => {
-      setCourse((prev) => {
-        if (!prev) return prev;
-        const lessons = prev.lessons.map((lesson) =>
-          lesson.id === lessonId ? { ...lesson, completed } : lesson
-        );
-        return {
-          ...prev,
-          lessons,
-          completedLessons: lessons.filter((lesson) => lesson.completed).length,
-        };
-      });
-
-      try {
-        await learningService.setLessonCompleted(lessonId, completed);
-      } catch (err) {
-        console.error('Không thể lưu tiến độ học:', err);
-
-        setCourse((prev) => {
-          if (!prev) return prev;
-          const lessons = prev.lessons.map((lesson) =>
-            lesson.id === lessonId ? { ...lesson, completed: !completed } : lesson
-          );
-          return {
-            ...prev,
-            lessons,
-            completedLessons: lessons.filter((lesson) => lesson.completed).length,
-          };
-        });
-      }
-    },
-    [setCourse]
-  );
-
-  const markVideoCompleted = useCallback(async (lessonId: number) => {
-    try {
-      const progress = await learningService.markLessonVideoCompleted(lessonId);
-      setCourse((prev) => {
-        if (!prev) return prev;
-        const lessons = prev.lessons.map((lesson) =>
-          lesson.id === lessonId
-            ? {
-                ...lesson,
-                completed: progress.completed,
-                videoCompleted: progress.videoCompleted,
-                quizCompleted: progress.quizCompleted,
-              }
-            : lesson
-        );
-        return {
-          ...prev,
-          lessons,
-          completedLessons: lessons.filter((lesson) => lesson.completed).length,
-        };
-      });
-    } catch (err) {
-      console.error('Không thể lưu tiến độ xem video:', err);
-    }
-  }, [setCourse]);
-
-  const handleVideoWatched = useCallback(() => {
-    if (!course || viewing?.kind !== 'video') return;
-
-    const lesson = course.lessons.find((item) => item.id === viewing.lessonId);
-    if (!lesson || lesson.videoCompleted) return;
-
-    const videoIndex = lesson.videos.findIndex((video) => video.id === viewing.video.id);
-    if (videoIndex === lesson.videos.length - 1) {
-      void markVideoCompleted(lesson.id);
-    }
-  }, [course, viewing, markVideoCompleted]);
 
   const handleVideoEnded = useCallback(() => {
     if (!course || viewing?.kind !== 'video') return;
@@ -199,39 +124,6 @@ const LearnPage = () => {
       }
     }
   }, [course, viewing, openVideo, openQuiz]);
-
-  const handleQuizPassed = useCallback((lessonId: number, lessonCompleted: boolean) => {
-    setCourse((prev) => {
-      if (!prev) return prev;
-      const lessons = prev.lessons.map((lesson) =>
-        lesson.id === lessonId
-          ? { ...lesson, quizCompleted: true, completed: lessonCompleted }
-          : lesson
-      );
-      return {
-        ...prev,
-        lessons,
-        completedLessons: lessons.filter((lesson) => lesson.completed).length,
-      };
-    });
-  }, [setCourse]);
-
-  const handleQuizScored = useCallback((lessonId: number, bestScorePercent: number) => {
-    setCourse((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        lessons: prev.lessons.map((lesson) =>
-          lesson.id === lessonId ? { ...lesson, quizBestScorePercent: bestScorePercent } : lesson
-        ),
-      };
-    });
-  }, [setCourse]);
-
-  const progressPercent = useMemo(() => {
-    if (!course || course.totalLessons === 0) return 0;
-    return Math.round((course.completedLessons / course.totalLessons) * 100);
-  }, [course]);
 
   if (isAuthLoading) {
     return <LoadingScreen variant="detail" />;
@@ -264,26 +156,23 @@ const LearnPage = () => {
             <section className="learn-stage">
               {viewing?.kind === 'quiz' ? (
                 <QuizPanel
-
                   key={viewing.lessonId}
                   lessonId={viewing.lessonId}
-                  onQuizPassed={handleQuizPassed}
-                  onBestScoreChanged={handleQuizScored}
                 />
               ) : (
-                <div className="learn-video-frame">
+                <div className={`learn-video-frame${
+                  viewing?.video.playbackUrl ? '' : ' is-empty'
+                }`}>
                   {viewing?.video.playbackUrl ? (
                     <HlsPlayer
                       key={viewing.video.id}
                       playbackUrl={viewing.video.playbackUrl}
                       className="learn-video"
-                      onWatched={handleVideoWatched}
                       onEnded={handleVideoEnded}
                     />
                   ) : (
                     <div className="learn-video-empty">
-                      <i className="bi bi-play-btn"></i>
-                      <p>Chọn một mục ở mục lục bên phải để bắt đầu học.</p>
+                      <p>Chọn bài giảng để bắt đầu.</p>
                     </div>
                   )}
                 </div>
@@ -305,8 +194,6 @@ const LearnPage = () => {
             <LearnCourseSidebar
               course={course}
               viewing={viewing}
-              progressPercent={progressPercent}
-              onToggleCompleted={toggleCompleted}
               onOpenVideo={openVideo}
               onOpenQuiz={openQuiz}
             />

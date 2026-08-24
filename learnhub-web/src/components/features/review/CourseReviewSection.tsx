@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { uiConfig } from '../../../config/uiConfig';
 import { PageSkeleton, Pagination, StarRating, UserAvatar } from '../../common';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
@@ -16,8 +17,6 @@ interface CourseReviewSectionProps {
 
   onSummaryChange?: (summary: RatingSummary) => void;
 }
-
-const PAGE_SIZE = 5;
 
 const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
   slug,
@@ -47,7 +46,11 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
     async (targetPage: number) => {
       setIsLoading(true);
       try {
-        const data = await reviewService.getCourseReviews(slug, targetPage, PAGE_SIZE);
+        const data = await reviewService.getCourseReviews(
+          slug,
+          targetPage,
+          uiConfig.pagination.reviewPageSize
+        );
         setReviews(data.content);
         setPage(data.pageNumber);
         setTotalPages(data.totalPages);
@@ -173,7 +176,9 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
           <div className="rating-summary__score">
             <div className="rating-summary__average">{summary!.average.toFixed(1)}</div>
             <StarRating value={summary!.average} size="md" />
-            <div className="rating-summary__total">{total.toLocaleString('vi-VN')} đánh giá</div>
+            <div className="rating-summary__total">
+              {total.toLocaleString(uiConfig.formatting.locale)} đánh giá
+            </div>
           </div>
 
           <div className="rating-summary__bars">

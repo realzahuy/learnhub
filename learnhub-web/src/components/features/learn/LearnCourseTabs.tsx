@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Course } from '../../../types/course.types';
+import { RecommendationCard } from '../../../types/course.types';
 import { LearnCourse } from '../../../types/learn.types';
-import { PageSkeleton, StarRating } from '../../common';
+import { CourseThumbnail, PageSkeleton } from '../../common';
 import { CourseReviewSection } from '../review';
 import { formatPrice } from '../../../utils';
 import { LearnTab, Viewing } from './learnView.types';
@@ -12,7 +12,7 @@ interface LearnCourseTabsProps {
   slug: string;
   viewing: Viewing | null;
   activeTab: LearnTab;
-  recommendations: Course[];
+  recommendations: RecommendationCard[];
   recommendationsLoading: boolean;
   reviewsActivated: boolean;
   onTabChange: (tab: LearnTab) => void;
@@ -66,27 +66,19 @@ const LearnCourseTabs = ({
           <div className="learn-recommendation-grid motion-stagger">
             {recommendations.map((recommendation) => (
               <Link
-                key={recommendation.id}
+                key={recommendation.slug}
                 to={routeTo.courseDetail(recommendation.slug)}
                 className="learn-recommendation-card"
               >
                 <div className="learn-recommendation-thumb">
-                  {recommendation.thumbnail ? (
-                    <img src={recommendation.thumbnail} alt={recommendation.title} />
-                  ) : (
-                    <div className="learn-recommendation-thumb-placeholder" />
-                  )}
+                  <CourseThumbnail
+                    src={recommendation.thumbnail}
+                    alt={recommendation.title}
+                    placeholder={<div className="learn-recommendation-thumb-placeholder" />}
+                  />
                 </div>
                 <div className="learn-recommendation-body">
                   <h3>{recommendation.title}</h3>
-                  {recommendation.reviewCount > 0 && (
-                    <StarRating
-                      value={recommendation.averageRating}
-                      size="sm"
-                      showValue
-                      count={recommendation.reviewCount}
-                    />
-                  )}
                   <strong>{formatPrice(recommendation.price)}</strong>
                 </div>
               </Link>

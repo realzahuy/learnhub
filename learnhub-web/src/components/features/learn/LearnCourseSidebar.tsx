@@ -5,8 +5,6 @@ import { Viewing } from './learnView.types';
 interface LearnCourseSidebarProps {
   course: LearnCourse;
   viewing: Viewing | null;
-  progressPercent: number;
-  onToggleCompleted: (lessonId: number, completed: boolean) => void;
   onOpenVideo: (lessonId: number, video: LearnVideo) => void;
   onOpenQuiz: (lessonId: number) => void;
 }
@@ -14,31 +12,18 @@ interface LearnCourseSidebarProps {
 const LearnCourseSidebar = ({
   course,
   viewing,
-  progressPercent,
-  onToggleCompleted,
   onOpenVideo,
   onOpenQuiz,
 }: LearnCourseSidebarProps) => (
   <aside className="learn-sidebar">
     <div className="learn-sidebar-head">
       <h2>Nội dung khóa học</h2>
-      <p className="learn-progress-text">
-        {course.completedLessons}/{course.totalLessons} bài · {progressPercent}%
-      </p>
-      <div className="learn-progress-bar"><span style={{ width: `${progressPercent}%` }} /></div>
     </div>
 
     <ul className="learn-lesson-list">
       {course.lessons.map((lesson) => (
         <li key={lesson.id} className="learn-lesson">
           <div className="learn-lesson-head">
-            <input
-              type="checkbox"
-              className="form-check-input learn-lesson-check"
-              checked={lesson.completed}
-              onChange={(event) => onToggleCompleted(lesson.id, event.target.checked)}
-              aria-label={`Đánh dấu hoàn thành ${lesson.title}`}
-            />
             <span className="learn-lesson-title">{lesson.title}</span>
           </div>
 
@@ -76,11 +61,6 @@ const LearnCourseSidebar = ({
                 >
                   <i className="bi bi-patch-question" />
                   <span className="learn-video-name">Bài kiểm tra {lesson.questionCount} câu hỏi</span>
-                  <span className="learn-video-time">
-                    {lesson.quizBestScorePercent === null
-                      ? 'Chưa làm'
-                      : `${lesson.quizBestScorePercent}%`}
-                  </span>
                 </button>
               </li>
             )}

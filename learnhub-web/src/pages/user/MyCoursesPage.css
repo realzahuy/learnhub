@@ -1,5 +1,6 @@
 .my-courses-page {
-  min-height: 100vh;
+  min-height: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
 }
@@ -139,28 +140,9 @@
   font-size: 0.875rem;
 }
 
-.my-course-progress {
-  margin-top: auto;
+.my-course-meta {
+  margin: auto 0 0;
   padding-top: 0.75rem;
-}
-
-.my-course-progress-bar {
-  height: 6px;
-  border-radius: 999px;
-  background-color: #eceff3;
-  overflow: hidden;
-}
-
-.my-course-progress-bar span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background-color: #12b76a;
-  transition: width 0.3s ease;
-}
-
-.my-course-progress-text {
-  margin: 0.4rem 0 0;
   color: #667085;
   font-size: 0.8125rem;
 }

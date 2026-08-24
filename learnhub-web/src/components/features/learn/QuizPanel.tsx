@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { learningService } from '../../../services/api/learning.service';
 import { Quiz, QuizResult } from '../../../types/quiz.types';
 import { getApiErrorMessage } from '../../../utils';
@@ -7,18 +8,20 @@ import './QuizPanel.css';
 
 interface QuizPanelProps {
   lessonId: number;
-
-  onQuizPassed: (lessonId: number, lessonCompleted: boolean) => void;
-
-  onBestScoreChanged: (lessonId: number, bestScorePercent: number) => void;
 }
 
 type Selections = Record<number, number[]>;
 
-const QuizPanel = ({ lessonId, onQuizPassed, onBestScoreChanged }: QuizPanelProps) => {
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const QuizPanel = ({ lessonId }: QuizPanelProps) => {
+  const quizQuery = useQuery<Quiz>({
+    queryKey: ['lesson-quiz', lessonId],
+    queryFn: ({ signal }) => learningService.getQuiz(lessonId, signal),
+  });
+  const quiz = quizQuery.data ?? null;
+  const loading = quizQuery.isPending;
+  const error = quizQuery.error
+    ? getApiErrorMessage(quizQuery.error, 'Không tải được bài kiểm tra.')
+    : null;
 
   const [selections, setSelections] = useState<Selections>({});
   const [result, setResult] = useState<QuizResult | null>(null);
@@ -26,44 +29,9 @@ const QuizPanel = ({ lessonId, onQuizPassed, onBestScoreChanged }: QuizPanelProp
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    setLoading(true);
-    setError(null);
-
     setSelections({});
     setResult(null);
     setSubmitError(null);
-
-    learningService
-      .getQuiz(lessonId)
-      .then((data) => {
-        if (cancelled) return;
-
-        setQuiz(data);
-        if (data.latestResult) {
-          const savedSelections = Object.fromEntries(
-            data.latestResult.questions.map((question) => [
-              question.questionId,
-              question.selectedAnswerIds,
-            ])
-          );
-          setSelections(savedSelections);
-          setResult(data.latestResult);
-        }
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error('Không thể tải bài kiểm tra:', err);
-        setError(getApiErrorMessage(err, 'Không tải được bài kiểm tra.'));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
   }, [lessonId]);
 
   const resultOf = useCallback(
@@ -112,10 +80,6 @@ const QuizPanel = ({ lessonId, onQuizPassed, onBestScoreChanged }: QuizPanelProp
       });
 
       setResult(data);
-      onBestScoreChanged(lessonId, data.bestScorePercent);
-      if (data.passed) {
-        onQuizPassed(lessonId, data.lessonCompleted);
-      }
 
       document.querySelector('.quiz-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
@@ -124,7 +88,7 @@ const QuizPanel = ({ lessonId, onQuizPassed, onBestScoreChanged }: QuizPanelProp
     } finally {
       setSubmitting(false);
     }
-  }, [quiz, lessonId, selections, onBestScoreChanged, onQuizPassed]);
+  }, [quiz, lessonId, selections]);
 
   const handleRetry = useCallback(() => {
     setSelections({});
@@ -155,7 +119,6 @@ const QuizPanel = ({ lessonId, onQuizPassed, onBestScoreChanged }: QuizPanelProp
         <div className="quiz-meta">
           <span>{quiz.questions.length} câu</span>
           <span>Đạt từ {quiz.passPercent}%</span>
-          {quiz.bestScorePercent !== null && <span>Điểm cao nhất: {quiz.bestScorePercent}%</span>}
         </div>
       </header>
 

@@ -143,11 +143,16 @@
 }
 
 .review-item__action--danger {
-  color: var(--danger-color);
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  background: #d92d20;
+  color: #fff;
+  font-weight: 600;
 }
 
 .review-item__action--danger:hover {
-  color: #b91c1c;
+  background: #b42318;
+  color: #fff;
 }
 
 .review-empty {
