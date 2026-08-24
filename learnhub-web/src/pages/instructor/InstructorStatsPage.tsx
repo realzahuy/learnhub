@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { DropdownOption, PageSkeleton } from '../../components/common';
 import {
   StatsBarChart,
   StatsFilterBar,
   StatTile,
-  StatsFilterValue,
   formatMoney,
   formatMoneyTick,
   formatCount,
@@ -12,6 +11,7 @@ import {
   formatStatsRange,
   describeDelta,
 } from '../../components/features/stats';
+import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { instructorStatsService } from '../../services/api/instructorStats.service';
 import {
   InstructorOverview,
@@ -19,8 +19,6 @@ import {
   StatsPoint,
   STATS_GRANULARITY_LABELS,
 } from '../../types/stats.types';
-import { getApiErrorMessage } from '../../utils';
-
 import '../../components/features/stats/statsShared.css';
 import './InstructorStatsPage.css';
 
@@ -42,69 +40,19 @@ const formatPointValue = (metric: StatsMetric, point: StatsPoint): string =>
   metric === 'revenue' ? formatMoney(point.revenue) : formatCount(point.students);
 
 const InstructorStatsPage: React.FC = () => {
-  const [overview, setOverview] = useState<InstructorOverview | null>(null);
-  const [series, setSeries] = useState<InstructorTimeSeries | null>(null);
-
-  const [applied, setApplied] = useState<StatsFilterValue<StatsMetric> | null>(null);
-
-  const [loadingOverview, setLoadingOverview] = useState(true);
-  const [loadingSeries, setLoadingSeries] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchOverview = async () => {
-      try {
-        setLoadingOverview(true);
-        const data = await instructorStatsService.getOverview();
-        if (!cancelled) setOverview(data);
-      } catch (err) {
-        if (cancelled) return;
-        console.error('Không thể tải tổng quan giảng viên:', err);
-        setError(getApiErrorMessage(err, 'Không tải được số liệu thống kê.'));
-      } finally {
-        if (!cancelled) setLoadingOverview(false);
-      }
-    };
-
-    fetchOverview();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!applied || applied.metric === '') return;
-
-    let cancelled = false;
-
-    const fetchSeries = async () => {
-      try {
-        setLoadingSeries(true);
-        setError(null);
-        const data = await instructorStatsService.getTimeSeries(
-          applied.groupBy,
-          applied.from || undefined,
-          applied.to || undefined
-        );
-        if (!cancelled) setSeries(data);
-      } catch (err) {
-        if (cancelled) return;
-        console.error('Không thể tải thống kê giảng viên theo thời gian:', err);
-        setError(getApiErrorMessage(err, 'Không tải được số liệu thống kê.'));
-      } finally {
-        if (!cancelled) setLoadingSeries(false);
-      }
-    };
-
-    fetchSeries();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [applied]);
+  const {
+    overview,
+    series,
+    applied,
+    setApplied,
+    loadingOverview,
+    loadingSeries,
+    error,
+  } = useStatsDashboard<InstructorOverview, InstructorTimeSeries, StatsMetric>({
+    dataSource: instructorStatsService,
+    queryScope: 'instructor',
+    logLabel: 'giảng viên',
+  });
 
   const selectStudents = useCallback((point: StatsPoint) => point.students, []);
   const selectRevenue = useCallback((point: StatsPoint) => point.revenue, []);

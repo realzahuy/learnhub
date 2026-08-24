@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import LessonVideoList from './LessonVideoList';
 import LessonQuestionList from './LessonQuestionList';
 import { Lesson, Video } from '../../../types/lesson.types';
@@ -6,6 +6,8 @@ import { Question } from '../../../types/question.types';
 import { Dropdown, DropdownOption } from '../../common';
 
 type AddContentKind = 'VIDEO' | 'QUESTION';
+type DragItemProps = React.HTMLAttributes<HTMLLIElement> & { draggable: boolean };
+type DragHandleProps = React.HTMLAttributes<HTMLButtonElement>;
 
 const ADD_CONTENT_OPTIONS: DropdownOption[] = [
   { value: 'VIDEO', label: 'Thêm video' },
@@ -25,9 +27,9 @@ interface LessonRowProps {
 
   isDropTarget: boolean;
 
-  dragItemProps: React.HTMLAttributes<HTMLLIElement> & { draggable: boolean };
+  getDragItemProps: (id: number) => DragItemProps;
 
-  dragHandleProps: React.HTMLAttributes<HTMLButtonElement>;
+  getDragHandleProps: (id: number) => DragHandleProps;
 
   onRename: (lesson: Lesson, title: string) => Promise<boolean>;
 
@@ -46,8 +48,8 @@ const LessonRow: React.FC<LessonRowProps> = ({
   disabled,
   isDragging,
   isDropTarget,
-  dragItemProps,
-  dragHandleProps,
+  getDragItemProps,
+  getDragHandleProps,
   onRename,
   onTogglePreview,
   onVideosChange,
@@ -96,6 +98,8 @@ const LessonRow: React.FC<LessonRowProps> = ({
 
   const [savingPreview, setSavingPreview] = useState(false);
 
+  const finishAddingContent = useCallback(() => setAddingContent(null), []);
+
   const togglePreview = async () => {
     setSavingPreview(true);
     await onTogglePreview(lesson);
@@ -105,6 +109,8 @@ const LessonRow: React.FC<LessonRowProps> = ({
   const contentLabel = videos.length === 0 && questions.length === 0
     ? 'Chưa có nội dung'
     : `${videos.length} video · ${questions.length} câu hỏi`;
+  const dragItemProps = getDragItemProps(lesson.id);
+  const dragHandleProps = getDragHandleProps(lesson.id);
 
   return (
     <li
@@ -201,7 +207,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
           aria-label={`Xóa bài giảng ${lesson.title}`}
           title="Xóa bài giảng"
         >
-          <i className="bi bi-trash3"></i>
+          Xóa
         </button>
 
         {
@@ -219,6 +225,21 @@ const LessonRow: React.FC<LessonRowProps> = ({
       </div>
 
       <div className={`lesson-row-body${expanded ? '' : ' is-collapsed'}`}>
+        <div className="lesson-content-add">
+          <Dropdown
+            value=""
+            options={ADD_CONTENT_OPTIONS}
+            placeholder="+ Thêm nội dung"
+            className="lesson-content-add-dropdown"
+            ariaLabel={`Thêm nội dung cho bài giảng ${lesson.title}`}
+            disabled={disabled || addingContent !== null}
+            onChange={(value) => {
+              setAddingContent(value as AddContentKind);
+              setExpanded(true);
+            }}
+          />
+        </div>
+
         {(videos.length > 0 || addingContent === 'VIDEO') && (
           <section className="lesson-content-section">
             <h3 className="lesson-content-title">Video bài giảng</h3>
@@ -229,7 +250,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
               disabled={disabled}
               isAdding={addingContent === 'VIDEO'}
               onVideosChange={onVideosChange}
-              onAddFinished={() => setAddingContent(null)}
+              onAddFinished={finishAddingContent}
             />
           </section>
         )}
@@ -244,30 +265,38 @@ const LessonRow: React.FC<LessonRowProps> = ({
               disabled={disabled}
               isAdding={addingContent === 'QUESTION'}
               onQuestionsChange={onQuestionsChange}
-              onAddFinished={() => setAddingContent(null)}
+              onAddFinished={finishAddingContent}
             />
           </section>
         )}
 
-        {addingContent === null && (
-          <div className="lesson-content-add">
-            <Dropdown
-              value=""
-              options={ADD_CONTENT_OPTIONS}
-              placeholder="+ Thêm nội dung"
-              className="lesson-content-add-dropdown"
-              ariaLabel={`Thêm nội dung cho bài giảng ${lesson.title}`}
-              disabled={disabled}
-              onChange={(value) => {
-                setAddingContent(value as AddContentKind);
-                setExpanded(true);
-              }}
-            />
-          </div>
-        )}
       </div>
     </li>
   );
 };
 
-export default LessonRow;
+const areLessonRowPropsEqual = (previous: LessonRowProps, next: LessonRowProps) => {
+  if (previous.courseId !== next.courseId
+      || previous.lesson !== next.lesson
+      || previous.videos !== next.videos
+      || previous.questions !== next.questions
+      || previous.disabled !== next.disabled
+      || previous.isDragging !== next.isDragging
+      || previous.isDropTarget !== next.isDropTarget
+      || previous.getDragItemProps !== next.getDragItemProps
+      || previous.getDragHandleProps !== next.getDragHandleProps
+      || previous.onRename !== next.onRename
+      || previous.onTogglePreview !== next.onTogglePreview
+      || previous.onVideosChange !== next.onVideosChange
+      || previous.onQuestionsChange !== next.onQuestionsChange
+      || previous.onDelete !== next.onDelete) {
+    return false;
+  }
+
+  return next.videos.every((video) => (
+    previous.processingProgressByVideoId[video.id]
+      === next.processingProgressByVideoId[video.id]
+  ));
+};
+
+export default React.memo(LessonRow, areLessonRowPropsEqual);

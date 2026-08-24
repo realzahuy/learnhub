@@ -8,7 +8,8 @@ import {
 } from '../../../types/question.types';
 import { questionService } from '../../../services/api/question.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
-import { REORDER_SAVE_DELAY_MS, useDeferredSave } from '../../../hooks/useDeferredSave';
+import { uiConfig } from '../../../config/uiConfig';
+import { useDeferredSave } from '../../../hooks/useDeferredSave';
 import { getApiErrorMessage } from '../../../utils';
 
 interface LessonQuestionListProps {
@@ -22,6 +23,7 @@ interface LessonQuestionListProps {
 }
 
 interface DraftAnswer {
+  clientId: string;
   answer: string;
   isCorrect: boolean;
 }
@@ -35,19 +37,26 @@ interface DraftQuestion {
 
 const INITIAL_ANSWER_COUNT = 4;
 
+const newDraftAnswer = (): DraftAnswer => ({
+  clientId: `new-${crypto.randomUUID()}`,
+  answer: '',
+  isCorrect: false,
+});
+
 const emptyDraft = (): DraftQuestion => ({
   id: null,
   question: '',
-  answers: Array.from({ length: INITIAL_ANSWER_COUNT }, (_, index) => ({
-    answer: '',
-    isCorrect: index === 0,
-  })),
+  answers: Array.from({ length: INITIAL_ANSWER_COUNT }, newDraftAnswer),
 });
 
 const toDraft = (question: Question): DraftQuestion => ({
   id: question.id,
   question: question.question,
-  answers: question.answers.map((a) => ({ answer: a.answer, isCorrect: a.isCorrect })),
+  answers: question.answers.map((answer) => ({
+    clientId: `saved-${answer.id}`,
+    answer: answer.answer,
+    isCorrect: answer.isCorrect,
+  })),
 });
 
 const validateDraft = (draft: DraftQuestion): string | null => {
@@ -101,7 +110,10 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
     [courseId, lesson.id, onQuestionsChange]
   );
 
-  const [scheduleSaveOrder] = useDeferredSave(saveOrder, REORDER_SAVE_DELAY_MS);
+  const [scheduleSaveOrder] = useDeferredSave(
+    saveOrder,
+    uiConfig.timing.reorderSaveDelayMs
+  );
 
   const applyOrder = useCallback(
     (next: Question[]) => {
@@ -198,59 +210,62 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
         </p>
       ) : (
         <ol className="lesson-media-list">
-          {questions.map((question) => (
-            <li
-              className={`lesson-media-item${drag.isDragging(question.id) ? ' is-dragging' : ''}${
-                drag.isDropTarget(question.id) ? ' is-drop-target' : ''
-              }`}
-              key={question.id}
-              {...drag.itemProps(question.id)}
-              draggable={drag.itemProps(question.id).draggable && !busy}
-            >
-              <button
-                type="button"
-                className="lesson-row-handle lesson-media-handle"
-                {...drag.handleProps(question.id)}
-                disabled={busy}
-                aria-label={`Đổi vị trí câu hỏi ${question.question}`}
-                title="Kéo để đổi vị trí, hoặc dùng phím mũi tên lên/xuống"
-              >
-                <i className="bi bi-grip-vertical"></i>
-              </button>
+          {questions.map((question) => {
+            const itemProps = drag.itemProps(question.id);
 
-              <div className="lesson-media-body">
-                <span className="lesson-media-title">{question.question}</span>
-                <span className="lesson-status lesson-status-ready">
-                  {question.answers.length} đáp án,{' '}
-                  {question.answers.filter((a) => a.isCorrect).length} đáp án đúng
-                </span>
-              </div>
+            return (
+              <li
+                className={`lesson-media-item${drag.isDragging(question.id) ? ' is-dragging' : ''}${
+                  drag.isDropTarget(question.id) ? ' is-drop-target' : ''
+                }`}
+                key={question.id}
+                {...itemProps}
+                draggable={itemProps.draggable && !busy}
+              >
+                <button
+                  type="button"
+                  className="lesson-row-handle lesson-media-handle"
+                  {...drag.handleProps(question.id)}
+                  disabled={busy}
+                  aria-label={`Đổi vị trí câu hỏi ${question.question}`}
+                  title="Kéo để đổi vị trí, hoặc dùng phím mũi tên lên/xuống"
+                >
+                  <i className="bi bi-grip-vertical"></i>
+                </button>
 
-              <button
-                type="button"
-                className="btn-lesson-icon"
-                onClick={() => {
-                  setError(null);
-                  setDraft(toDraft(question));
-                }}
-                disabled={busy}
-                aria-label={`Sửa câu hỏi ${question.question}`}
-                title="Sửa câu hỏi"
-              >
-                <i className="bi bi-pencil"></i>
-              </button>
-              <button
-                type="button"
-                className="btn-lesson-icon btn-lesson-icon-danger"
-                onClick={() => handleDelete(question)}
-                disabled={busy}
-                aria-label={`Xóa câu hỏi ${question.question}`}
-                title="Xóa câu hỏi"
-              >
-                <i className="bi bi-trash3"></i>
-              </button>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  className="lesson-media-body lesson-question-toggle"
+                  onClick={() => {
+                    setError(null);
+                    setDraft(toDraft(question));
+                  }}
+                  disabled={busy}
+                  aria-expanded={draft?.id === question.id}
+                  title="Bấm để mở và sửa câu hỏi"
+                >
+                  <span>
+                    <span className="lesson-media-title">{question.question}</span>
+                    <span className="lesson-status lesson-status-ready">
+                      {question.answers.length} đáp án,{' '}
+                      {question.answers.filter((answer) => answer.isCorrect).length} đáp án đúng
+                    </span>
+                  </span>
+                  <i className={`bi bi-chevron-down lesson-question-chevron${draft?.id === question.id ? ' is-open' : ''}`} />
+                </button>
+                <button
+                  type="button"
+                  className="btn-lesson-icon btn-lesson-icon-danger"
+                  onClick={() => handleDelete(question)}
+                  disabled={busy}
+                  aria-label={`Xóa câu hỏi ${question.question}`}
+                  title="Xóa câu hỏi"
+                >
+                  Xóa
+                </button>
+              </li>
+            );
+          })}
         </ol>
       )}
 
@@ -269,7 +284,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
           <ul className="question-draft-answers">
             {draft.answers.map((answer, index) => (
 
-              <li className="question-draft-answer" key={index}>
+              <li className="question-draft-answer" key={answer.clientId}>
                 { }
                 <label className="question-draft-correct" title="Đánh dấu đáp án đúng">
                   <input
@@ -300,7 +315,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                     disabled={saving}
                     aria-label={`Xóa đáp án ${index + 1}`}
                   >
-                    <i className="bi bi-x-lg"></i>
+                    Xóa
                   </button>
                 )}
               </li>
@@ -312,7 +327,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
               type="button"
               className="btn-lesson-add-inline"
               onClick={() =>
-                updateDraft({ answers: [...draft.answers, { answer: '', isCorrect: false }] })
+                updateDraft({ answers: [...draft.answers, newDraftAnswer()] })
               }
               disabled={saving || draft.answers.length >= MAX_ANSWERS}
               title={
@@ -358,4 +373,4 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
   );
 };
 
-export default LessonQuestionList;
+export default React.memo(LessonQuestionList);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { useNotifications } from '../../context/NotificationContext';
+import { useCourseRealtime } from '../../context/NotificationContext';
 import { useCategories } from '../../hooks/useCategories';
 import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigger';
 import { useCourseThumbnail } from '../../hooks/useCourseThumbnail';
@@ -18,6 +18,7 @@ import {
   CourseFormState,
   EMPTY_COURSE_FORM,
   toCourseForm,
+  toCourseUpdatePayload,
   validateCourseForm,
 } from '../../utils/courseForm';
 import './InstructorCourseEditPage.css';
@@ -29,7 +30,7 @@ const InstructorCourseEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { lastCourseStatusEvent, realtimeReconnectVersion } = useNotifications();
+  const { lastCourseStatusEvent, realtimeReconnectVersion } = useCourseRealtime();
 
   const [course, setCourse] = useState<InstructorCourse | null>(null);
   const [rejectReason, setRejectReason] = useState<CourseRejectReason | null>(null);
@@ -53,9 +54,12 @@ const InstructorCourseEditPage: React.FC = () => {
   const { refreshVersion, scheduleRefresh } = useCoalescedRefreshTrigger();
   const courseIdRef = useRef(courseId);
   const seenReconnectVersion = useRef(realtimeReconnectVersion);
+  const seenCourseStatusEvent = useRef(lastCourseStatusEvent);
   courseIdRef.current = courseId;
 
   useEffect(() => {
+    if (lastCourseStatusEvent === seenCourseStatusEvent.current) return;
+    seenCourseStatusEvent.current = lastCourseStatusEvent;
     if (lastCourseStatusEvent?.courseId === courseIdRef.current) {
       scheduleRefresh();
     }
@@ -64,8 +68,8 @@ const InstructorCourseEditPage: React.FC = () => {
   useEffect(() => {
     if (realtimeReconnectVersion === seenReconnectVersion.current) return;
     seenReconnectVersion.current = realtimeReconnectVersion;
-    scheduleRefresh();
-  }, [realtimeReconnectVersion, scheduleRefresh]);
+    if (course?.status === 'PENDING') scheduleRefresh();
+  }, [course?.status, realtimeReconnectVersion, scheduleRefresh]);
   const {
     categories,
     loading: categoriesLoading,
@@ -78,7 +82,6 @@ const InstructorCourseEditPage: React.FC = () => {
   const status = course?.status;
   const canEditAll = status ? EDITABLE_ALL.includes(status) : false;
   const isReadOnly = status === 'PENDING';
-  const canSubmitForReview = canEditAll;
   const categoryOptions = useMemo<DropdownOption[]>(
     () => categories.map((category) => ({ value: String(category.id), label: category.name })),
     [categories]
@@ -99,6 +102,7 @@ const InstructorCourseEditPage: React.FC = () => {
 
         setCourse(detail);
         setForm(toCourseForm(detail));
+        setRejectReason(null);
 
         if (detail.status === 'REJECTED') {
           try {
@@ -138,7 +142,7 @@ const InstructorCourseEditPage: React.FC = () => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const save = async (submitForReview: boolean, destination = backTo) => {
+  const save = async (destination = backTo) => {
     if (!course) return;
 
     const validationError = validateCourseForm(form);
@@ -154,19 +158,11 @@ const InstructorCourseEditPage: React.FC = () => {
     try {
       await instructorService.updateCourse(
         course.id,
-        {
-          title: form.title.trim(),
-
-          slug: canEditAll ? form.slug.trim() : '',
-          shortDescription: form.shortDescription.trim(),
-          description: form.description.trim(),
-          price: Number(form.price),
-          categoryId: Number(form.categoryId),
-
+        toCourseUpdatePayload(form, {
+          slug: canEditAll ? form.slug : '',
           thumbnail: course.thumbnail,
           thumbnailFile,
-        },
-        submitForReview
+        })
       );
 
       navigate(destination, { replace: true });
@@ -240,7 +236,7 @@ const InstructorCourseEditPage: React.FC = () => {
                 fileInputRef={fileInputRef}
                 onThumbnailChange={handlePickThumbnail}
                 onChange={handleChange}
-                onSubmit={() => save(false)}
+                onSubmit={() => save()}
                 disabled={isReadOnly || saving}
                 identityDisabled={!canEditAll}
                 slugHint={
@@ -283,16 +279,6 @@ const InstructorCourseEditPage: React.FC = () => {
                             'Lưu thay đổi'
                           )}
                         </button>
-                        {canSubmitForReview && (
-                          <button
-                            type="button"
-                            className="btn-course-edit-outline"
-                            onClick={() => save(true)}
-                            disabled={saving}
-                          >
-                            Lưu và gửi duyệt
-                          </button>
-                        )}
                       </>
                     )}
                     <button

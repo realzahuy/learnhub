@@ -343,6 +343,51 @@
   white-space: nowrap;
 }
 
+.lesson-media-title-button {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: text;
+}
+
+.lesson-media-title-button:disabled {
+  cursor: not-allowed;
+}
+
+.lesson-media-title-input {
+  height: auto;
+  padding: 0.15rem 0.4rem;
+}
+
+.lesson-question-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lesson-question-toggle > span {
+  min-width: 0;
+}
+
+.lesson-question-chevron {
+  flex: 0 0 auto;
+  color: #98a2b3;
+  transition: transform 0.2s ease;
+}
+
+.lesson-question-chevron.is-open {
+  transform: rotate(180deg);
+}
+
 .lesson-media-add {
   display: flex;
   align-items: center;
@@ -517,13 +562,17 @@
 }
 
 .btn-lesson-icon-danger {
-  background-color: #fff7f6;
-  color: #b42318;
+  width: auto;
+  padding: 0 0.75rem;
+  background-color: #d92d20;
+  color: #fff;
+  font-size: var(--lesson-font-meta);
+  font-weight: 600;
 }
 
 .btn-lesson-icon-danger:hover:not(:disabled) {
-  background-color: #fee4e2;
-  color: #d92d20;
+  background-color: #b42318;
+  color: #fff;
 }
 
 .btn-lesson-icon-danger:focus-visible {

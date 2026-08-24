@@ -129,6 +129,7 @@ const CourseInfoForm: React.FC<CourseInfoFormProps> = ({
               onChange={(event) => onChange('shortDescription', event.target.value)}
               disabled={disabled}
               maxLength={500}
+              spellCheck={false}
             />
             <small className="text-muted">{form.shortDescription.length}/500 ký tự</small>
           </div>
@@ -142,6 +143,7 @@ const CourseInfoForm: React.FC<CourseInfoFormProps> = ({
               value={form.description}
               onChange={(event) => onChange('description', event.target.value)}
               disabled={disabled}
+              spellCheck={false}
             />
           </div>
         </div>

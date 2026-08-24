@@ -19,7 +19,9 @@ import {
 import {
   CourseFormState,
   EMPTY_COURSE_FORM,
+  toCourseCreatePayload,
   toCourseForm,
+  toCourseUpdatePayload,
   validateCourseForm,
 } from '../../utils/courseForm';
 import './InstructorCourseCreatePage.css';
@@ -95,43 +97,47 @@ const InstructorCourseCreatePage: React.FC = () => {
   useEffect(() => {
     if (!isReopening || !isValidId) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
+    setCourseId(reopenId);
 
     const load = async () => {
       try {
         setLoading(true);
         setLoadError(null);
 
-        const detail = await instructorService.getCourseDetail(reopenId as number);
-        if (cancelled) return;
+        const detail = await instructorService.getCourseDetail(
+          reopenId as number,
+          controller.signal
+        );
+        if (controller.signal.aborted) return;
 
         setStatus(detail.status);
         setForm(toCourseForm(detail));
         setThumbnailUrl(detail.thumbnail);
 
         const [content, rejectReason] = await Promise.all([
-          instructorService.getCourseContent(reopenId as number),
+          instructorService.getCourseContent(reopenId as number, controller.signal),
           detail.status === 'REJECTED'
-            ? instructorService.getRejectReason(reopenId as number).catch(() => null)
+            ? instructorService
+                .getRejectReason(reopenId as number, controller.signal)
+                .catch(() => null)
             : Promise.resolve(null),
         ]);
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setRejectComment(rejectReason?.comment ?? null);
 
         hydrateCourseContent(content);
       } catch (err) {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error('Không thể tải khóa học để biên soạn:', err);
         setLoadError('Không tải được khóa học. Vui lòng thử lại sau.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [isReopening, isValidId, reopenId, hydrateCourseContent]);
 
   useEffect(() => {
@@ -179,35 +185,21 @@ const InstructorCourseCreatePage: React.FC = () => {
       let id = courseId;
 
       if (id === null) {
-        const created = await instructorService.createDraftCourse({
-          title: form.title.trim(),
-          slug: form.slug.trim() || undefined,
-          shortDescription: form.shortDescription.trim(),
-          description: form.description.trim(),
-          price: Number(form.price),
-          categoryId: Number(form.categoryId),
-        });
+        const created = await instructorService.createDraftCourse(
+          toCourseCreatePayload(form, thumbnailFile)
+        );
         id = created.id;
         newlyCreatedId = id;
         setCourseId(id);
-      }
-
-      const needsUpdate = courseId !== null || thumbnailFile !== null;
-      if (needsUpdate) {
+        setThumbnailUrl(created.thumbnail);
+        clearThumbnailFile();
+      } else {
         const updated = await instructorService.updateCourse(
           id,
-          {
-            title: form.title.trim(),
-
-            slug: form.slug.trim(),
-            shortDescription: form.shortDescription.trim(),
-            description: form.description.trim(),
-            price: Number(form.price),
-            categoryId: Number(form.categoryId),
+          toCourseUpdatePayload(form, {
             thumbnail: thumbnailUrl,
             thumbnailFile,
-          },
-          false
+          })
         );
 
         setThumbnailUrl(updated.thumbnail);
@@ -255,10 +247,9 @@ const InstructorCourseCreatePage: React.FC = () => {
     }
   }, [courseId, deletingCourse, form.title, navigate, showToast]);
 
-  const finishAsDraft = useCallback(() => {
-    showToast('Đã lưu khóa học ở dạng nháp', 'success');
+  const exitBuilder = useCallback(() => {
     navigate(ROUTE_PATHS.instructorCourses, { replace: true });
-  }, [navigate, showToast]);
+  }, [navigate]);
 
   const submitForReview = useCallback(async () => {
     if (courseId === null) return;
@@ -266,20 +257,16 @@ const InstructorCourseCreatePage: React.FC = () => {
     setSaving(true);
     setError(null);
     try {
-      await instructorService.updateCourse(
+      const updated = await instructorService.updateCourse(
         courseId,
-        {
-          title: form.title.trim(),
-          slug: form.slug.trim(),
-          shortDescription: form.shortDescription.trim(),
-          description: form.description.trim(),
-          price: Number(form.price),
-          categoryId: Number(form.categoryId),
+        toCourseUpdatePayload(form, {
           thumbnail: thumbnailUrl,
-          thumbnailFile: null,
-        },
-        true
+          thumbnailFile,
+        })
       );
+      setThumbnailUrl(updated.thumbnail);
+      clearThumbnailFile();
+      await instructorService.submitCourse(courseId);
       showToast('Đã gửi khóa học cho admin duyệt', 'success');
       navigate(ROUTE_PATHS.instructorCourses, { replace: true });
     } catch (err) {
@@ -288,7 +275,7 @@ const InstructorCourseCreatePage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [courseId, form, thumbnailUrl, navigate, showToast]);
+  }, [courseId, form, thumbnailFile, thumbnailUrl, clearThumbnailFile, navigate, showToast]);
 
   if (!isValidId) {
     return <Navigate to={ROUTE_PATHS.instructorCourses} replace />;
@@ -482,16 +469,6 @@ const InstructorCourseCreatePage: React.FC = () => {
 
             {step === STEP_LESSONS && (
               <div className="course-create-nav-finish">
-                {
-}
-                <button
-                  type="button"
-                  className="btn-course-create-outline"
-                  onClick={finishAsDraft}
-                  disabled={saving}
-                >
-                  Lưu nháp
-                </button>
                 <button
                   type="button"
                   className="btn-course-create-primary"
@@ -508,10 +485,10 @@ const InstructorCourseCreatePage: React.FC = () => {
                 <button
                   type="button"
                   className="btn-course-create-outline"
-                  onClick={finishAsDraft}
+                  onClick={exitBuilder}
                   disabled={saving}
                 >
-                  Lưu nháp
+                  Thoát
                 </button>
                 <button
                   type="button"

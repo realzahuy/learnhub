@@ -1,16 +1,24 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Dropdown, DropdownOption, PageSkeleton, Pagination } from '../../components/common';
-import { useNotifications } from '../../context/NotificationContext';
-import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { uiConfig } from '../../config/uiConfig';
+import {
+  CourseThumbnail,
+  Dropdown,
+  DropdownOption,
+  PageSkeleton,
+  Pagination,
+} from '../../components/common';
+import { useCourseRealtime } from '../../context/NotificationContext';
 import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigger';
 import { useCategories } from '../../hooks/useCategories';
+import { usePagedSearchParams } from '../../hooks/usePagedSearchParams';
+import { queryKeys } from '../../query/queryKeys';
 import { instructorService } from '../../services/api/instructor.service';
 import {
   InstructorCourse,
   COURSE_STATUS_LABELS,
 } from '../../types/course.types';
-import { PageResponse } from '../../types/pagination.types';
 import { formatPrice, formatLongDate } from '../../utils';
 import { shouldRefreshInstructorCourseList } from '../../utils/courseRealtime';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
@@ -25,22 +33,25 @@ const STATUS_OPTIONS: DropdownOption[] = [
 ];
 
 const InstructorCoursesPage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    searchParams,
+    page: currentPage,
+    search: searchQuery,
+    searchInput: localSearch,
+    setPage,
+    setParam,
+    setSearch,
+  } = usePagedSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [courses, setCourses] = useState<InstructorCourse[]>([]);
-  const [pageData, setPageData] = useState<PageResponse<InstructorCourse> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { lastCourseStatusEvent, realtimeReconnectVersion } = useNotifications();
+  const { lastCourseStatusEvent, realtimeReconnectVersion } = useCourseRealtime();
 
-  const currentPage = parseInt(searchParams.get('page') || '0');
   const statusFilter = searchParams.get('status') || '';
   const categoryFilter = searchParams.get('category') || '';
-  const searchQuery = searchParams.get('search') || '';
   const { refreshVersion, scheduleRefresh } = useCoalescedRefreshTrigger();
   const filtersRef = useRef({ status: statusFilter, category: categoryFilter, search: searchQuery });
   const seenReconnectVersion = useRef(realtimeReconnectVersion);
+  const seenRefreshVersion = useRef(refreshVersion);
   filtersRef.current = { status: statusFilter, category: categoryFilter, search: searchQuery };
 
   useEffect(() => {
@@ -56,8 +67,6 @@ const InstructorCoursesPage: React.FC = () => {
     scheduleRefresh();
   }, [realtimeReconnectVersion, scheduleRefresh]);
 
-  const [localSearch, setLocalSearch] = useState(searchQuery);
-
   const { categories } = useCategories(true);
 
   const categoryOptions = useMemo<DropdownOption[]>(
@@ -68,83 +77,32 @@ const InstructorCoursesPage: React.FC = () => {
     [categories]
   );
 
-  const updateParam = useCallback(
-    (key: string, value: string) => {
-      const next = new URLSearchParams(searchParams);
-      if (value) {
-        next.set(key, value);
-      } else {
-        next.delete(key);
-      }
-      next.set('page', '0');
-      setSearchParams(next);
-    },
-    [searchParams, setSearchParams]
-  );
-
-  const [pushSearchToUrl] = useDebouncedCallback(
-    (value: string) => updateParam('search', value.trim()),
-    500
-  );
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setLocalSearch(value);
-      pushSearchToUrl(value);
-    },
-    [pushSearchToUrl]
-  );
-
-  const handlePageChange = useCallback(
-    (page: number) => {
-      const next = new URLSearchParams(searchParams);
-      next.set('page', page.toString());
-      setSearchParams(next);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    },
-    [searchParams, setSearchParams]
-  );
+  const courseFilters = {
+    page: currentPage,
+    status: statusFilter || undefined,
+    category: categoryFilter || undefined,
+    search: searchQuery || undefined,
+  };
+  const courseQuery = useQuery({
+    queryKey: queryKeys.instructorCourses.list(courseFilters),
+    queryFn: ({ signal }) => instructorService.getMyCourses(
+      { ...courseFilters, size: uiConfig.pagination.coursePageSize },
+      signal
+    ),
+    placeholderData: keepPreviousData,
+  });
+  const pageData = courseQuery.data ?? null;
+  const courses: InstructorCourse[] = pageData?.content ?? [];
+  const loading = courseQuery.isFetching;
+  const error = courseQuery.error
+    ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
+    : null;
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await instructorService.getMyCourses(
-          {
-            page: currentPage,
-            size: 12,
-            status: statusFilter || undefined,
-            category: categoryFilter || undefined,
-            search: searchQuery || undefined,
-          },
-          controller.signal
-        );
-        if (controller.signal.aborted) return;
-        setCourses(data.content);
-        setPageData(data);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        console.error('Không thể tải danh sách khóa học của giảng viên:', err);
-        setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    };
-
-    fetchCourses();
-    return () => {
-      controller.abort();
-    };
-  }, [
-    currentPage,
-    statusFilter,
-    categoryFilter,
-    searchQuery,
-    refreshVersion,
-  ]);
+    if (seenRefreshVersion.current === refreshVersion) return;
+    seenRefreshVersion.current = refreshVersion;
+    void courseQuery.refetch();
+  }, [courseQuery.refetch, refreshVersion]);
 
   const openCourse = useCallback(
     (course: InstructorCourse) => {
@@ -172,7 +130,7 @@ const InstructorCoursesPage: React.FC = () => {
               onClick={() => navigate(ROUTE_PATHS.instructorCourseCreate)}
             >
               <i className="bi bi-plus-lg"></i>
-              Tạo khóa học mới
+              Soạn khóa học
             </button>
 
             {
@@ -182,7 +140,7 @@ const InstructorCoursesPage: React.FC = () => {
                 className="instructor-dropdown"
                 value={statusFilter}
                 options={STATUS_OPTIONS}
-                onChange={(value) => updateParam('status', value)}
+                onChange={(value) => setParam('status', value)}
                 ariaLabel="Lọc theo trạng thái"
               />
 
@@ -190,7 +148,7 @@ const InstructorCoursesPage: React.FC = () => {
                 className="instructor-dropdown"
                 value={categoryFilter}
                 options={categoryOptions}
-                onChange={(value) => updateParam('category', value)}
+                onChange={(value) => setParam('category', value)}
                 ariaLabel="Lọc theo danh mục"
               />
 
@@ -199,7 +157,7 @@ const InstructorCoursesPage: React.FC = () => {
                   type="text"
                   placeholder="Tìm kiếm khóa học..."
                   value={localSearch}
-                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value)}
                   aria-label="Tìm kiếm khóa học"
                 />
                 <i className="bi bi-search"></i>
@@ -245,11 +203,11 @@ const InstructorCoursesPage: React.FC = () => {
                         }}
                       >
                         <div className="instructor-course-thumb">
-                          {course.thumbnail ? (
-                            <img src={course.thumbnail} alt={course.title} />
-                          ) : (
-                            <div className="instructor-course-thumb-empty" />
-                          )}
+                          <CourseThumbnail
+                            src={course.thumbnail}
+                            alt={course.title}
+                            placeholder={<div className="instructor-course-thumb-empty" />}
+                          />
                           <span
                             className={`instructor-status instructor-status-${course.status.toLowerCase()}`}
                           >
@@ -287,7 +245,7 @@ const InstructorCoursesPage: React.FC = () => {
                   totalPages={pageData.totalPages}
                   isFirst={pageData.first}
                   isLast={pageData.last}
-                  onPageChange={handlePageChange}
+                  onPageChange={setPage}
                 />
               )}
             </>

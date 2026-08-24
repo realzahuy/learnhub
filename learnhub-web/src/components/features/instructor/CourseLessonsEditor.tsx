@@ -5,7 +5,8 @@ import { Lesson, Video } from '../../../types/lesson.types';
 import { Question } from '../../../types/question.types';
 import { lessonService } from '../../../services/api/lesson.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
-import { REORDER_SAVE_DELAY_MS, useDeferredSave } from '../../../hooks/useDeferredSave';
+import { uiConfig } from '../../../config/uiConfig';
+import { useDeferredSave } from '../../../hooks/useDeferredSave';
 import { getApiErrorMessage } from '../../../utils';
 import './CourseLessonsEditor.css';
 
@@ -26,6 +27,102 @@ interface CourseLessonsEditorProps {
   onQuestionsChange: (lessonId: number, questions: Question[]) => void;
 }
 
+interface NewLessonFormProps {
+  courseId: number;
+  onLessonAdd: (lesson: Lesson) => void;
+  onError: React.Dispatch<React.SetStateAction<string | null>>;
+}
+
+const EMPTY_VIDEOS: Video[] = [];
+const EMPTY_QUESTIONS: Question[] = [];
+
+const NewLessonForm = React.memo(({
+  courseId,
+  onLessonAdd,
+  onError,
+}: NewLessonFormProps) => {
+  const [newTitle, setNewTitle] = useState('');
+  const [newIsPreview, setNewIsPreview] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  const handleAdd = useCallback(async () => {
+    const title = newTitle.trim();
+    if (!title) {
+      onError('Vui lòng nhập tên bài giảng');
+      return;
+    }
+
+    setAdding(true);
+    onError(null);
+    try {
+      const created = await lessonService.create(courseId, [{ title, isPreview: newIsPreview }]);
+      if (created.length > 0) onLessonAdd(created[0]);
+      setNewTitle('');
+      setNewIsPreview(false);
+    } catch (err) {
+      console.error('Không thể tạo bài giảng:', err);
+      onError(getApiErrorMessage(err, 'Không thêm được bài giảng. Vui lòng thử lại.'));
+    } finally {
+      setAdding(false);
+    }
+  }, [courseId, newIsPreview, newTitle, onError, onLessonAdd]);
+
+  return (
+    <div className="lessons-add">
+      <div className="lessons-add-field">
+        <label className="lessons-add-label" htmlFor="lesson-new-title">
+          Tên bài giảng
+        </label>
+        <input
+          id="lesson-new-title"
+          type="text"
+          className="form-control"
+          placeholder="Nhập tên bài giảng"
+          value={newTitle}
+          onChange={(event) => {
+            onError(null);
+            setNewTitle(event.target.value);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              void handleAdd();
+            }
+          }}
+          maxLength={255}
+          disabled={adding}
+        />
+      </div>
+
+      <div className="lessons-add-options">
+        <div className="lessons-add-field">
+          <span className="lessons-add-label">Cho học viên xem thử</span>
+          <label className="lessons-add-preview">
+            <input
+              type="checkbox"
+              checked={newIsPreview}
+              onChange={(event) => setNewIsPreview(event.target.checked)}
+              disabled={adding}
+            />
+            Cho xem thử video của bài này
+          </label>
+        </div>
+
+        <button
+          type="button"
+          className="btn-lesson-add lessons-add-submit"
+          onClick={() => void handleAdd()}
+          disabled={adding || newTitle.trim() === ''}
+          title={newTitle.trim() === '' ? 'Nhập tên bài giảng trước đã' : undefined}
+        >
+          <i className="bi bi-plus-lg"></i>
+          {adding ? 'Đang thêm...' : 'Thêm bài giảng'}
+        </button>
+      </div>
+    </div>
+  );
+});
+
 const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
   courseId,
   lessons,
@@ -39,39 +136,10 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
   onVideosChange,
   onQuestionsChange,
 }) => {
-  const [newTitle, setNewTitle] = useState('');
-  const [newIsPreview, setNewIsPreview] = useState(false);
-  const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [pendingDelete, setPendingDelete] = useState<Lesson | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  const handleAdd = useCallback(async () => {
-    const title = newTitle.trim();
-    if (!title) {
-      setError('Vui lòng nhập tên bài giảng');
-      return;
-    }
-
-    setAdding(true);
-    setError(null);
-    try {
-
-      const created = await lessonService.create(courseId, [{ title, isPreview: newIsPreview }]);
-      if (created.length > 0) {
-        onLessonAdd(created[0]);
-      }
-      setNewTitle('');
-      setNewIsPreview(false);
-
-    } catch (err) {
-      console.error('Không thể tạo bài giảng:', err);
-      setError(getApiErrorMessage(err, 'Không thêm được bài giảng. Vui lòng thử lại.'));
-    } finally {
-      setAdding(false);
-    }
-  }, [courseId, newTitle, newIsPreview, onLessonAdd]);
 
   const handleRename = useCallback(
     async (lesson: Lesson, title: string): Promise<boolean> => {
@@ -134,7 +202,10 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
     [courseId, onLessonsReorder]
   );
 
-  const [scheduleSaveOrder] = useDeferredSave(saveOrder, REORDER_SAVE_DELAY_MS);
+  const [scheduleSaveOrder] = useDeferredSave(
+    saveOrder,
+    uiConfig.timing.reorderSaveDelayMs
+  );
 
   const applyOrder = useCallback(
     (next: Lesson[]) => {
@@ -179,60 +250,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {
-}
-      <div className="lessons-add">
-        <div className="lessons-add-field">
-          <label className="lessons-add-label" htmlFor="lesson-new-title">
-            Tên bài giảng
-          </label>
-          <input
-            id="lesson-new-title"
-            type="text"
-            className="form-control"
-            placeholder="Nhập tên bài giảng"
-            value={newTitle}
-            onChange={(e) => {
-              setError(null);
-              setNewTitle(e.target.value);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAdd();
-              }
-            }}
-            maxLength={255}
-            disabled={adding}
-          />
-        </div>
-
-        <div className="lessons-add-options">
-          <div className="lessons-add-field">
-            <span className="lessons-add-label">Cho học viên xem thử</span>
-            <label className="lessons-add-preview">
-              <input
-                type="checkbox"
-                checked={newIsPreview}
-                onChange={(e) => setNewIsPreview(e.target.checked)}
-                disabled={adding}
-              />
-              Cho xem thử video của bài này
-            </label>
-          </div>
-
-          <button
-            type="button"
-            className="btn-lesson-add lessons-add-submit"
-            onClick={handleAdd}
-            disabled={adding || newTitle.trim() === ''}
-            title={newTitle.trim() === '' ? 'Nhập tên bài giảng trước đã' : undefined}
-          >
-            <i className="bi bi-plus-lg"></i>
-            {adding ? 'Đang thêm...' : 'Thêm bài giảng'}
-          </button>
-        </div>
-      </div>
+      <NewLessonForm courseId={courseId} onLessonAdd={onLessonAdd} onError={setError} />
 
       {lessons.length === 0 ? (
         <p className="lessons-empty">
@@ -240,26 +258,33 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
         </p>
       ) : (
         <ol className="lessons-list">
-          {lessons.map((lesson) => (
-            <LessonRow
-              key={lesson.id}
-              courseId={courseId}
-              lesson={lesson}
-              videos={videos[lesson.id] ?? []}
-              processingProgressByVideoId={processingProgressByVideoId}
-              questions={questions[lesson.id] ?? []}
-              disabled={deleting}
-              isDragging={drag.isDragging(lesson.id)}
-              isDropTarget={drag.isDropTarget(lesson.id)}
-              dragItemProps={drag.itemProps(lesson.id)}
-              dragHandleProps={drag.handleProps(lesson.id)}
-              onRename={handleRename}
-              onTogglePreview={handleTogglePreview}
-              onVideosChange={onVideosChange}
-              onQuestionsChange={onQuestionsChange}
-              onDelete={setPendingDelete}
-            />
-          ))}
+          {lessons.map((lesson) => {
+            const lessonVideos = videos[lesson.id] ?? EMPTY_VIDEOS;
+            const lessonProgress = Object.fromEntries(
+              lessonVideos.map((video) => [video.id, processingProgressByVideoId[video.id] ?? 0])
+            );
+
+            return (
+              <LessonRow
+                key={lesson.id}
+                courseId={courseId}
+                lesson={lesson}
+                videos={lessonVideos}
+                processingProgressByVideoId={lessonProgress}
+                questions={questions[lesson.id] ?? EMPTY_QUESTIONS}
+                disabled={deleting}
+                isDragging={drag.isDragging(lesson.id)}
+                isDropTarget={drag.isDropTarget(lesson.id)}
+                getDragItemProps={drag.itemProps}
+                getDragHandleProps={drag.handleProps}
+                onRename={handleRename}
+                onTogglePreview={handleTogglePreview}
+                onVideosChange={onVideosChange}
+                onQuestionsChange={onQuestionsChange}
+                onDelete={setPendingDelete}
+              />
+            );
+          })}
         </ol>
       )}
 
@@ -279,4 +304,4 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
   );
 };
 
-export default CourseLessonsEditor;
+export default React.memo(CourseLessonsEditor);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { uiConfig } from '../../config/uiConfig';
 import { BackButton, LoadingScreen, PageSkeleton, Pagination, StarRating } from '../../components/common';
 import { reviewService } from '../../services/api/review.service';
 import { Course } from '../../types/course.types';
@@ -25,40 +26,48 @@ const InstructorProfilePage = () => {
   useEffect(() => {
     if (!id) return;
 
+    const controller = new AbortController();
     setIsLoading(true);
     reviewService
-      .getInstructorProfile(Number(id))
+      .getInstructorProfile(Number(id), controller.signal)
       .then((data) => {
+        if (controller.signal.aborted) return;
         setProfile(data);
         setError(null);
       })
-      .catch((err) => setError(getApiErrorMessage(err, 'Không tìm thấy giảng viên')))
-      .finally(() => setIsLoading(false));
+      .catch((err) => {
+        if (!controller.signal.aborted) {
+          setError(getApiErrorMessage(err, 'Không tìm thấy giảng viên'));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
+
+    return () => controller.abort();
   }, [id]);
 
   useEffect(() => {
     if (!id) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
     setCoursesLoading(true);
     setCoursesError(null);
     reviewService
-      .getInstructorCourses(Number(id), currentPage)
+      .getInstructorCourses(Number(id), currentPage, undefined, controller.signal)
       .then((data) => {
-        if (!cancelled) setCoursePage(data);
+        if (!controller.signal.aborted) setCoursePage(data);
       })
       .catch((err) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setCoursesError(getApiErrorMessage(err, 'Không tải được khóa học của giảng viên'));
         }
       })
       .finally(() => {
-        if (!cancelled) setCoursesLoading(false);
+        if (!controller.signal.aborted) setCoursesLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [id, currentPage]);
 
   const handlePageChange = (page: number) => {
@@ -147,14 +156,14 @@ const InstructorProfilePage = () => {
 
               <div className="instructor-stat">
                 <div className="instructor-stat__value">
-                  {profile.totalReviews.toLocaleString('vi-VN')}
+                  {profile.totalReviews.toLocaleString(uiConfig.formatting.locale)}
                 </div>
                 <div className="instructor-stat__label">Lượt đánh giá</div>
               </div>
 
               <div className="instructor-stat">
                 <div className="instructor-stat__value">
-                  {profile.totalStudents.toLocaleString('vi-VN')}
+                  {profile.totalStudents.toLocaleString(uiConfig.formatting.locale)}
                 </div>
                 <div className="instructor-stat__label">Học viên</div>
               </div>
@@ -188,6 +197,8 @@ const InstructorProfilePage = () => {
                             src={course.thumbnail}
                             alt={course.title}
                             className="instructor-course-card__thumb"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="instructor-course-card__thumb" />
