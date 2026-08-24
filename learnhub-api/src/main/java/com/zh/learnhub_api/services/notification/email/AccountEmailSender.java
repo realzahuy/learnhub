@@ -3,7 +3,6 @@ package com.zh.learnhub_api.services.notification.email;
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.exceptions.EmailSendException;
 import jakarta.mail.internet.MimeMessage;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -13,7 +12,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 @Service
-@Slf4j
 public class AccountEmailSender {
 
     private final JavaMailSender mailSender;
@@ -29,48 +27,22 @@ public class AccountEmailSender {
     }
 
     public void sendVerificationCode(String toEmail, String code, int expireMinutes) {
-        sendCodeEmail(
-                toEmail,
-                "Mã xác thực email learnhub: " + code,
-                buildVerificationHtml(code, expireMinutes),
-                "mã xác thực",
-                "Không gửi được email xác thực. Vui lòng thử lại sau.");
+        sendCodeEmail(toEmail, "Mã xác thực email learnhub: " + code, buildVerificationHtml(code, expireMinutes), "Không gửi được email xác thực. Vui lòng thử lại sau.");
     }
 
     public void sendPasswordResetCode(String toEmail, String code, int expireMinutes) {
-        sendCodeEmail(
-                toEmail,
-                "Mã đặt lại mật khẩu learnhub: " + code,
-                buildPasswordResetHtml(code, expireMinutes),
-                "mã đặt lại mật khẩu",
-                "Không gửi được email đặt lại mật khẩu. Vui lòng thử lại sau.");
+        sendCodeEmail(toEmail, "Mã đặt lại mật khẩu learnhub: " + code, buildPasswordResetHtml(code, expireMinutes), "Không gửi được email đặt lại mật khẩu. Vui lòng thử lại sau.");
     }
 
     public void sendAccountLocked(String toEmail, String fullName, String adminEmail) {
-        sendCodeEmail(
-                toEmail,
-                "Tài khoản learnhub của bạn đã bị khóa",
-                buildAccountLockedHtml(fullName, adminEmail),
-                "thông báo khóa tài khoản",
-                "Không gửi được email thông báo khóa tài khoản. Vui lòng thử lại sau.");
+        sendCodeEmail(toEmail, "Tài khoản learnhub của bạn đã bị khóa", buildAccountLockedHtml(fullName, adminEmail), "Không gửi được email thông báo khóa tài khoản. Vui lòng thử lại sau.");
     }
 
     public void sendAccountUnlocked(String toEmail, String fullName) {
-        sendCodeEmail(
-                toEmail,
-                "Tài khoản learnhub của bạn đã được mở khóa",
-                buildAccountUnlockedHtml(fullName),
-                "thông báo mở khóa tài khoản",
-                "Không gửi được email thông báo mở khóa tài khoản. Vui lòng thử lại sau.");
+        sendCodeEmail(toEmail, "Tài khoản learnhub của bạn đã được mở khóa", buildAccountUnlockedHtml(fullName), "Không gửi được email thông báo mở khóa tài khoản. Vui lòng thử lại sau.");
     }
 
-    private void sendCodeEmail(String toEmail, String subject, String html,
-                               String logDescription, String failureMessage) {
-        if (fromAddress == null || fromAddress.isBlank()) {
-            throw new EmailSendException(
-                "Chưa cấu hình tài khoản gửi email (MAIL_USERNAME / MAIL_PASSWORD)", null);
-        }
-
+    private void sendCodeEmail(String toEmail, String subject, String html, String failureMessage) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper =
@@ -82,11 +54,8 @@ public class AccountEmailSender {
             helper.setText(html, true);
 
             mailSender.send(message);
-            log.info("Đã gửi {} tới {}", logDescription, maskEmail(toEmail));
         } catch (UnsupportedEncodingException | jakarta.mail.MessagingException
                  | org.springframework.mail.MailException ex) {
-
-            log.error("Gửi {} tới {} thất bại", logDescription, maskEmail(toEmail), ex);
             throw new EmailSendException(failureMessage, ex);
         }
     }

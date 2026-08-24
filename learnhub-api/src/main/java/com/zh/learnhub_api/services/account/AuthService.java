@@ -78,7 +78,7 @@ public class AuthService {
 
     public AuthTokens refresh(String refreshToken, String previousAccessToken) {
         RefreshTokenCodec.ParsedRefreshToken parsed = refreshTokenCodec.parse(refreshToken)
-                .orElseThrow(() -> new InvalidCredentialsException("Refresh token không hợp lệ"));
+                .orElseThrow(() -> new InvalidCredentialsException("Mã làm mới phiên đăng nhập không hợp lệ"));
 
         SessionRefreshProjection session = sessionRepository.findRefreshSessionById(parsed.sessionId())
                 .orElseThrow(() -> invalidRefreshToken(parsed.sessionId(), previousAccessToken));
@@ -90,7 +90,7 @@ public class AuthService {
             throw new InvalidCredentialsException("Phiên đăng nhập đã hết hạn");
         }
         if (!refreshTokenCodec.matches(parsed.secret(), session.getRefreshTokenHash())) {
-            throw new InvalidCredentialsException("Refresh token không hợp lệ");
+            throw new InvalidCredentialsException("Mã làm mới phiên đăng nhập không hợp lệ");
         }
 
         if (AccountStatus.LOCKED.name().equals(session.getAccountStatus())) {
@@ -102,7 +102,7 @@ public class AuthService {
         int updated = sessionRepository.rotateRefreshToken(
                 session.getSessionId(), session.getRefreshTokenHash(), nextHash);
         if (updated != 1) {
-            throw new InvalidCredentialsException("Refresh token đã được sử dụng");
+            throw new InvalidCredentialsException("Mã làm mới phiên đăng nhập đã được sử dụng");
         }
 
         String accessToken = jwtUtil.generateAccessToken(
@@ -125,7 +125,7 @@ public class AuthService {
                         identity.userId(), AccountStatus.LOCKED))
                 .<RuntimeException>map(identity ->
                         new AccountLockedException(ACCOUNT_LOCKED_MESSAGE))
-                .orElseGet(() -> new InvalidCredentialsException("Refresh token không hợp lệ"));
+                .orElseGet(() -> new InvalidCredentialsException("Mã làm mới phiên đăng nhập không hợp lệ"));
     }
 
     public void logout(String refreshToken) {

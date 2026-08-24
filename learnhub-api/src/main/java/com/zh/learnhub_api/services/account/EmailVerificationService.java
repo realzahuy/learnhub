@@ -12,7 +12,6 @@ import com.zh.learnhub_api.pojo.UserActionCode;
 import com.zh.learnhub_api.repositories.account.UserActionCodeRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.utils.UserActionCodes;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,6 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
-@Slf4j
 public class EmailVerificationService {
 
     private static final UserActionCodePurpose PURPOSE =
@@ -99,13 +97,9 @@ public class EmailVerificationService {
                         "Bạn chưa yêu cầu mã xác thực nào. Hãy bấm gửi mã trước."));
 
         if (latest.isUsed()) {
-            log.warn("Mã xác thực #{} của user {} đã dùng lúc {}", latest.getId(), username,
-                    latest.getUsedAt());
             throw new IllegalArgumentException("Mã xác thực đã được sử dụng");
         }
         if (latest.isExpired()) {
-            log.warn("Mã xác thực #{} của user {} hết hạn lúc {}", latest.getId(), username,
-                    latest.getExpiresAt());
             throw new IllegalArgumentException("Mã xác thực đã hết hạn. Hãy yêu cầu mã mới.");
         }
         if (latest.getAttempts() >= maxAttempts) {
@@ -113,9 +107,8 @@ public class EmailVerificationService {
                     "Bạn đã nhập sai quá " + maxAttempts + " lần. Hãy yêu cầu mã mới.");
         }
 
-        if (!latest.getCode().equals(inputCode == null ? null : inputCode.trim())) {
+        if (!latest.getCode().equals(inputCode.trim())) {
             latest.setAttempts(latest.getAttempts() + 1);
-            log.warn("User {} nhập sai mã xác thực lần thứ {}", username, latest.getAttempts());
 
             int remaining = maxAttempts - latest.getAttempts();
             throw new IllegalArgumentException(remaining > 0
@@ -126,7 +119,6 @@ public class EmailVerificationService {
         latest.setUsedAt(LocalDateTime.now());
 
         userRepository.markEmailVerified(user.getId());
-        log.info("User {} đã xác thực email {}", username, AccountEmailSender.maskEmail(user.getEmail()));
     }
 
     private User loadUser(String username) {

@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.services.notification;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.notification.NotificationResponseDTO;
 import com.zh.learnhub_api.dtos.realtime.CourseStatusChangedDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -18,11 +19,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @RequiredArgsConstructor
 public class NotificationSseService {
 
-    private static final long EMITTER_TIMEOUT_MS = 30 * 60 * 1000L;
     private static final String ACCOUNT_LOCKED_MESSAGE =
             "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.";
 
     private final UserRepository userRepository;
+    private final AppProperties.Sse sseProperties;
     private final Map<Long, CopyOnWriteArrayList<SseEmitter>> emittersByUser =
             new ConcurrentHashMap<>();
     private final Map<Long, CopyOnWriteArrayList<SseEmitter>> adminEmittersByUser =
@@ -32,7 +33,7 @@ public class NotificationSseService {
             Long userId, String username, boolean receivesAdminCourseEvents) {
         Long resolvedUserId = resolveUserId(userId, username);
 
-        SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT_MS);
+        SseEmitter emitter = new SseEmitter(sseProperties.timeoutMs());
         emittersByUser.computeIfAbsent(resolvedUserId, ignored -> new CopyOnWriteArrayList<>())
                 .add(emitter);
         if (receivesAdminCourseEvents) {
@@ -126,7 +127,7 @@ public class NotificationSseService {
         }
     }
 
-    @Scheduled(fixedRate = 15_000L)
+    @Scheduled(fixedRateString = "${app.sse.heartbeat-ms}")
     void heartbeat() {
         emittersByUser.forEach((userId, emitters) -> {
             for (SseEmitter emitter : emitters) {

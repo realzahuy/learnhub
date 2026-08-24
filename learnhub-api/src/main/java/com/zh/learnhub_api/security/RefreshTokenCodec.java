@@ -53,7 +53,7 @@ public class RefreshTokenCodec {
                     .digest(secret.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is not available", exception);
+            throw new IllegalStateException("Thuật toán SHA-256 không khả dụng", exception);
         }
     }
 

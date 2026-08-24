@@ -57,7 +57,7 @@ public class NotificationService {
 
         if ((cursorCreatedAt == null) != (cursorId == null)) {
             throw new IllegalArgumentException(
-                    "cursorCreatedAt vÃ  cursorId pháº£i Ä‘Æ°á»£c gá»­i cÃ¹ng nhau");
+                    "cursorCreatedAt và cursorId phải được gửi cùng nhau");
         }
 
         List<NotificationRepository.NotificationPageRow> rows = cursorCreatedAt == null

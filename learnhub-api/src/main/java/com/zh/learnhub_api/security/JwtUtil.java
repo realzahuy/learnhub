@@ -57,11 +57,6 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    private Boolean isTokenExpired(String token) {
-        final Date expiration = getExpirationDateFromToken(token);
-        return expiration.before(new Date());
-    }
-
     public Long getSessionIdFromToken(String token) {
         Number sessionId = getAllClaimsFromToken(token).get("sessionId", Number.class);
         return sessionId == null ? null : sessionId.longValue();
@@ -90,23 +85,20 @@ public class JwtUtil {
                 .compact();
     }
 
-    public Boolean validateToken(String token, String username) {
-        try {
-            final String tokenUsername = getUsernameFromToken(token);
-            return (tokenUsername.equals(username) && !isTokenExpired(token));
-        } catch (Exception e) {
-            return false;
+    public AccessTokenClaims getAccessTokenClaims(String token) {
+        Claims claims = getAllClaimsFromToken(token);
+        if (!"access".equals(claims.get("type", String.class))) {
+            return null;
         }
-    }
-
-    public boolean isAccessToken(String token) {
-        try {
-            Claims claims = getAllClaimsFromToken(token);
-            String type = claims.get("type", String.class);
-            return "access".equals(type);
-        } catch (Exception e) {
-            return false;
+        String username = claims.getSubject();
+        Number userId = claims.get("userId", Number.class);
+        Number sessionId = claims.get("sessionId", Number.class);
+        if (username == null || userId == null || sessionId == null) {
+            return null;
         }
+        @SuppressWarnings("unchecked")
+        List<String> roles = claims.get("roles", List.class);
+        return new AccessTokenClaims(userId.longValue(), sessionId.longValue(), username, roles == null ? List.of() : List.copyOf(roles));
     }
 
     public Optional<AccessTokenIdentity> getAccessTokenIdentityAllowExpired(String token) {
@@ -136,6 +128,9 @@ public class JwtUtil {
     }
 
     public record AccessTokenIdentity(Long userId, Long sessionId) {
+    }
+
+    public record AccessTokenClaims(Long userId, Long sessionId, String username, List<String> roles) {
     }
 
 }

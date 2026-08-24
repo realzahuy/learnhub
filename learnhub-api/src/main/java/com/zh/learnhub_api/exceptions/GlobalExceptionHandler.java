@@ -7,22 +7,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.method.ParameterValidationResult;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.LinkedHashMap;
@@ -61,12 +56,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ProblemDetail> handleIllegalState(
-            IllegalStateException ex, HttpServletRequest request) {
-        return response(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request);
-    }
-
     @ExceptionHandler(SlugAlreadyExistsException.class)
     public ResponseEntity<ProblemDetail> handleSlugAlreadyExists(
             SlugAlreadyExistsException ex, HttpServletRequest request) {
@@ -78,7 +67,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetail> handleDataIntegrityViolation(
             DataIntegrityViolationException ex, HttpServletRequest request) {
-        return response(HttpStatus.CONFLICT, dataIntegrityMessage(ex), request);
+        return response(HttpStatus.CONFLICT, "Vi phạm ràng buộc dữ liệu", request);
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
@@ -138,61 +127,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 request);
     }
 
-    @Override
-    protected ResponseEntity<Object> handleHttpMessageNotReadable(
-            HttpMessageNotReadableException ex,
-            HttpHeaders headers,
-            HttpStatusCode status,
-            WebRequest request) {
-        return mvcResponse(ex, "Dữ liệu JSON không hợp lệ", headers, status, request);
-    }
-
-    @Override
-    protected ResponseEntity<Object> handleMissingServletRequestParameter(
-            MissingServletRequestParameterException ex,
-            HttpHeaders headers,
-            HttpStatusCode status,
-            WebRequest request) {
-        return mvcResponse(
-                ex,
-                "Thiếu tham số bắt buộc: " + ex.getParameterName(),
-                headers,
-                status,
-                request);
-    }
-
-    @Override
-    protected ResponseEntity<Object> handleHttpRequestMethodNotSupported(
-            HttpRequestMethodNotSupportedException ex,
-            HttpHeaders headers,
-            HttpStatusCode status,
-            WebRequest request) {
-        return mvcResponse(ex, "Phương thức HTTP không được hỗ trợ", headers, status, request);
-    }
-
-    @Override
-    protected ResponseEntity<Object> handleHttpMediaTypeNotSupported(
-            HttpMediaTypeNotSupportedException ex,
-            HttpHeaders headers,
-            HttpStatusCode status,
-            WebRequest request) {
-        return mvcResponse(ex, "Định dạng nội dung không được hỗ trợ", headers, status, request);
-    }
-
-    @Override
-    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
-            MaxUploadSizeExceededException ex,
-            HttpHeaders headers,
-            HttpStatusCode status,
-            WebRequest request) {
-        return mvcResponse(
-                ex,
-                "File tải lên vượt quá dung lượng cho phép",
-                headers,
-                status,
-                request);
-    }
-
     @ExceptionHandler({
             ImageUploadException.class,
             VideoProcessingException.class,
@@ -213,26 +147,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGenericException(
             Exception ex, HttpServletRequest request) {
-        logger.error("Unhandled exception for " + request.getRequestURI(), ex);
         return response(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Đã xảy ra lỗi hệ thống",
                 request);
-    }
-
-    @Override
-    protected ResponseEntity<Object> createResponseEntity(
-            Object body,
-            HttpHeaders headers,
-            HttpStatusCode statusCode,
-            WebRequest request) {
-        ProblemDetail problem = body instanceof ProblemDetail detail
-                ? detail
-                : problem(statusCode, defaultTitle(statusCode), requestUri(request));
-        if (problem.getInstance() == null) {
-            problem.setInstance(java.net.URI.create(requestUri(request)));
-        }
-        return super.createResponseEntity(problem, headers, statusCode, request);
     }
 
     private ResponseEntity<Object> validationResponse(
@@ -260,20 +178,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, problem, headers, status, request);
     }
 
-    private ResponseEntity<Object> mvcResponse(
-            Exception ex,
-            String detail,
-            HttpHeaders headers,
-            HttpStatusCode status,
-            WebRequest request) {
-        return handleExceptionInternal(
-                ex,
-                problem(status, detail, requestUri(request)),
-                headers,
-                status,
-                request);
-    }
-
     private ResponseEntity<ProblemDetail> response(
             HttpStatus status, String detail, HttpServletRequest request) {
         return ResponseEntity.status(status)
@@ -289,33 +193,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             return servletWebRequest.getRequest().getRequestURI();
         }
         return "/";
-    }
-
-    private String dataIntegrityMessage(DataIntegrityViolationException ex) {
-        String message = ex.getMessage();
-        if (message == null) {
-            return "Vi phạm ràng buộc dữ liệu";
-        }
-        if (message.contains("user.username") || message.contains("'username'")) {
-            return "Tên đăng nhập không được sử dụng";
-        }
-        if (message.contains("user.email") || message.contains("'email'")) {
-            return "Email không được sử dụng";
-        }
-        if (message.contains("uk_course_slug") || message.contains("slug")) {
-            return "Slug đã tồn tại. Vui lòng thử lại với slug khác.";
-        }
-        if (message.contains("uk_course_position")
-                || (message.contains("position") && message.contains("course"))) {
-            return "Vị trí bài học đã tồn tại trong khóa học này. Vui lòng chọn vị trí khác.";
-        }
-        return "Vi phạm ràng buộc dữ liệu";
-    }
-
-    private String defaultTitle(HttpStatusCode status) {
-        return status instanceof HttpStatus httpStatus
-                ? httpStatus.getReasonPhrase()
-                : "HTTP " + status.value();
     }
 
     private String defaultMessage(String message) {

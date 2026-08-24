@@ -26,10 +26,10 @@ public class SessionAuthenticationCache {
             AppProperties.AuthCache properties) {
         this.sessionRepository = sessionRepository;
 
-        long maximumSize = Math.max(1, properties.maximumSize());
-        Duration sessionTtl = Duration.ofMinutes(
-                Math.max(1, properties.expireAfterWriteMinutes()));
-        Duration generationTtl = sessionTtl.plusMinutes(5);
+        long maximumSize = properties.maximumSize();
+        Duration sessionTtl = Duration.ofMinutes(properties.expireAfterWriteMinutes());
+        Duration generationTtl = sessionTtl.plusMinutes(
+                properties.generationExtraTtlMinutes());
 
         this.sessions = Caffeine.newBuilder()
                 .maximumSize(maximumSize)

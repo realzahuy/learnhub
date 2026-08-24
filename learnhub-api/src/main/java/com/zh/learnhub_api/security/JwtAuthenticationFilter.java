@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,58 +39,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        String jwt = authHeader.substring(7);
+        JwtUtil.AccessTokenClaims claims;
         try {
-            final String jwt = authHeader.substring(7);
-
-            if (!jwtUtil.isAccessToken(jwt)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            final String username = jwtUtil.getUsernameFromToken(jwt);
-
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                if (jwtUtil.validateToken(jwt, username)) {
-
-                    Long userId = jwtUtil.getUserIdFromToken(jwt);
-                    Long sessionId = jwtUtil.getSessionIdFromToken(jwt);
-                    if (userId == null || sessionId == null) {
-                        filterChain.doFilter(request, response);
-                        return;
-                    }
-                    if (!sessionAuthenticationCache.isActive(
-                            sessionId, userId, LocalDateTime.now())) {
-                        filterChain.doFilter(request, response);
-                        return;
-                    }
-                    List<String> roles = jwtUtil.getRolesFromToken(jwt);
-
-                    List<SimpleGrantedAuthority> authorities = roles.stream()
-                            .map(SimpleGrantedAuthority::new)
-                            .collect(Collectors.toList());
-
-                    AuthenticatedUserPrincipal userDetails =
-                        new AuthenticatedUserPrincipal(userId, sessionId, username, authorities);
-
-                    UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            authorities
-                        );
-
-                    authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
-
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
-            }
-
-        } catch (Exception e) {
-
+            claims = jwtUtil.getAccessTokenClaims(jwt);
+        } catch (JwtException | IllegalArgumentException exception) {
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        if (claims == null || SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        if (!sessionAuthenticationCache.isActive(claims.sessionId(), claims.userId(), LocalDateTime.now())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        List<SimpleGrantedAuthority> authorities = claims.roles().stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
+        AuthenticatedUserPrincipal userDetails = new AuthenticatedUserPrincipal(claims.userId(), claims.sessionId(), claims.username(), authorities);
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);
     }

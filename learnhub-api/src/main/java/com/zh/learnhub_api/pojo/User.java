@@ -74,9 +74,6 @@ public class User implements Serializable {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", insertable = false, updatable = false)
-    private LocalDateTime updatedAt;
     
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -86,15 +83,12 @@ public class User implements Serializable {
     )
     private Set<Role> roleSet;
     
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId", fetch = FetchType.LAZY)
-    private Set<LessonProgress> lessonProgressSet;
-    
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "instructorId", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "instructorId", fetch = FetchType.LAZY)
     private Set<Course> courseSet;
     
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "userId", fetch = FetchType.LAZY)
     private Set<Payment> paymentSet;
     
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "userId", fetch = FetchType.LAZY)
     private Set<Enrollment> enrollmentSet;
 }

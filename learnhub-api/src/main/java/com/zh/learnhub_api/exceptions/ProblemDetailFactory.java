@@ -2,7 +2,6 @@ package com.zh.learnhub_api.exceptions;
 
 import java.net.URI;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 
@@ -13,9 +12,6 @@ public final class ProblemDetailFactory {
 
     public static ProblemDetail create(HttpStatusCode status, String detail, String requestUri) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
-        if (status instanceof HttpStatus httpStatus) {
-            problem.setTitle(httpStatus.getReasonPhrase());
-        }
         if (requestUri != null && !requestUri.isBlank()) {
             problem.setInstance(URI.create(requestUri));
         }
