@@ -15,12 +15,8 @@ const describeContent = (lesson: AdminLessonContent): string => {
   return 'Chưa có nội dung';
 };
 
-const LessonBlock: React.FC<{ lesson: AdminLessonContent; index: number }> = ({
-  lesson,
-  index,
-}) => {
-
-  const [expanded, setExpanded] = useState(index === 0);
+const LessonBlock: React.FC<{ lesson: AdminLessonContent }> = ({ lesson }) => {
+  const [expanded, setExpanded] = useState(false);
 
   const [playingId, setPlayingId] = useState<number | null>(null);
 
@@ -118,27 +114,25 @@ const AdminCourseContentPanel: React.FC<AdminCourseContentPanelProps> = ({ cours
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
 
     adminService
-      .getCourseContent(courseId)
+      .getCourseContent(courseId, controller.signal)
       .then((data) => {
-        if (!cancelled) setContent(data);
+        if (!controller.signal.aborted) setContent(data);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error('Không thể tải nội dung khóa học:', err);
         setError(getApiErrorMessage(err, 'Không tải được nội dung khóa học.'));
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [courseId]);
 
   if (loading) {
@@ -164,8 +158,8 @@ const AdminCourseContentPanel: React.FC<AdminCourseContentPanelProps> = ({ cours
       <p className="admin-content-summary">{content.lessons.length} bài giảng</p>
 
       <ul className="admin-content-lessons">
-        {content.lessons.map((lesson, index) => (
-          <LessonBlock key={lesson.id} lesson={lesson} index={index} />
+        {content.lessons.map((lesson) => (
+          <LessonBlock key={lesson.id} lesson={lesson} />
         ))}
       </ul>
     </div>

@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { DropdownOption, LoadingScreen } from '../../components/common';
 import {
   StatsBarChart,
   StatsFilterBar,
   StatTile,
-  StatsFilterValue,
   formatMoney,
   formatMoneyTick,
   formatCount,
@@ -12,6 +11,7 @@ import {
   formatStatsRange,
   describeDelta,
 } from '../../components/features/stats';
+import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { adminStatsService } from '../../services/api/adminStats.service';
 import {
   AdminOverview,
@@ -19,8 +19,6 @@ import {
   AdminTimeSeries,
   STATS_GRANULARITY_LABELS,
 } from '../../types/stats.types';
-import { getApiErrorMessage } from '../../utils';
-
 import '../../components/features/stats/statsShared.css';
 import './AdminStatsPage.css';
 
@@ -50,69 +48,19 @@ const formatPointValue = (metric: AdminMetric, point: AdminStatsPoint): string =
   metric === 'revenue' ? formatMoney(point.revenue) : formatCount(point[metric]);
 
 const AdminStatsPage: React.FC = () => {
-  const [overview, setOverview] = useState<AdminOverview | null>(null);
-  const [series, setSeries] = useState<AdminTimeSeries | null>(null);
-
-  const [applied, setApplied] = useState<StatsFilterValue<AdminMetric> | null>(null);
-
-  const [loadingOverview, setLoadingOverview] = useState(true);
-  const [loadingSeries, setLoadingSeries] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchOverview = async () => {
-      try {
-        setLoadingOverview(true);
-        const data = await adminStatsService.getOverview();
-        if (!cancelled) setOverview(data);
-      } catch (err) {
-        if (cancelled) return;
-        console.error('Không thể tải tổng quan quản trị:', err);
-        setError(getApiErrorMessage(err, 'Không tải được số liệu thống kê.'));
-      } finally {
-        if (!cancelled) setLoadingOverview(false);
-      }
-    };
-
-    fetchOverview();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!applied || applied.metric === '') return;
-
-    let cancelled = false;
-
-    const fetchSeries = async () => {
-      try {
-        setLoadingSeries(true);
-        setError(null);
-        const data = await adminStatsService.getTimeSeries(
-          applied.groupBy,
-          applied.from || undefined,
-          applied.to || undefined
-        );
-        if (!cancelled) setSeries(data);
-      } catch (err) {
-        if (cancelled) return;
-        console.error('Không thể tải thống kê quản trị theo thời gian:', err);
-        setError(getApiErrorMessage(err, 'Không tải được số liệu thống kê.'));
-      } finally {
-        if (!cancelled) setLoadingSeries(false);
-      }
-    };
-
-    fetchSeries();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [applied]);
+  const {
+    overview,
+    series,
+    applied,
+    setApplied,
+    loadingOverview,
+    loadingSeries,
+    error,
+  } = useStatsDashboard<AdminOverview, AdminTimeSeries, AdminMetric>({
+    dataSource: adminStatsService,
+    queryScope: 'admin',
+    logLabel: 'quản trị',
+  });
 
   const selectUsers = useCallback((point: AdminStatsPoint) => point.users, []);
   const selectInstructors = useCallback((point: AdminStatsPoint) => point.instructors, []);

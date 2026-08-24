@@ -1,16 +1,24 @@
 import { StatsGranularity } from '../../../types/stats.types';
+import { uiConfig } from '../../../config/uiConfig';
 
 export const formatMoney = (value: number): string =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+  new Intl.NumberFormat(uiConfig.formatting.locale, {
+    style: 'currency',
+    currency: uiConfig.formatting.currency,
+  }).format(value);
 
 export const formatMoneyTick = (value: number): string =>
   value === 0
     ? '0'
-    : new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(
+    : new Intl.NumberFormat(uiConfig.formatting.locale, {
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      }).format(
         value
       );
 
-export const formatCount = (value: number): string => new Intl.NumberFormat('vi-VN').format(value);
+export const formatCount = (value: number): string =>
+  new Intl.NumberFormat(uiConfig.formatting.locale).format(value);
 
 export const formatStatsPeriod = (
   label: string,

@@ -233,7 +233,7 @@ const AdminCategoriesPage: React.FC = () => {
                           title="Xóa"
                           aria-label={`Xóa danh mục ${category.name}`}
                         >
-                          <i className="bi bi-trash"></i>
+                          Xóa
                         </button>
                       </>
                     )}

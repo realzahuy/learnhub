@@ -1,5 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   ConfirmDialog,
   Dropdown,
@@ -9,7 +14,8 @@ import {
   UserAvatar,
 } from '../../components/common';
 import { useToast } from '../../context/ToastContext';
-import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
+import { usePagedSearchParams } from '../../hooks/usePagedSearchParams';
+import { queryKeys } from '../../query/queryKeys';
 import { adminService } from '../../services/api/admin.service';
 import { AdminUser, AdminUserFilter } from '../../types/admin.types';
 import { PageResponse } from '../../types/pagination.types';
@@ -33,99 +39,58 @@ const formatRoles = (roles: string[]) =>
 
 const AdminUsersPage: React.FC = () => {
   const { showToast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    page: currentPage,
+    search: searchQuery,
+    searchInput: localSearch,
+    setPage,
+    setParam,
+    setSearch,
+    searchParams,
+  } = usePagedSearchParams();
 
-  const searchQuery = searchParams.get('search') || '';
   const filterParam = searchParams.get('filter');
   const userFilter: AdminUserFilter =
     filterParam === 'INSTRUCTOR' || filterParam === 'LOCKED' ? filterParam : 'ALL';
-  const currentPage = parseInt(searchParams.get('page') || '0');
-
-  const [pageData, setPageData] = useState<PageResponse<AdminUser> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [localSearch, setLocalSearch] = useState(searchQuery);
+  const queryClient = useQueryClient();
+  const userFilters = useMemo(
+    () => ({
+      page: currentPage,
+      filter: userFilter,
+      search: searchQuery || undefined,
+    }),
+    [currentPage, searchQuery, userFilter]
+  );
+  const userQueryKey = useMemo(
+    () => queryKeys.adminUsers.list(userFilters),
+    [userFilters]
+  );
+  const userQuery = useQuery({
+    queryKey: userQueryKey,
+    queryFn: ({ signal }) => adminService.listUsers(userFilters, signal),
+    placeholderData: keepPreviousData,
+  });
+  const pageData = userQuery.data ?? null;
+  const loading = userQuery.isFetching;
+  const error = userQuery.error
+    ? 'Không thể tải danh sách người dùng. Vui lòng thử lại sau.'
+    : null;
 
   const [detailUser, setDetailUser] = useState<AdminUser | null>(null);
   const [pendingLock, setPendingLock] = useState<AdminUser | null>(null);
-  const [locking, setLocking] = useState(false);
   const [pendingUnlock, setPendingUnlock] = useState<AdminUser | null>(null);
-  const [unlocking, setUnlocking] = useState(false);
-
-  const setParam = useCallback(
-    (key: string, value: string) => {
-      const next = new URLSearchParams(searchParams);
-      if (value) {
-        next.set(key, value);
-      } else {
-        next.delete(key);
-      }
-      if (key !== 'page') next.set('page', '0');
-      setSearchParams(next);
-    },
-    [searchParams, setSearchParams]
-  );
-
-  const [pushSearchToUrl] = useDebouncedCallback(
-    (value: string) => setParam('search', value.trim()),
-    500
-  );
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setLocalSearch(value);
-      pushSearchToUrl(value);
-    },
-    [pushSearchToUrl]
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await adminService.listUsers(
-          {
-            filter: userFilter,
-            search: searchQuery || undefined,
-            page: currentPage,
-          },
-          controller.signal
-        );
-        if (!controller.signal.aborted) setPageData(data);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        console.error('Không thể tải danh sách người dùng:', err);
-        setError('Không thể tải danh sách người dùng. Vui lòng thử lại sau.');
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    };
-
-    fetchUsers();
-    return () => {
-      controller.abort();
-    };
-  }, [searchQuery, userFilter, currentPage]);
-
-  const handlePageChange = useCallback(
-    (page: number) => {
-      setParam('page', page.toString());
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    },
-    [setParam]
-  );
+  const lockMutation = useMutation({ mutationFn: adminService.lockUser });
+  const unlockMutation = useMutation({ mutationFn: adminService.unlockUser });
+  const locking = lockMutation.isPending;
+  const unlocking = unlockMutation.isPending;
 
   const handleLockUser = useCallback(async () => {
     if (!pendingLock || locking) return;
 
-    setLocking(true);
     try {
-      await adminService.lockUser(pendingLock.id);
+      await lockMutation.mutateAsync(pendingLock.id);
       const lockedUser = { ...pendingLock, accountStatus: 'LOCKED' as const };
-      setPageData((current) =>
+      queryClient.setQueryData<PageResponse<AdminUser>>(userQueryKey, (current) =>
         current
           ? {
               ...current,
@@ -143,22 +108,20 @@ const AdminUsersPage: React.FC = () => {
         `Đã khóa tài khoản @${lockedUser.username}. Email thông báo đang được gửi.`,
         'success'
       );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers.all });
     } catch (err) {
       console.error('Không thể khóa tài khoản:', err);
       showToast(getApiErrorMessage(err, 'Không thể khóa tài khoản. Vui lòng thử lại.'), 'error');
-    } finally {
-      setLocking(false);
     }
-  }, [pendingLock, locking, showToast]);
+  }, [lockMutation, locking, pendingLock, queryClient, showToast, userQueryKey]);
 
   const handleUnlockUser = useCallback(async () => {
     if (!pendingUnlock || unlocking) return;
 
-    setUnlocking(true);
     try {
-      await adminService.unlockUser(pendingUnlock.id);
+      await unlockMutation.mutateAsync(pendingUnlock.id);
       const activeUser = { ...pendingUnlock, accountStatus: 'ACTIVE' as const };
-      setPageData((current) => {
+      queryClient.setQueryData<PageResponse<AdminUser>>(userQueryKey, (current) => {
         if (!current) return current;
         if (userFilter !== 'LOCKED') {
           return {
@@ -184,16 +147,23 @@ const AdminUsersPage: React.FC = () => {
       );
       setPendingUnlock(null);
       showToast(`Đã mở khóa tài khoản @${activeUser.username}.`, 'success');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers.all });
     } catch (err) {
       console.error('Không thể mở khóa tài khoản:', err);
       showToast(
         getApiErrorMessage(err, 'Không thể mở khóa tài khoản. Vui lòng thử lại.'),
         'error'
       );
-    } finally {
-      setUnlocking(false);
     }
-  }, [pendingUnlock, unlocking, showToast, userFilter]);
+  }, [
+    pendingUnlock,
+    queryClient,
+    showToast,
+    unlockMutation,
+    unlocking,
+    userFilter,
+    userQueryKey,
+  ]);
 
   const users = pageData?.content ?? [];
 
@@ -225,7 +195,7 @@ const AdminUsersPage: React.FC = () => {
               type="text"
               placeholder="Tìm theo tên, tài khoản, email..."
               value={localSearch}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               aria-label="Tìm kiếm người dùng"
             />
             <i className="bi bi-search"></i>
@@ -339,7 +309,7 @@ const AdminUsersPage: React.FC = () => {
                 totalPages={pageData.totalPages}
                 isFirst={pageData.first}
                 isLast={pageData.last}
-                onPageChange={handlePageChange}
+                onPageChange={setPage}
               />
             )}
             </>

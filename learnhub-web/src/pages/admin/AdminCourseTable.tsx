@@ -1,5 +1,6 @@
 import { InstructorCourse, COURSE_STATUS_LABELS } from '../../types/course.types';
 import { formatPrice } from '../../utils';
+import { CourseThumbnail } from '../../components/common';
 
 const AdminCourseTable = ({
   courses,
@@ -38,11 +39,11 @@ const AdminCourseTable = ({
           >
             <td>
               <div className="admin-table-thumb">
-                {course.thumbnail ? (
-                  <img src={course.thumbnail} alt={course.title} />
-                ) : (
-                  <div className="admin-table-thumb-empty" />
-                )}
+                <CourseThumbnail
+                  src={course.thumbnail}
+                  alt={course.title}
+                  placeholder={<div className="admin-table-thumb-empty" />}
+                />
               </div>
             </td>
             <td className="admin-table-title"><span className="admin-table-title-text">{course.title}</span></td>

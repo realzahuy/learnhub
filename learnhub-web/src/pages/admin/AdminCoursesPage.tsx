@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import AdminCourseDialogs from './AdminCourseDialogs';
 import AdminCourseTable from './AdminCourseTable';
 import { Dropdown, DropdownOption, Pagination, LoadingScreen } from '../../components/common';
-import { useNotifications } from '../../context/NotificationContext';
+import { useCourseRealtime } from '../../context/NotificationContext';
 import { useToast } from '../../context/ToastContext';
-import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
 import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigger';
 import { useCategories } from '../../hooks/useCategories';
+import { usePagedSearchParams } from '../../hooks/usePagedSearchParams';
 import { adminService } from '../../services/api/admin.service';
 import {
   InstructorCourse,
@@ -26,19 +25,24 @@ const STATUS_OPTIONS: DropdownOption[] = [
 
 const AdminCoursesPage: React.FC = () => {
   const { showToast } = useToast();
-  const { lastCourseStatusEvent, realtimeReconnectVersion } = useNotifications();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { lastCourseStatusEvent, realtimeReconnectVersion } = useCourseRealtime();
+  const {
+    searchParams,
+    page: currentPage,
+    search: searchQuery,
+    searchInput: localSearch,
+    setPage,
+    setParam,
+    setSearch,
+  } = usePagedSearchParams();
 
   const statusFilter = searchParams.get('status') || 'PENDING';
   const categoryFilter = searchParams.get('category') || '';
-  const searchQuery = searchParams.get('search') || '';
-  const currentPage = parseInt(searchParams.get('page') || '0');
 
   const [pageData, setPageData] = useState<PageResponse<InstructorCourse> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [localSearch, setLocalSearch] = useState(searchQuery);
   const { categories } = useCategories(true);
 
   const categoryOptions = useMemo<DropdownOption[]>(
@@ -57,7 +61,6 @@ const AdminCoursesPage: React.FC = () => {
   const [rejectComment, setRejectComment] = useState('');
   const [rejectError, setRejectError] = useState<string | null>(null);
 
-  const [reloadKey, setReloadKey] = useState(0);
   const { refreshVersion, scheduleRefresh } = useCoalescedRefreshTrigger();
   const filtersRef = useRef({ status: statusFilter, category: categoryFilter, search: searchQuery });
   const seenReconnectVersion = useRef(realtimeReconnectVersion);
@@ -75,33 +78,6 @@ const AdminCoursesPage: React.FC = () => {
     seenReconnectVersion.current = realtimeReconnectVersion;
     scheduleRefresh();
   }, [realtimeReconnectVersion, scheduleRefresh]);
-
-  const setParam = useCallback(
-    (key: string, value: string) => {
-      const next = new URLSearchParams(searchParams);
-      if (value) {
-        next.set(key, value);
-      } else {
-        next.delete(key);
-      }
-      if (key !== 'page') next.set('page', '0');
-      setSearchParams(next);
-    },
-    [searchParams, setSearchParams]
-  );
-
-  const [pushSearchToUrl] = useDebouncedCallback(
-    (value: string) => setParam('search', value.trim()),
-    500
-  );
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setLocalSearch(value);
-      pushSearchToUrl(value);
-    },
-    [pushSearchToUrl]
-  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -137,7 +113,6 @@ const AdminCoursesPage: React.FC = () => {
     categoryFilter,
     searchQuery,
     currentPage,
-    reloadKey,
     refreshVersion,
   ]);
 
@@ -149,7 +124,7 @@ const AdminCoursesPage: React.FC = () => {
         showToast('Đã duyệt khóa học', 'success');
         setDetailCourse(null);
 
-        setReloadKey((k) => k + 1);
+        scheduleRefresh();
       } catch (err) {
         console.error('Duyệt khóa học thất bại:', err);
         showToast(getApiErrorMessage(err, 'Không thể duyệt khóa học. Vui lòng thử lại.'), 'error');
@@ -157,7 +132,7 @@ const AdminCoursesPage: React.FC = () => {
         setProcessingId(null);
       }
     },
-    [showToast]
+    [scheduleRefresh, showToast]
   );
 
   const openReject = useCallback((course: InstructorCourse) => {
@@ -180,7 +155,7 @@ const AdminCoursesPage: React.FC = () => {
       showToast('Đã từ chối khóa học', 'success');
       setRejectingCourse(null);
       setDetailCourse(null);
-      setReloadKey((k) => k + 1);
+      scheduleRefresh();
     } catch (err) {
       console.error('Từ chối khóa học thất bại:', err);
 
@@ -188,15 +163,7 @@ const AdminCoursesPage: React.FC = () => {
     } finally {
       setProcessingId(null);
     }
-  }, [rejectingCourse, rejectComment, showToast]);
-
-  const handlePageChange = useCallback(
-    (page: number) => {
-      setParam('page', page.toString());
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    },
-    [setParam]
-  );
+  }, [rejectingCourse, rejectComment, scheduleRefresh, showToast]);
 
   const courses = pageData?.content ?? [];
 
@@ -224,7 +191,7 @@ const AdminCoursesPage: React.FC = () => {
               type="text"
               placeholder="Tìm kiếm khóa học..."
               value={localSearch}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               aria-label="Tìm kiếm khóa học"
             />
             <i className="bi bi-search"></i>
@@ -254,7 +221,7 @@ const AdminCoursesPage: React.FC = () => {
                 totalPages={pageData.totalPages}
                 isFirst={pageData.first}
                 isLast={pageData.last}
-                onPageChange={handlePageChange}
+                onPageChange={setPage}
               />
             )}
             </>
