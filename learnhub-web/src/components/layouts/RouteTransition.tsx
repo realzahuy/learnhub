@@ -1,5 +1,6 @@
 import { ReactNode, useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { uiConfig } from '../../config/uiConfig';
 
 interface RouteTransitionProps {
   children: ReactNode;
@@ -25,7 +26,7 @@ const RouteTransition = ({ children }: RouteTransitionProps) => {
         { opacity: 1, transform: 'translateY(0)' },
       ],
       {
-        duration: 190,
+        duration: uiConfig.timing.routeTransitionMs,
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         fill: 'both',
       }

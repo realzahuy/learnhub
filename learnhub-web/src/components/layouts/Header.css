@@ -222,6 +222,19 @@
 }
 
 .btn-search {
+  --bs-btn-color: #6c757d;
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: transparent;
+  --bs-btn-hover-color: var(--notion-blue);
+  --bs-btn-hover-bg: var(--notion-blue-light);
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-focus-shadow-rgb: 35, 131, 226;
+  --bs-btn-active-color: var(--notion-blue-hover);
+  --bs-btn-active-bg: var(--notion-blue-light);
+  --bs-btn-active-border-color: transparent;
+  --bs-btn-disabled-color: #6c757d;
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: transparent;
   position: absolute;
   right: 5px;
   top: 50%;

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
+import ChatbotWidget from '../features/chat/ChatbotWidget';
 import './SiteLayout.css';
 
 const InstructorLayout = () => (
@@ -10,6 +11,7 @@ const InstructorLayout = () => (
       <Outlet />
     </div>
     <Footer />
+    <ChatbotWidget />
   </div>
 );
 

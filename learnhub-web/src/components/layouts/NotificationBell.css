@@ -115,10 +115,9 @@
 
 .notification-item {
   width: 100%;
-  padding: 14px 16px 14px 13px;
+  padding: 14px 16px;
   display: flex;
   border: 0;
-  border-left: 3px solid transparent;
   border-bottom: 1px solid #f0f2f4;
   background: #fff;
   color: inherit;
@@ -135,7 +134,6 @@
 }
 
 .notification-item.unread {
-  border-left-color: var(--notion-blue);
   background: #e8f3ff;
 }
 
@@ -162,14 +160,6 @@
 
 .notification-item.unread .notification-item-heading strong {
   color: #0b63b6;
-}
-
-.notification-unread-dot {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 8px;
-  border-radius: 50%;
-  background: var(--notion-blue);
 }
 
 .notification-item-content {

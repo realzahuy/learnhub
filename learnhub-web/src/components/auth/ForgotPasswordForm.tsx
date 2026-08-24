@@ -46,18 +46,16 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
       return;
     }
 
-    let cancelled = false;
-    authService.getCurrentUser().then((currentUser) => {
-      if (cancelled) return;
+    const controller = new AbortController();
+    authService.getCurrentUser(controller.signal).then((currentUser) => {
+      if (controller.signal.aborted) return;
       setAccountEmail(currentUser.email);
       setEmail(currentUser.email);
     }).catch(() => {
-      if (!cancelled) setAccountEmail(null);
+      if (!controller.signal.aborted) setAccountEmail(null);
     });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [isAuthenticated]);
 
   const requestCode = useCallback(async () => {

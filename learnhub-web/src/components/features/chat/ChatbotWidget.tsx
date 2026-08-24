@@ -8,9 +8,10 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { StarRating, UserAvatar } from '../../common';
+import CourseThumbnail from '../../common/CourseThumbnail';
+import UserAvatar from '../../common/UserAvatar';
 import { chatService } from '../../../services/api/chat.service';
-import { Course } from '../../../types/course.types';
+import { RecommendationCard } from '../../../types/course.types';
 import { formatPrice } from '../../../utils/format';
 import { renderMessageContent } from './chatbotMarkdown';
 import { useChatbotDrag } from './useChatbotDrag';
@@ -21,7 +22,7 @@ type ChatMessage = {
   id: number;
   role: 'assistant' | 'user';
   content: string;
-  courses?: Course[];
+  courses?: RecommendationCard[];
 };
 
 const INITIAL_MESSAGE: ChatMessage = {
@@ -48,28 +49,22 @@ const ChatMessageList = memo(({ messages, isTyping, endRef }: ChatMessageListPro
             <div className="chatbot-course-grid" aria-label="Khóa học được đề xuất">
               {message.courses.map((course) => (
                 <Link
-                  key={course.id}
+                  key={course.slug}
                   to={routeTo.courseDetail(course.slug)}
                   className="chatbot-course-card"
                   aria-label={`Xem khóa học ${course.title}`}
                 >
                   <div className="chatbot-course-thumbnail">
-                    {course.thumbnail ? (
-                      <img src={course.thumbnail} alt="" loading="lazy" />
-                    ) : (
-                      <span aria-hidden="true"><i className="bi bi-journal-code" /></span>
-                    )}
+                    <CourseThumbnail
+                      src={course.thumbnail}
+                      alt=""
+                      placeholder={(
+                        <span aria-hidden="true"><i className="bi bi-journal-code" /></span>
+                      )}
+                    />
                   </div>
                   <div className="chatbot-course-info">
                     <strong>{course.title}</strong>
-                    {course.reviewCount > 0 && (
-                      <StarRating
-                        value={course.averageRating}
-                        size="sm"
-                        showValue
-                        count={course.reviewCount}
-                      />
-                    )}
                     <span className="chatbot-course-price">{formatPrice(course.price)}</span>
                   </div>
                 </Link>

@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Link, matchPath, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { uiConfig } from '../../config/uiConfig';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { ROLE_INSTRUCTOR } from '../../types/auth.types';
 import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
-import { LogoutConfirmDialog } from '../common';
+import LogoutConfirmDialog from '../common/LogoutConfirmDialog';
 import HeaderSearch from './HeaderSearch';
 import { DesktopAccountMenu } from './HeaderAccountMenu';
 import HeaderMobileMenu from './HeaderMobileMenu';
@@ -15,6 +16,32 @@ import './Header.css';
 const CartIcon: React.FC = () => (
   <i className="bi bi-bag cart-icon" aria-hidden="true" />
 );
+
+const DESKTOP_VIEWPORT_QUERY = '(min-width: 992px)';
+
+const getIsDesktopViewport = () =>
+  typeof window === 'undefined' || typeof window.matchMedia !== 'function'
+    ? true
+    : window.matchMedia(DESKTOP_VIEWPORT_QUERY).matches;
+
+const useIsDesktopViewport = () => {
+  const [isDesktop, setIsDesktop] = useState(getIsDesktopViewport);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia(DESKTOP_VIEWPORT_QUERY);
+    const updateViewport = () => setIsDesktop(mediaQuery.matches);
+    updateViewport();
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateViewport);
+      return () => mediaQuery.removeEventListener('change', updateViewport);
+    }
+    mediaQuery.addListener(updateViewport);
+    return () => mediaQuery.removeListener(updateViewport);
+  }, []);
+
+  return isDesktop;
+};
 
 const Header: React.FC = () => {
   const { user, isAuthenticated, logout, roles } = useAuth();
@@ -34,6 +61,7 @@ const Header: React.FC = () => {
   const isLearningMode = Boolean(
     matchPath(ROUTE_MATCH_PATTERNS.learningArea, location.pathname)
   );
+  const isDesktopViewport = useIsDesktopViewport();
   const isCatalogMode = Boolean(
     matchPath(ROUTE_MATCH_PATTERNS.coursesArea, location.pathname)
   ) && !isLearningMode;
@@ -79,7 +107,10 @@ const Header: React.FC = () => {
     [location.pathname, location.search, navigate]
   );
 
-  const [debouncedGoToSearch, cancelPendingSearch] = useDebouncedCallback(goToSearch, 500);
+  const [debouncedGoToSearch, cancelPendingSearch] = useDebouncedCallback(
+    goToSearch,
+    uiConfig.timing.searchDebounceMs
+  );
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,6 +137,11 @@ const Header: React.FC = () => {
     setShowMobileMenu(false);
     setShowMobileUserMenu(false);
     setConfirmLogout(true);
+  }, []);
+
+  const toggleMobileMenu = useCallback(() => {
+    setShowMobileMenu((open) => !open);
+    setShowMobileUserMenu(false);
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -170,11 +206,11 @@ const Header: React.FC = () => {
 
         { }
         <div className="d-flex d-lg-none align-items-center gap-2 ms-auto">
-          {isAuthenticated && isInstructorMode && <NotificationBell />}
+          {isAuthenticated && isInstructorMode && !isDesktopViewport && <NotificationBell />}
           <button
             className={`navbar-toggler user-menu-toggle${showMobileMenu ? ' is-open' : ''}`}
             type="button"
-            onClick={() => setShowMobileMenu((open) => !open)}
+            onClick={toggleMobileMenu}
             aria-label={showMobileMenu ? 'Đóng menu' : 'Mở menu'}
             aria-controls="user-mobile-menu"
             aria-expanded={showMobileMenu}
@@ -260,7 +296,7 @@ const Header: React.FC = () => {
               </>
             ))}
 
-          {isAuthenticated && isInstructorMode && <NotificationBell />}
+          {isAuthenticated && isInstructorMode && isDesktopViewport && <NotificationBell />}
 
           {!isInstructorMode && (
             <NavLink
@@ -305,30 +341,31 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      <HeaderMobileMenu
-        rootRef={mobileMenuRef}
-        isOpen={showMobileMenu}
-        isInstructorMode={isInstructorMode}
-        isCatalogMode={isCatalogMode}
-        isAuthenticated={isAuthenticated}
-        isInstructor={isInstructor}
-        user={user}
-        cartCount={cartCount}
-        searchQuery={searchQuery}
-        isUserMenuOpen={showMobileUserMenu}
-        onSearchChange={handleSearchChange}
-        onSearchSubmit={handleSearchSubmit}
-        onClose={() => {
-          setShowMobileMenu(false);
-          setShowMobileUserMenu(false);
-        }}
-        onToggleUserMenu={() => setShowMobileUserMenu((current) => !current)}
-        onLogin={() => {
-          goToLogin();
-          setShowMobileMenu(false);
-        }}
-        onLogout={requestLogout}
-      />
+      {showMobileMenu && (
+        <HeaderMobileMenu
+          rootRef={mobileMenuRef}
+          isInstructorMode={isInstructorMode}
+          isCatalogMode={isCatalogMode}
+          isAuthenticated={isAuthenticated}
+          isInstructor={isInstructor}
+          user={user}
+          cartCount={cartCount}
+          searchQuery={searchQuery}
+          isUserMenuOpen={showMobileUserMenu}
+          onSearchChange={handleSearchChange}
+          onSearchSubmit={handleSearchSubmit}
+          onClose={() => {
+            setShowMobileMenu(false);
+            setShowMobileUserMenu(false);
+          }}
+          onToggleUserMenu={() => setShowMobileUserMenu((current) => !current)}
+          onLogin={() => {
+            goToLogin();
+            setShowMobileMenu(false);
+          }}
+          onLogout={requestLogout}
+        />
+      )}
 
       <LogoutConfirmDialog
         isOpen={confirmLogout}

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNotifications } from '../../context/NotificationContext';
+import { uiConfig } from '../../config/uiConfig';
+import { useNotificationHistory } from '../../context/NotificationContext';
 import { formatRelativeDate } from '../../utils';
 import './NotificationBell.css';
-
-const VISIBLE_STEP = 3;
 
 const NotificationBell = () => {
   const {
@@ -14,9 +13,11 @@ const NotificationBell = () => {
     hasMore,
     loadMore,
     markAsRead,
-  } = useNotifications();
+  } = useNotificationHistory();
   const [isOpen, setIsOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(VISIBLE_STEP);
+  const [visibleCount, setVisibleCount] = useState<number>(
+    uiConfig.notification.visibleStep
+  );
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ const NotificationBell = () => {
     const closeOnOutsideClick = (event: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        setVisibleCount(VISIBLE_STEP);
+        setVisibleCount(uiConfig.notification.visibleStep);
       }
     };
     document.addEventListener('mousedown', closeOnOutsideClick);
@@ -32,12 +33,12 @@ const NotificationBell = () => {
   }, [isOpen]);
 
   const toggle = () => {
-    if (isOpen) setVisibleCount(VISIBLE_STEP);
+    if (isOpen) setVisibleCount(uiConfig.notification.visibleStep);
     setIsOpen((current) => !current);
   };
 
   const showMore = async () => {
-    const nextVisibleCount = visibleCount + VISIBLE_STEP;
+    const nextVisibleCount = visibleCount + uiConfig.notification.visibleStep;
     if (nextVisibleCount > notifications.length && hasMore) {
       try {
         await loadMore();
@@ -94,7 +95,6 @@ const NotificationBell = () => {
                 <span className="notification-item-body">
                   <span className="notification-item-heading">
                     <strong>{notification.title}</strong>
-                    {!notification.readAt && <span className="notification-unread-dot" />}
                   </span>
                   <span className="notification-item-content">{notification.content}</span>
                   <span className="notification-item-meta">

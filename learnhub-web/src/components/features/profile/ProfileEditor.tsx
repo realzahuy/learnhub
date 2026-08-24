@@ -117,20 +117,20 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
 
     const fetchProfile = async () => {
       try {
         setError(null);
-        const fresh = await authService.getCurrentUser();
-        if (cancelled) return;
+        const fresh = await authService.getCurrentUser(controller.signal);
+        if (controller.signal.aborted) return;
         setProfile(fresh);
         if (!isDirtyRef.current) {
           setForm(toForm(fresh));
         }
         updateUser(fresh);
       } catch (err) {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error('Không thể tải hồ sơ:', err);
         setError('Không thể tải thông tin cá nhân. Vui lòng thử lại sau.');
       }
@@ -138,9 +138,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
     fetchProfile();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
 
   }, [isAuthenticated]);
 
@@ -422,7 +420,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         <ConfirmDialog
           isOpen={isUpgradeConfirmOpen}
           title="Nâng cấp tài khoản giảng viên"
-          message="Sau khi nâng cấp, bạn có thể tạo và quản lý khóa học của riêng mình. Tài khoản cần đã xác thực email."
+          message="Sau khi nâng cấp, bạn có thể tạo và quản lý khóa học của riêng mình."
           confirmLabel="Nâng cấp"
           variant="primary"
           onConfirm={handleUpgradeToInstructor}

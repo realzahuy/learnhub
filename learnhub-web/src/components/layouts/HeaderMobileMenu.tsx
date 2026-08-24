@@ -7,7 +7,6 @@ import { ROUTE_PATHS } from '../../routes/paths';
 
 interface HeaderMobileMenuProps {
   rootRef: RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
   isInstructorMode: boolean;
   isCatalogMode: boolean;
   isAuthenticated: boolean;
@@ -26,7 +25,6 @@ interface HeaderMobileMenuProps {
 
 const HeaderMobileMenu = ({
   rootRef,
-  isOpen,
   isInstructorMode,
   isCatalogMode,
   isAuthenticated,
@@ -45,8 +43,8 @@ const HeaderMobileMenu = ({
   <div
     id="user-mobile-menu"
     ref={rootRef}
-    className={`mobile-menu ${isOpen ? 'show' : ''}`}
-    aria-hidden={!isOpen}
+    className="mobile-menu show"
+    aria-hidden="false"
   >
     <div className="mobile-menu-header">
       <button

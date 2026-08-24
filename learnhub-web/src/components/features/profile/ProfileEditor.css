@@ -368,7 +368,7 @@
 .btn-profile-outline {
   display: inline-block;
   padding: 0.65rem 1.35rem;
-  border: 2px solid var(--notion-blue);
+  border: 2px solid #c9ced6;
   border-radius: 8px;
   background: #fff;
   color: var(--notion-blue);
@@ -378,9 +378,11 @@
   transition: all 0.3s ease;
 }
 
-.btn-profile-outline:hover {
-  background-color: var(--notion-blue);
-  color: #fff;
+.btn-profile-outline:hover,
+.btn-profile-outline:focus-visible {
+  border-color: var(--notion-blue);
+  background-color: #fff;
+  color: var(--notion-blue);
   transform: translateY(-2px);
 }
 
