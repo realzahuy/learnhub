@@ -18,24 +18,31 @@ export const enrollmentService = {
     size?: number;
     category?: string;
     search?: string;
-  }): Promise<PageResponse<Enrollment>> => {
-    const response = await apiClient.get<PageResponse<Enrollment>>('/enrollments', { params });
+  }, signal?: AbortSignal): Promise<PageResponse<Enrollment>> => {
+    const response = await apiClient.get<PageResponse<Enrollment>>('/enrollments', {
+      params,
+      signal,
+    });
     return response.data;
   },
 
-  checkEnrolled: async (courseId: number): Promise<boolean> => {
+  checkEnrolled: async (courseId: number, signal?: AbortSignal): Promise<boolean> => {
     const response = await apiClient.get<{ enrolled: boolean }>('/enrollments/check', {
       params: { courseId },
       showTopProgress: false,
+      signal,
     });
     return response.data.enrolled;
   },
 
-  checkEnrolledBatch: async (courseIds: number[]): Promise<number[]> => {
+  checkEnrolledBatch: async (
+    courseIds: number[],
+    signal?: AbortSignal
+  ): Promise<number[]> => {
     const response = await apiClient.post<{ enrolledCourseIds: number[] }>(
       '/enrollments/check-batch',
       { courseIds },
-      { showTopProgress: false }
+      { showTopProgress: false, signal }
     );
     return response.data.enrolledCourseIds;
   },

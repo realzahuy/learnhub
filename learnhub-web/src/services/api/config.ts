@@ -15,11 +15,11 @@ import {
   isRefreshSessionRejected,
   notifyAccountLocked,
 } from '../authSessionEvents';
-
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+import { buildApiUrl, runtimeConfig } from '../../config/runtimeConfig';
+import { uiConfig } from '../../config/uiConfig';
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: runtimeConfig.apiBaseUrl,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export const refreshAuthSession = (): Promise<LoginResponse> => {
 
     refreshController = new AbortController();
     return axios
-      .post<LoginResponse>(`${API_BASE_URL}/auth/refresh`, undefined, {
+      .post<LoginResponse>(buildApiUrl('auth/refresh'), undefined, {
         withCredentials: true,
         signal: refreshController.signal,
         headers: tokenBeforeLock
@@ -74,7 +74,9 @@ export const refreshAuthSession = (): Promise<LoginResponse> => {
         return data;
       })
       .catch(async (error) => {
-        await new Promise((resolve) => window.setTimeout(resolve, 75));
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, uiConfig.timing.authRefreshSettleMs)
+        );
         const tokenFromAnotherTab = getAccessToken();
         const userFromAnotherTab = getAuthenticatedUser();
         if (tokenFromAnotherTab && tokenFromAnotherTab !== tokenBeforeLock && userFromAnotherTab) {

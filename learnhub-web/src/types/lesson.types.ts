@@ -22,7 +22,7 @@ export interface LessonReorderPayload {
 export type VideoStatus = 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED';
 
 export const VIDEO_STATUS_LABELS: Record<VideoStatus, string> = {
-  UPLOADING: 'Chưa tải lên xong',
+  UPLOADING: 'Đang chờ xử lý',
   PROCESSING: 'Đang xử lý',
   READY: 'Sẵn sàng',
   FAILED: 'Thất bại',

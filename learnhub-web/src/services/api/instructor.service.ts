@@ -32,9 +32,23 @@ export const instructorService = {
   },
 
   createDraftCourse: async (payload: CourseCreatePayload): Promise<CourseCreatedResponse> => {
+    const formData = new FormData();
+    formData.append('title', payload.title);
+    if (payload.slug) {
+      formData.append('slug', payload.slug);
+    }
+    formData.append('shortDescription', payload.shortDescription);
+    formData.append('description', payload.description);
+    formData.append('price', payload.price.toString());
+    formData.append('categoryId', payload.categoryId.toString());
+    if (payload.thumbnailFile) {
+      formData.append('thumbnailFile', payload.thumbnailFile);
+    }
+
     const response = await apiClient.post<CourseCreatedResponse>(
-      '/instructor/courses?status=DRAFT',
-      payload
+      '/instructor/courses',
+      formData,
+      { headers: { 'Content-Type': undefined } }
     );
     return response.data;
   },
@@ -44,9 +58,13 @@ export const instructorService = {
     return response.data;
   },
 
-  getCourseContent: async (id: number): Promise<InstructorCourseContent> => {
+  getCourseContent: async (
+    id: number,
+    signal?: AbortSignal
+  ): Promise<InstructorCourseContent> => {
     const response = await apiClient.get<InstructorCourseContent>(
-      `/instructor/courses/${id}/content`
+      `/instructor/courses/${id}/content`,
+      { signal }
     );
     return response.data;
   },
@@ -61,8 +79,7 @@ export const instructorService = {
 
   updateCourse: async (
     id: number,
-    payload: CourseUpdatePayload,
-    submit = false
+    payload: CourseUpdatePayload
   ): Promise<InstructorCourse> => {
     const formData = new FormData();
     formData.append('title', payload.title);
@@ -80,11 +97,15 @@ export const instructorService = {
     }
 
     const response = await apiClient.put<InstructorCourse>(
-      `/instructor/courses/${id}?submit=${submit}`,
+      `/instructor/courses/${id}`,
       formData,
       { headers: { 'Content-Type': undefined } }
     );
     return response.data;
+  },
+
+  submitCourse: async (id: number): Promise<void> => {
+    await apiClient.post(`/instructor/courses/${id}/submit`);
   },
 
   deleteCourse: async (id: number): Promise<void> => {

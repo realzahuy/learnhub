@@ -1,4 +1,5 @@
 import { AppNotification } from '../../types/notification.types';
+import { uiConfig } from '../../config/uiConfig';
 import {
   AccountLockedEvent,
   CourseStatusChangedEvent,
@@ -6,7 +7,8 @@ import {
   SSE_EVENT_NAMES,
 } from '../../types/realtime.types';
 import { notifyAccountLocked } from '../authSessionEvents';
-import apiClient, { API_BASE_URL, authenticatedFetch } from './config';
+import { buildApiUrl } from '../../config/runtimeConfig';
+import apiClient, { authenticatedFetch } from './config';
 import { consumeJsonSseEvents } from './sse';
 
 interface RealtimeStreamHandlers {
@@ -31,7 +33,7 @@ export interface NotificationCursor {
 export const notificationService = {
   list: async (
     cursor: NotificationCursor | null = null,
-    size = 30,
+    size: number = uiConfig.pagination.notificationServiceDefaultPageSize,
     signal?: AbortSignal
   ): Promise<NotificationPage> => {
     const response = await apiClient.get<NotificationPage>('/notifications', {
@@ -55,7 +57,7 @@ export const notificationService = {
     handlers: RealtimeStreamHandlers,
     signal: AbortSignal
   ): Promise<void> => {
-    const response = await authenticatedFetch(`${API_BASE_URL}/notifications/stream`, {
+    const response = await authenticatedFetch(buildApiUrl('notifications/stream'), {
       method: 'GET',
       headers: { Accept: 'text/event-stream' },
       cache: 'no-store',

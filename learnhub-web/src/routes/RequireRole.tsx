@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { LoadingScreen } from '../components/common';
+import LoadingScreen from '../components/common/LoadingScreen';
 import { useAuth } from '../context/AuthContext';
 
 interface RequireRoleProps {

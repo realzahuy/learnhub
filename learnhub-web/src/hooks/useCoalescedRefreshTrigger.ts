@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { uiConfig } from '../config/uiConfig';
 
-export const useCoalescedRefreshTrigger = (delayMs = 150) => {
+export const useCoalescedRefreshTrigger = (
+  delayMs: number = uiConfig.timing.realtimeRefreshCoalesceMs
+) => {
   const [refreshVersion, setRefreshVersion] = useState(0);
   const timerRef = useRef<number | null>(null);
 

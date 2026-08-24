@@ -1,19 +1,31 @@
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { learningService } from '../services/api/learning.service';
 import { LearnCourse } from '../types/learn.types';
 import { Viewing } from '../components/features/learn';
 import { getApiErrorMessage } from '../utils';
-import { routeTo } from '../routes/paths';
 
 interface LearningCourseState {
   course: LearnCourse | null;
-  setCourse: Dispatch<SetStateAction<LearnCourse | null>>;
   viewing: Viewing | null;
   setViewing: Dispatch<SetStateAction<Viewing | null>>;
   loading: boolean;
   error: string | null;
 }
+
+const sameViewing = (current: Viewing | null, next: Viewing | null) => {
+  if (current === next) return true;
+  if (!current || !next || current.kind !== next.kind) return false;
+
+  if (current.kind === 'quiz' && next.kind === 'quiz') {
+    return current.lessonId === next.lessonId;
+  }
+
+  return current.kind === 'video'
+    && next.kind === 'video'
+    && current.lessonId === next.lessonId
+    && current.video.id === next.video.id;
+};
 
 export const useLearningCourse = (
   enabled: boolean,
@@ -21,73 +33,60 @@ export const useLearningCourse = (
   videoId?: string,
   quizLessonId?: string
 ): LearningCourseState => {
-  const navigate = useNavigate();
-  const [course, setCourse] = useState<LearnCourse | null>(null);
   const [viewing, setViewing] = useState<Viewing | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const courseQuery = useQuery<LearnCourse>({
+    queryKey: ['learning-course', slug],
+    enabled: enabled && Boolean(slug),
+    queryFn: ({ signal }) => learningService.getCourseBySlug(slug!, signal),
+  });
+  const course = enabled ? courseQuery.data ?? null : null;
 
   useEffect(() => {
-    if (!enabled || !slug) return;
-    let cancelled = false;
-    setCourse(null);
     setViewing(null);
-    setLoading(true);
-    setError(null);
+  }, [enabled, slug]);
 
-    learningService.getCourseBySlug(slug)
-      .then((data) => {
-        if (cancelled) return;
-        setCourse(data);
-        const wantedQuiz = quizLessonId ? Number(quizLessonId) : null;
-        const quizLesson = wantedQuiz
-          ? data.lessons.find((lesson) => lesson.id === wantedQuiz && lesson.questionCount > 0)
-          : null;
-        if (quizLesson) {
-          setViewing({ kind: 'quiz', lessonId: quizLesson.id });
+  useEffect(() => {
+    if (!courseQuery.error) return;
+    console.error('Không thể tải khóa học để học:', courseQuery.error);
+  }, [courseQuery.error]);
+
+  useEffect(() => {
+    if (!enabled || !course || !slug) return;
+
+    const wantedQuiz = quizLessonId ? Number(quizLessonId) : null;
+    const quizLesson = Number.isFinite(wantedQuiz)
+      ? course.lessons.find(
+          (lesson) => lesson.id === wantedQuiz && lesson.questionCount > 0
+        )
+      : null;
+    if (quizLesson) {
+      const next: Viewing = { kind: 'quiz', lessonId: quizLesson.id };
+      setViewing((current) => (sameViewing(current, next) ? current : next));
+      return;
+    }
+
+    const wantedVideo = videoId ? Number(videoId) : null;
+    if (Number.isFinite(wantedVideo)) {
+      for (const lesson of course.lessons) {
+        const video = lesson.videos.find(
+          (item) => item.id === wantedVideo && item.playbackUrl
+        );
+        if (video) {
+          const next: Viewing = { kind: 'video', lessonId: lesson.id, video };
+          setViewing((current) => (sameViewing(current, next) ? current : next));
           return;
         }
+      }
+    }
 
-        const wantedVideo = videoId ? Number(videoId) : null;
-        for (const lesson of data.lessons) {
-          const video = wantedVideo
-            ? lesson.videos.find((item) => item.id === wantedVideo && item.playbackUrl)
-            : undefined;
-          if (video) {
-            setViewing({ kind: 'video', lessonId: lesson.id, video });
-            return;
-          }
-        }
+    setViewing(null);
 
-        for (const lesson of data.lessons) {
-          const video = lesson.videos.find((item) => item.playbackUrl);
-          if (video) {
-            navigate(routeTo.learningLecture(slug, video.id), { replace: true });
-            setViewing({ kind: 'video', lessonId: lesson.id, video });
-            return;
-          }
-        }
+  }, [course, enabled, quizLessonId, slug, videoId]);
 
-        const firstQuiz = data.lessons.find((lesson) => lesson.questionCount > 0);
-        if (firstQuiz) {
-          navigate(routeTo.learningQuiz(slug, firstQuiz.id), { replace: true });
-          setViewing({ kind: 'quiz', lessonId: firstQuiz.id });
-        }
-      })
-      .catch((cause) => {
-        if (cancelled) return;
-        console.error('Không thể tải khóa học để học:', cause);
-        setError(getApiErrorMessage(cause, 'Không mở được khóa học này.'));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+  const loading = enabled && Boolean(slug) && courseQuery.isPending;
+  const error = courseQuery.error && !course
+    ? getApiErrorMessage(courseQuery.error, 'Không mở được khóa học này.')
+    : null;
 
-    return () => {
-      cancelled = true;
-    };
-
-  }, [enabled, slug, navigate]);
-
-  return { course, setCourse, viewing, setViewing, loading, error };
+  return { course, viewing, setViewing, loading, error };
 };

@@ -1,39 +1,32 @@
 import apiClient from './config';
-import { LearnCourse, LessonProgressStatus } from '../../types/learn.types';
-import { Course } from '../../types/course.types';
+import { LearnCourse } from '../../types/learn.types';
+import { RecommendationCard } from '../../types/course.types';
 import { Quiz, QuizResult, QuizSubmission } from '../../types/quiz.types';
 
 export const learningService = {
 
-  getCourseBySlug: async (slug: string): Promise<LearnCourse> => {
-    const response = await apiClient.get<LearnCourse>(`/learn/courses/by-slug/${slug}`);
+  getCourseBySlug: async (slug: string, signal?: AbortSignal): Promise<LearnCourse> => {
+    const response = await apiClient.get<LearnCourse>(`/learn/courses/by-slug/${slug}`, {
+      signal,
+    });
     return response.data;
   },
 
-  getRecommendations: async (courseId: number): Promise<Course[]> => {
-    const response = await apiClient.get<Course[]>(
-      `/learn/courses/${courseId}/recommendations`
+  getRecommendations: async (
+    courseId: number,
+    signal?: AbortSignal
+  ): Promise<RecommendationCard[]> => {
+    const response = await apiClient.get<RecommendationCard[]>(
+      `/learn/courses/${courseId}/recommendations`,
+      { signal }
     );
     return response.data;
   },
 
-  setLessonCompleted: async (lessonId: number, completed: boolean): Promise<boolean> => {
-    const response = await apiClient.put<LessonProgressStatus>(
-      `/learn/lessons/${lessonId}/progress`,
-      { completed }
-    );
-    return response.data.completed;
-  },
-
-  markLessonVideoCompleted: async (lessonId: number): Promise<LessonProgressStatus> => {
-    const response = await apiClient.put<LessonProgressStatus>(
-      `/learn/lessons/${lessonId}/video-completed`
-    );
-    return response.data;
-  },
-
-  getQuiz: async (lessonId: number): Promise<Quiz> => {
-    const response = await apiClient.get<Quiz>(`/learn/lessons/${lessonId}/quiz`);
+  getQuiz: async (lessonId: number, signal?: AbortSignal): Promise<Quiz> => {
+    const response = await apiClient.get<Quiz>(`/learn/lessons/${lessonId}/quiz`, {
+      signal,
+    });
     return response.data;
   },
 

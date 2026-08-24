@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { uiConfig } from '../../config/uiConfig';
 import {
   isNetworkProgressActive,
   subscribeToNetworkActivity,
 } from '../../services/networkActivity';
 import './TopLoadingBar.css';
-
-const COMPLETE_DURATION_MS = 180;
-const SHOW_DELAY_MS = 90;
 
 const TopLoadingBar = () => {
   const active = useSyncExternalStore(
@@ -35,7 +33,7 @@ const TopLoadingBar = () => {
       showTimer.current = window.setTimeout(() => {
         setVisible(true);
         showTimer.current = null;
-      }, SHOW_DELAY_MS);
+      }, uiConfig.timing.topLoadingShowDelayMs);
       return () => {
         if (showTimer.current !== null) {
           window.clearTimeout(showTimer.current);
@@ -50,7 +48,7 @@ const TopLoadingBar = () => {
       setVisible(false);
       setCompleting(false);
       hideTimer.current = null;
-    }, COMPLETE_DURATION_MS);
+    }, uiConfig.timing.topLoadingCompleteMs);
 
     return () => {
       if (hideTimer.current !== null) {

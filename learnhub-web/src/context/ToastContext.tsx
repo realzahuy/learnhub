@@ -1,4 +1,13 @@
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
+import { uiConfig } from '../config/uiConfig';
 import './ToastContext.css';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -16,8 +25,6 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-const TOAST_DURATION = 3000;
-
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -32,13 +39,15 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
       const id = nextId.current++;
       setToasts((prev) => [...prev, { id, message, type }]);
 
-      setTimeout(() => remove(id), TOAST_DURATION);
+      setTimeout(() => remove(id), uiConfig.timing.toastDurationMs);
     },
     [remove]
   );
 
+  const contextValue = useMemo<ToastContextType>(() => ({ showToast }), [showToast]);
+
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
 
       { }

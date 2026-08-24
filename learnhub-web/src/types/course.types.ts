@@ -14,6 +14,13 @@ export interface Course {
   reviewCount: number;
 }
 
+export interface RecommendationCard {
+  slug: string;
+  title: string;
+  thumbnail: string | null;
+  price: number;
+}
+
 export interface PublicVideo {
   id: number;
   title: string;
@@ -97,6 +104,7 @@ export interface CourseCreatePayload {
   description: string;
   price: number;
   categoryId: number;
+  thumbnailFile?: File | null;
 }
 
 export interface CourseCreatedResponse {

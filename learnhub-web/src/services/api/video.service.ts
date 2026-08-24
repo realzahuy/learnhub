@@ -1,5 +1,6 @@
 import axios from 'axios';
-import apiClient, { API_BASE_URL, authenticatedFetch } from './config';
+import { buildApiUrl } from '../../config/runtimeConfig';
+import apiClient, { authenticatedFetch } from './config';
 import {
   Video,
   VideoReorderPayload,
@@ -47,13 +48,6 @@ export const videoService = {
     });
   },
 
-  confirmUpload: async (lessonId: number, videoId: number): Promise<{ videoId: number; status: string }> => {
-    const response = await apiClient.post<{ videoId: number; status: string }>(
-      `/instructor/lessons/${lessonId}/videos/${videoId}/confirm`
-    );
-    return response.data;
-  },
-
   getVideo: async (lessonId: number, videoId: number): Promise<Video> => {
     const response = await apiClient.get<Video>(
       `/instructor/lessons/${lessonId}/videos/${videoId}`
@@ -79,7 +73,7 @@ export const videoService = {
     signal: AbortSignal
   ): Promise<void> => {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/instructor/courses/${courseId}/videos/progress-stream`,
+      buildApiUrl(`instructor/courses/${courseId}/videos/progress-stream`),
       {
         method: 'GET',
         headers: { Accept: 'text/event-stream' },
@@ -95,6 +89,11 @@ export const videoService = {
       `/instructor/lessons/${lessonId}/videos/reorder`,
       payloads
     );
+    return response.data;
+  },
+
+  updateTitle: async (lessonId: number, videoId: number, title: string): Promise<Video> => {
+    const response = await apiClient.put<Video>(`/instructor/lessons/${lessonId}/videos/${videoId}`, { title });
     return response.data;
   },
 

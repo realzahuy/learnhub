@@ -12,19 +12,43 @@ interface CartContextType {
   isInCart: (courseId: number) => boolean;
   addToCart: (item: CartItem) => void;
   removeFromCart: (courseId: number) => void;
+  removeManyFromCart: (courseIds: number[]) => void;
   clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const loadCart = (): CartItem[] => {
+const parseCart = (raw: string | null): CartItem[] => {
+  if (!raw) return [];
+
   try {
-    const raw = sessionStorage.getItem(CART_STORAGE_KEY);
-    if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed)
       ? parsed.filter((item) => typeof item?.price === 'number' && item.price > 0)
       : [];
+  } catch {
+    return [];
+  }
+};
+
+const loadCart = (): CartItem[] => {
+  try {
+    const storedCart = parseCart(localStorage.getItem(CART_STORAGE_KEY));
+    const legacyCartRaw = sessionStorage.getItem(CART_STORAGE_KEY);
+    if (legacyCartRaw !== null) {
+      const migratedCart = [...storedCart];
+      const storedCourseIds = new Set(storedCart.map((item) => item.id));
+      parseCart(legacyCartRaw).forEach((item) => {
+        if (storedCourseIds.has(item.id)) return;
+        storedCourseIds.add(item.id);
+        migratedCart.push(item);
+      });
+
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(migratedCart));
+      sessionStorage.removeItem(CART_STORAGE_KEY);
+      return migratedCart;
+    }
+    return storedCart;
   } catch {
     return [];
   }
@@ -37,11 +61,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
     } catch (error) {
       console.error('Không thể lưu giỏ hàng:', error);
     }
   }, [items]);
+
+  useEffect(() => {
+    const syncCartAcrossTabs = (event: StorageEvent) => {
+      if (event.storageArea !== localStorage || event.key !== CART_STORAGE_KEY) return;
+      setItems(parseCart(event.newValue));
+    };
+
+    window.addEventListener('storage', syncCartAcrossTabs);
+    return () => window.removeEventListener('storage', syncCartAcrossTabs);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -51,22 +85,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (reconciledAuthenticationRef.current || items.length === 0) return;
 
     reconciledAuthenticationRef.current = true;
-    let cancelled = false;
+    const controller = new AbortController();
     const courseIds = items.map((item) => item.id);
 
-    enrollmentService.checkEnrolledBatch(courseIds)
+    enrollmentService.checkEnrolledBatch(courseIds, controller.signal)
       .then((enrolledCourseIds) => {
-        if (cancelled || enrolledCourseIds.length === 0) return;
+        if (controller.signal.aborted || enrolledCourseIds.length === 0) return;
         const enrolledIds = new Set(enrolledCourseIds);
         setItems((current) => current.filter((item) => !enrolledIds.has(item.id)));
       })
       .catch((error) => {
+        if (controller.signal.aborted) return;
         console.error('Không thể đối chiếu giỏ hàng với các khóa học đã đăng ký:', error);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [isAuthenticated]);
 
   const isInCart = useCallback(
@@ -88,6 +121,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setItems((prev) => prev.filter((item) => item.id !== courseId));
   }, []);
 
+  const removeManyFromCart = useCallback((courseIds: number[]) => {
+    const removedIds = new Set(courseIds);
+    setItems((prev) => prev.filter((item) => !removedIds.has(item.id)));
+  }, []);
+
   const clearCart = useCallback(() => {
     setItems([]);
   }, []);
@@ -104,6 +142,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         isInCart,
         addToCart,
         removeFromCart,
+        removeManyFromCart,
         clearCart,
       }}
     >

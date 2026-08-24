@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { uiConfig } from '../config/uiConfig';
 import { videoService } from '../services/api/video.service';
 import { Lesson, Video } from '../types/lesson.types';
 import {
@@ -51,6 +52,41 @@ export const useLessonVideoUpload = (
     const position = Math.max(maxExisting, reservedPositionRef.current) + 1;
     reservedPositionRef.current = position;
     let videoId: number | null = null;
+    let latestUploadPercent = 0;
+    let lastProgressUpdateAt = 0;
+    let progressTimer: number | undefined;
+
+    const commitUploadProgress = () => {
+      progressTimer = undefined;
+      lastProgressUpdateAt = Date.now();
+      setPending((previous) => {
+        let changed = false;
+        const next = previous.map((item) => {
+          if (item.key !== key || latestUploadPercent <= item.uploadPercent) return item;
+          changed = true;
+          return { ...item, uploadPercent: latestUploadPercent };
+        });
+        return changed ? next : previous;
+      });
+    };
+
+    const updateUploadProgress = (uploadPercent: number) => {
+      if (!Number.isFinite(uploadPercent)) return;
+      const next = Math.max(0, Math.min(100, Math.round(uploadPercent)));
+      if (next <= latestUploadPercent) return;
+      latestUploadPercent = next;
+
+      const elapsed = Date.now() - lastProgressUpdateAt;
+      if (next === 100 || elapsed >= uiConfig.video.uploadProgressUpdateMs) {
+        if (progressTimer !== undefined) window.clearTimeout(progressTimer);
+        commitUploadProgress();
+      } else if (progressTimer === undefined) {
+        progressTimer = window.setTimeout(
+          commitUploadProgress,
+          uiConfig.video.uploadProgressUpdateMs - elapsed
+        );
+      }
+    };
 
     try {
       const contentType = file.type;
@@ -66,13 +102,9 @@ export const useLessonVideoUpload = (
         session.uploadUrl,
         session.uploadFields,
         file,
-        (uploadPercent) => {
-          setPending((previous) => previous.map((item) => (
-            item.key === key ? { ...item, uploadPercent } : item
-          )));
-        }
+        updateUploadProgress
       );
-      await videoService.confirmUpload(lesson.id, session.videoId);
+      updateUploadProgress(100);
       const uploaded = await videoService.getVideo(lesson.id, session.videoId);
       onVideosChange(lesson.id, (previous) => [...previous, uploaded]);
       return true;
@@ -89,6 +121,7 @@ export const useLessonVideoUpload = (
       }
       return false;
     } finally {
+      if (progressTimer !== undefined) window.clearTimeout(progressTimer);
       setPending((previous) => previous.filter((item) => item.key !== key));
     }
   }, [lesson.id, newTitle, videos, onVideosChange]);

@@ -1,36 +1,39 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import HomePage from '../pages/home/HomePage';
-import LoginPage from '../pages/auth/LoginPage';
-import RegisterPage from '../pages/auth/RegisterPage';
-import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
-import CourseDetailPage from '../pages/course/CourseDetailPage';
-import CoursesPage from '../pages/course/CoursesPage';
-import CartPage from '../pages/cart/CartPage';
-import PaymentResultPage from '../pages/payment/PaymentResultPage';
-import MyCoursesPage from '../pages/user/MyCoursesPage';
-import LearnPage from '../pages/learn/LearnPage';
-import ProfilePage from '../pages/user/ProfilePage';
-import ProfileLayout from '../pages/user/ProfileLayout';
-import ChangePasswordPage from '../pages/user/ChangePasswordPage';
-import InstructorCoursesPage from '../pages/instructor/InstructorCoursesPage';
-import InstructorCourseEditPage from '../pages/instructor/InstructorCourseEditPage';
-import InstructorCourseCreatePage from '../pages/instructor/InstructorCourseCreatePage';
-import InstructorStatsPage from '../pages/instructor/InstructorStatsPage';
-import InstructorProfilePage from '../pages/instructor/InstructorProfilePage';
-import AdminLoginPage from '../pages/admin/AdminLoginPage';
-import AdminStatsPage from '../pages/admin/AdminStatsPage';
-import AdminCoursesPage from '../pages/admin/AdminCoursesPage';
-import AdminUsersPage from '../pages/admin/AdminUsersPage';
-import AdminCategoriesPage from '../pages/admin/AdminCategoriesPage';
-import AdminProfilePage from '../pages/admin/AdminProfilePage';
-import AdminChangePasswordPage from '../pages/admin/AdminChangePasswordPage';
-import AdminForgotPasswordPage from '../pages/admin/AdminForgotPasswordPage';
-import AdminLayout from '../pages/admin/AdminLayout';
 import { InstructorLayout, PublicLayout } from '../components/layouts';
+import LoadingScreen from '../components/common/LoadingScreen';
 import ChatbotWidget from '../components/features/chat/ChatbotWidget';
 import { ROLE_ADMIN, ROLE_INSTRUCTOR } from '../types/auth.types';
 import RequireRole from './RequireRole';
 import { PROFILE_ROUTE_SEGMENTS, ROUTE_PATHS } from './paths';
+
+const HomePage = lazy(() => import('../pages/home/HomePage'));
+const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('../pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage'));
+const CourseDetailPage = lazy(() => import('../pages/course/CourseDetailPage'));
+const CoursesPage = lazy(() => import('../pages/course/CoursesPage'));
+const CartPage = lazy(() => import('../pages/cart/CartPage'));
+const PaymentResultPage = lazy(() => import('../pages/payment/PaymentResultPage'));
+const MyCoursesPage = lazy(() => import('../pages/user/MyCoursesPage'));
+const LearnPage = lazy(() => import('../pages/learn/LearnPage'));
+const ProfilePage = lazy(() => import('../pages/user/ProfilePage'));
+const ProfileLayout = lazy(() => import('../pages/user/ProfileLayout'));
+const ChangePasswordPage = lazy(() => import('../pages/user/ChangePasswordPage'));
+const InstructorCoursesPage = lazy(() => import('../pages/instructor/InstructorCoursesPage'));
+const InstructorCourseEditPage = lazy(() => import('../pages/instructor/InstructorCourseEditPage'));
+const InstructorCourseCreatePage = lazy(() => import('../pages/instructor/InstructorCourseCreatePage'));
+const InstructorStatsPage = lazy(() => import('../pages/instructor/InstructorStatsPage'));
+const InstructorProfilePage = lazy(() => import('../pages/instructor/InstructorProfilePage'));
+const AdminLoginPage = lazy(() => import('../pages/admin/AdminLoginPage'));
+const AdminStatsPage = lazy(() => import('../pages/admin/AdminStatsPage'));
+const AdminCoursesPage = lazy(() => import('../pages/admin/AdminCoursesPage'));
+const AdminUsersPage = lazy(() => import('../pages/admin/AdminUsersPage'));
+const AdminCategoriesPage = lazy(() => import('../pages/admin/AdminCategoriesPage'));
+const AdminProfilePage = lazy(() => import('../pages/admin/AdminProfilePage'));
+const AdminChangePasswordPage = lazy(() => import('../pages/admin/AdminChangePasswordPage'));
+const AdminForgotPasswordPage = lazy(() => import('../pages/admin/AdminForgotPasswordPage'));
+const AdminLayout = lazy(() => import('../pages/admin/AdminLayout'));
 
 const LearnerChatbotLayout = () => (
   <>
@@ -41,7 +44,8 @@ const LearnerChatbotLayout = () => (
 
 const AppRoutes = () => {
   return (
-    <Routes>
+    <Suspense fallback={<LoadingScreen />}>
+      <Routes>
       <Route element={<LearnerChatbotLayout />}>
         <Route element={<PublicLayout />}>
           <Route path={ROUTE_PATHS.home} element={<HomePage />} />
@@ -115,7 +119,8 @@ const AppRoutes = () => {
       </Route>
 
       <Route path="*" element={<Navigate to={ROUTE_PATHS.home} replace />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 };
 

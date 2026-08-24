@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-export const REORDER_SAVE_DELAY_MS = 1500;
-
 export function useDeferredSave<T>(
   save: (payload: T) => Promise<void>,
   delay: number

@@ -44,20 +44,28 @@ export const reviewService = {
     await apiClient.delete(`/courses/${slug}/reviews/me`);
   },
 
-  getInstructorProfile: async (instructorId: number): Promise<InstructorProfile> => {
-    const response = await apiClient.get<InstructorProfile>(`/instructors/${instructorId}`);
+  getInstructorProfile: async (
+    instructorId: number,
+    signal?: AbortSignal
+  ): Promise<InstructorProfile> => {
+    const response = await apiClient.get<InstructorProfile>(
+      `/instructors/${instructorId}`,
+      { signal }
+    );
     return response.data;
   },
 
   getInstructorCourses: async (
     instructorId: number,
     page = 0,
-    size?: number
+    size?: number,
+    signal?: AbortSignal
   ): Promise<PageResponse<Course>> => {
     const params = new URLSearchParams({ page: String(page) });
     if (size !== undefined) params.set('size', String(size));
     const response = await apiClient.get<PageResponse<Course>>(
-      `/instructors/${instructorId}/courses?${params.toString()}`
+      `/instructors/${instructorId}/courses?${params.toString()}`,
+      { signal }
     );
     return response.data;
   },

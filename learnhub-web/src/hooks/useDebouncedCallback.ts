@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { uiConfig } from '../config/uiConfig';
 
 export function useDebouncedCallback<A extends unknown[]>(
   callback: (...args: A) => void,
-  delay = 500
+  delay: number = uiConfig.timing.searchDebounceMs
 ): [(...args: A) => void, () => void] {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 

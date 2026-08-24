@@ -27,8 +27,14 @@ export const adminService = {
     return response.data;
   },
 
-  getCourseContent: async (id: number): Promise<AdminCourseContent> => {
-    const response = await apiClient.get<AdminCourseContent>(`/admin/courses/${id}/content`);
+  getCourseContent: async (
+    id: number,
+    signal?: AbortSignal
+  ): Promise<AdminCourseContent> => {
+    const response = await apiClient.get<AdminCourseContent>(
+      `/admin/courses/${id}/content`,
+      { signal }
+    );
     return response.data;
   },
 

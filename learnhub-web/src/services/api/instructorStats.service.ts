@@ -6,15 +6,18 @@ import {
 } from '../../types/stats.types';
 
 export const instructorStatsService = {
-  getOverview: async (): Promise<InstructorOverview> => {
-    const response = await apiClient.get<InstructorOverview>('/instructor/stats/overview');
+  getOverview: async (signal?: AbortSignal): Promise<InstructorOverview> => {
+    const response = await apiClient.get<InstructorOverview>('/instructor/stats/overview', {
+      signal,
+    });
     return response.data;
   },
 
   getTimeSeries: async (
     groupBy: StatsGranularity,
     from?: string,
-    to?: string
+    to?: string,
+    signal?: AbortSignal
   ): Promise<InstructorTimeSeries> => {
     const params = new URLSearchParams({ groupBy });
     if (from && to) {
@@ -23,7 +26,8 @@ export const instructorStatsService = {
     }
 
     const response = await apiClient.get<InstructorTimeSeries>(
-      `/instructor/stats/timeseries?${params.toString()}`
+      `/instructor/stats/timeseries?${params.toString()}`,
+      { signal }
     );
     return response.data;
   },

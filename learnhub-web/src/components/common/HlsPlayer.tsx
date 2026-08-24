@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
+import { resolveHlsUrl } from '../../config/runtimeConfig';
 import { getAccessToken } from '../../services/api/tokenStore';
 import './HlsPlayer.css';
 
@@ -9,8 +10,6 @@ interface HlsPlayerProps {
   className?: string;
 
   onEnded?: () => void;
-
-  onWatched?: () => void;
 }
 
 interface QualityLevel {
@@ -21,13 +20,7 @@ interface QualityLevel {
 
 const AUTO_LEVEL = -1;
 
-const WATCHED_RATIO = 0.9;
-
-const API_ORIGIN = (
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
-).replace(/\/api\/?$/, '');
-
-const HlsPlayer = ({ playbackUrl, className, onEnded, onWatched }: HlsPlayerProps) => {
+const HlsPlayer = ({ playbackUrl, className, onEnded }: HlsPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,80 +33,98 @@ const HlsPlayer = ({ playbackUrl, className, onEnded, onWatched }: HlsPlayerProp
   const [activeLevel, setActiveLevel] = useState(AUTO_LEVEL);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const watchedRef = useRef(false);
-
-  const onWatchedRef = useRef(onWatched);
-  useEffect(() => {
-    onWatchedRef.current = onWatched;
-  }, [onWatched]);
-
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    watchedRef.current = false;
-
+    setError(null);
     setLevels([]);
     setSelectedLevel(AUTO_LEVEL);
     setActiveLevel(AUTO_LEVEL);
     setMenuOpen(false);
 
-    const url = `${API_ORIGIN}${playbackUrl}`;
-    const token = getAccessToken();
-
-    if (!Hls.isSupported()) {
-
-      setError('Trình duyệt này chưa phát được video. Hãy dùng Chrome, Edge hoặc Firefox.');
+    let url: string;
+    try {
+      url = resolveHlsUrl(playbackUrl);
+    } catch (urlError) {
+      console.error('URL phát video không hợp lệ:', urlError);
+      setError('Không phát được video do cấu hình URL không hợp lệ.');
       return;
     }
+    const token = getAccessToken();
+    let cancelled = false;
+    let hls: Hls | null = null;
+    let usesNativePlayback = false;
 
-    const hls = new Hls({
-      xhrSetup: (xhr) => {
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      },
-    });
-    hlsRef.current = hls;
+    const initializePlayer = async () => {
+      try {
+        if (!token && video.canPlayType('application/vnd.apple.mpegurl')) {
+          usesNativePlayback = true;
+          video.src = url;
+          video.load();
+          return;
+        }
 
-    hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
-      setLevels(
-        data.levels
-          .map((level, index) => ({
-            index,
-            label: level.height ? `${level.height}p` : `${Math.round(level.bitrate / 1000)} kbps`,
-          }))
+        const { default: Hls } = await import('hls.js');
+        if (cancelled) return;
 
-          .sort((a, b) => (data.levels[b.index].height ?? 0) - (data.levels[a.index].height ?? 0))
-      );
-    });
+        if (!Hls.isSupported()) {
+          setError('Trình duyệt này chưa phát được video. Hãy dùng Chrome, Edge hoặc Firefox.');
+          return;
+        }
 
-    hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
-      setActiveLevel(data.level);
-    });
+        hls = new Hls({
+          xhrSetup: (xhr) => {
+            if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          },
+        });
+        hlsRef.current = hls;
 
-    hls.on(Hls.Events.ERROR, (_event, data) => {
+        hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+          if (cancelled) return;
+          setLevels(
+            data.levels
+              .map((level, index) => ({
+                index,
+                label: level.height ? `${level.height}p` : `${Math.round(level.bitrate / 1000)} kbps`,
+              }))
 
-      if (!data.fatal) return;
-      console.error('Lỗi HLS:', data);
-      setError('Không phát được video. Vui lòng tải lại trang.');
-    });
+              .sort((a, b) => (data.levels[b.index].height ?? 0) - (data.levels[a.index].height ?? 0))
+          );
+        });
 
-    hls.loadSource(url);
-    hls.attachMedia(video);
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+          if (cancelled) return;
+          setActiveLevel(data.level);
+        });
 
-    const handleTimeUpdate = () => {
-      if (watchedRef.current || !video.duration || Number.isNaN(video.duration)) return;
-      if (video.currentTime / video.duration < WATCHED_RATIO) return;
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (cancelled || !data.fatal) return;
+          console.error('Lỗi HLS:', data);
+          setError('Không phát được video. Vui lòng tải lại trang.');
+        });
 
-      watchedRef.current = true;
-      onWatchedRef.current?.();
+        hls.loadSource(url);
+        hls.attachMedia(video);
+      } catch (loadError) {
+        if (cancelled) return;
+        console.error('Không thể tải trình phát HLS:', loadError);
+        setError('Không phát được video. Vui lòng tải lại trang.');
+      }
     };
 
-    video.addEventListener('timeupdate', handleTimeUpdate);
+    void initializePlayer();
 
     return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      hls.destroy();
-      hlsRef.current = null;
+      cancelled = true;
+      hls?.destroy();
+      if (hlsRef.current === hls) hlsRef.current = null;
+
+      if (usesNativePlayback) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
     };
   }, [playbackUrl]);
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { uiConfig } from '../../config/uiConfig';
 import './StarRating.css';
 
 interface StarRatingProps {
@@ -89,7 +90,9 @@ const StarRating: React.FC<StarRatingProps> = ({
 
       {showValue && <span className="star-rating__value">{value.toFixed(1)}</span>}
       {count !== undefined && (
-        <span className="star-rating__count">({count.toLocaleString('vi-VN')})</span>
+        <span className="star-rating__count">
+          ({count.toLocaleString(uiConfig.formatting.locale)})
+        </span>
       )}
     </span>
   );

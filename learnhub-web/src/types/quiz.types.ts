@@ -18,11 +18,6 @@ export interface Quiz {
   lessonTitle: string;
   passPercent: number;
   questions: QuizQuestion[];
-
-  bestScorePercent: number | null;
-  attemptCount: number;
-
-  latestResult: QuizResult | null;
 }
 
 export interface QuizQuestionResult {
@@ -38,9 +33,6 @@ export interface QuizResult {
   scorePercent: number;
   passPercent: number;
   passed: boolean;
-  bestScorePercent: number;
-
-  lessonCompleted: boolean;
   questions: QuizQuestionResult[];
 }
 

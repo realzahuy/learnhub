@@ -1,5 +1,5 @@
 import apiClient from './config';
-import { Course } from '../../types/course.types';
+import { RecommendationCard } from '../../types/course.types';
 
 export type ChatHistoryMessage = {
   role: 'assistant' | 'user';
@@ -8,7 +8,7 @@ export type ChatHistoryMessage = {
 
 export type ChatResponse = {
   reply: string;
-  courses: Course[];
+  courses: RecommendationCard[];
 };
 
 export const chatService = {

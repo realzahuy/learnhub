@@ -12,3 +12,4 @@ export { default as Stepper } from './Stepper';
 export { default as HlsPlayer } from './HlsPlayer';
 export { default as StarRating } from './StarRating';
 export { default as BackButton } from './BackButton';
+export { default as CourseThumbnail } from './CourseThumbnail';

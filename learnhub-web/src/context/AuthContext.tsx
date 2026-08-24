@@ -10,6 +10,7 @@ import {
   isRefreshSessionRejected,
 } from '../services/authSessionEvents';
 import { ROUTE_PATHS } from '../routes/paths';
+import { queryClient } from '../query/queryClient';
 
 interface AuthContextType {
   user: AuthenticatedUser | null;
@@ -66,6 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleAccountLocked = (event: Event) => {
       const { message } = (event as CustomEvent<AccountLockedEventDetail>).detail;
       authService.clearAuth();
+      queryClient.clear();
       setUser(null);
       setRoles([]);
       setIsLoading(false);
@@ -86,12 +88,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
       });
       const nextRoles = getRolesFromToken(loginResponse.accessToken);
+      queryClient.clear();
       setRoles(nextRoles);
 
       setUser(loginResponse.user);
       return nextRoles;
     } catch (error) {
       authService.clearAuth();
+      queryClient.clear();
       setUser(null);
       setRoles([]);
       throw error;
@@ -105,6 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Lỗi đăng xuất:', error);
     } finally {
       authService.clearAuth();
+      queryClient.clear();
       setUser(null);
       setRoles([]);
     }

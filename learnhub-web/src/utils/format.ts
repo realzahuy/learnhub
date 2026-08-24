@@ -1,12 +1,12 @@
-import moment from 'moment';
-import 'moment/locale/vi';
-
-moment.locale('vi');
+import { uiConfig } from '../config/uiConfig';
 
 export const formatPrice = (price: number): string =>
   price === 0
     ? 'Miễn phí'
-    : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+    : new Intl.NumberFormat(uiConfig.formatting.locale, {
+      style: 'currency',
+      currency: uiConfig.formatting.currency,
+    }).format(price);
 
 const parseServerDate = (value: string | null | undefined): Date | null => {
   if (!value) return null;
@@ -14,16 +14,36 @@ const parseServerDate = (value: string | null | undefined): Date | null => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const relativeTimeFormatter = new Intl.RelativeTimeFormat(uiConfig.formatting.locale, {
+  numeric: 'auto',
+});
+
+const SECOND_MS = 1_000;
+const MINUTE_MS = 60 * SECOND_MS;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+const MONTH_MS = 30 * DAY_MS;
+const YEAR_MS = 365 * DAY_MS;
+
+const relativeTimeUnits = [
+  { limitMs: 45 * SECOND_MS, divisorMs: SECOND_MS, unit: 'second' },
+  { limitMs: 45 * MINUTE_MS, divisorMs: MINUTE_MS, unit: 'minute' },
+  { limitMs: 22 * HOUR_MS, divisorMs: HOUR_MS, unit: 'hour' },
+  { limitMs: 26 * DAY_MS, divisorMs: DAY_MS, unit: 'day' },
+  { limitMs: 11 * MONTH_MS, divisorMs: MONTH_MS, unit: 'month' },
+  { limitMs: Number.POSITIVE_INFINITY, divisorMs: YEAR_MS, unit: 'year' },
+] as const;
+
 export const formatDateTime = (value: string | null | undefined): string | null => {
   const date = parseServerDate(value);
   if (!date) return null;
 
-  const time = new Intl.DateTimeFormat('vi-VN', {
+  const time = new Intl.DateTimeFormat(uiConfig.formatting.locale, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   }).format(date);
-  const day = new Intl.DateTimeFormat('vi-VN', {
+  const day = new Intl.DateTimeFormat(uiConfig.formatting.locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -36,7 +56,7 @@ export const formatLongDate = (value: string | null | undefined): string | null 
   const date = parseServerDate(value);
   if (!date) return null;
 
-  return new Intl.DateTimeFormat('vi-VN', {
+  return new Intl.DateTimeFormat(uiConfig.formatting.locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -44,10 +64,20 @@ export const formatLongDate = (value: string | null | undefined): string | null 
 };
 
 export const formatRelativeDate = (value: string | null | undefined): string | null => {
-  if (!value) return null;
+  const date = parseServerDate(value);
+  if (!date) return null;
 
-  const date = moment(value);
-  return date.isValid() ? date.fromNow() : null;
+  const differenceMs = date.getTime() - Date.now();
+  const absoluteDifferenceMs = Math.abs(differenceMs);
+  const { divisorMs, unit } = relativeTimeUnits.find(
+    ({ limitMs }) => absoluteDifferenceMs < limitMs
+  ) ?? relativeTimeUnits[relativeTimeUnits.length - 1];
+  const roundedValue =
+    differenceMs === 0
+      ? 0
+      : Math.round(absoluteDifferenceMs / divisorMs) * Math.sign(differenceMs);
+
+  return relativeTimeFormatter.format(roundedValue, unit);
 };
 
 export const toIsoDate = (date: Date): string =>

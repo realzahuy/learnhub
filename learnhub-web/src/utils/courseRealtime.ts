@@ -1,4 +1,5 @@
 import { CourseStatusChangedEvent } from '../types/realtime.types';
+import { uiConfig } from '../config/uiConfig';
 
 interface CourseListFilters {
   status: string;
@@ -6,7 +7,8 @@ interface CourseListFilters {
   search: string;
 }
 
-const normalize = (value: string) => value.trim().toLocaleLowerCase('vi-VN');
+const normalize = (value: string) =>
+  value.trim().toLocaleLowerCase(uiConfig.formatting.locale);
 
 const matchesCategoryAndSearch = (
   event: CourseStatusChangedEvent,

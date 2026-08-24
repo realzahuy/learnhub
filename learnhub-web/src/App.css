@@ -3,23 +3,22 @@
   padding: 0;
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-}
-
-.App > * {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
 }
 
 .route-transition {
   width: 100%;
-  min-height: 100vh;
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
 }
 
 .route-transition > * {
-  flex: 1;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 main {
@@ -60,6 +59,19 @@ a:hover,
 }
 
 .btn-notion {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--notion-blue);
+  --bs-btn-border-color: var(--notion-blue);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--notion-blue-hover);
+  --bs-btn-hover-border-color: var(--notion-blue-hover);
+  --bs-btn-focus-shadow-rgb: 35, 131, 226;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--notion-blue-hover);
+  --bs-btn-active-border-color: var(--notion-blue-hover);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--notion-blue);
+  --bs-btn-disabled-border-color: var(--notion-blue);
   background-color: var(--notion-blue);
   border: none;
   color: #fff;
@@ -75,16 +87,30 @@ a:hover,
 }
 
 .btn-outline-notion {
-  border: 2px solid var(--notion-blue);
+  --bs-btn-color: var(--notion-blue);
+  --bs-btn-bg: #fff;
+  --bs-btn-border-color: #c9ced6;
+  --bs-btn-hover-color: var(--notion-blue);
+  --bs-btn-hover-bg: #fff;
+  --bs-btn-hover-border-color: var(--notion-blue);
+  --bs-btn-focus-shadow-rgb: 35, 131, 226;
+  --bs-btn-active-color: var(--notion-blue);
+  --bs-btn-active-bg: #fff;
+  --bs-btn-active-border-color: var(--notion-blue);
+  --bs-btn-disabled-color: var(--notion-blue);
+  --bs-btn-disabled-bg: #fff;
+  --bs-btn-disabled-border-color: #c9ced6;
+  border: 2px solid #c9ced6;
   background: #fff;
   color: var(--notion-blue);
   font-weight: 600;
   transition: all 0.3s ease;
 }
 
-.btn-outline-notion:hover {
-  background-color: var(--notion-blue);
+.btn-outline-notion:hover,
+.btn-outline-notion:focus-visible {
+  background-color: #fff;
   border-color: var(--notion-blue);
-  color: #fff;
+  color: var(--notion-blue);
   transform: translateY(-2px);
 }

@@ -8,7 +8,6 @@ export interface Enrollment {
   instructorName: string;
   categoryName: string;
 
-  completedLessons: number;
   totalLessons: number;
 
   enrolledAt: string;

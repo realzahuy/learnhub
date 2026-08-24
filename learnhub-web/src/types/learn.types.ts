@@ -14,13 +14,8 @@ export interface LearnLesson {
   title: string;
   position: number;
   isPreview: boolean;
-  completed: boolean;
-  videoCompleted: boolean;
-  quizCompleted: boolean;
   videos: LearnVideo[];
   questionCount: number;
-
-  quizBestScorePercent: number | null;
 }
 
 export interface AdminLessonContent {
@@ -44,14 +39,7 @@ export interface LearnCourse {
   slug: string;
   instructorName: string;
   lessons: LearnLesson[];
-  completedLessons: number;
   totalLessons: number;
 
   quizPassPercent: number;
-}
-
-export interface LessonProgressStatus {
-  completed: boolean;
-  videoCompleted: boolean;
-  quizCompleted: boolean;
 }
