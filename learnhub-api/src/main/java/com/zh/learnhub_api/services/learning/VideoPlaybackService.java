@@ -1,7 +1,6 @@
 package com.zh.learnhub_api.services.learning;
 
 import com.zh.learnhub_api.dtos.media.PlayableVideoDTO;
-import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -21,24 +20,32 @@ public class VideoPlaybackService {
 
     private final VideoRepository videoRepository;
     private final VideoStorageService videoStorageService;
+    private final PublishedVideoPlaybackCacheService publishedVideoPlaybackCacheService;
+    private final CoursePlaybackAccessCacheService coursePlaybackAccessCacheService;
 
     public VideoStorageService.StoredObject openVideoFile(
             Long videoId, String fileName, Long userId, boolean admin) {
-        VideoPlaybackProjection video = (admin
-                ? videoRepository.findPlaybackById(videoId)
-                : videoRepository.findPlaybackForUserById(videoId, userId))
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
-        checkCanWatch(video, admin);
-        return openReadyVideoFile(video, fileName);
+        if (admin) {
+            VideoPlaybackProjection video = videoRepository.findPlaybackById(videoId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
+            return openReadyVideoFile(video, fileName);
+        }
+
+        var video = publishedVideoPlaybackCacheService.getReadyPublishedVideo(videoId);
+        if (!video.lessonPreview()) {
+            coursePlaybackAccessCacheService.requireEnrollment(userId, video.courseId());
+        }
+        return videoStorageService.openHlsObject(
+                resolveHlsKey(video.storageKey(), fileName));
     }
 
     public VideoStorageService.StoredObject openPreviewVideoFile(Long videoId, String fileName) {
-        VideoPlaybackProjection video = videoRepository.findPlaybackById(videoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
-        if (!isPublishedPreview(video)) {
+        var video = publishedVideoPlaybackCacheService.getReadyPublishedVideo(videoId);
+        if (!video.lessonPreview()) {
             throw new ForbiddenException("Bài giảng này không khả dụng để xem thử");
         }
-        return openReadyVideoFile(video, fileName);
+        return videoStorageService.openHlsObject(
+                resolveHlsKey(video.storageKey(), fileName));
     }
 
     public VideoStorageService.StoredObject openInstructorVideoFile(
@@ -55,7 +62,7 @@ public class VideoPlaybackService {
                 video.getTitle(),
                 video.getDurationSeconds(),
                 VideoPlaybackUrls.authenticated(video),
-                video.getStatus());
+                video.getStatus().name());
     }
 
     private VideoStorageService.StoredObject openReadyVideoFile(
@@ -69,21 +76,10 @@ public class VideoPlaybackService {
     private String resolveHlsKey(String masterKey, String fileName) {
         if (fileName == null || fileName.isBlank()
                 || fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
-            throw new ForbiddenException("Tên file không hợp lệ");
+            throw new ForbiddenException("Tên tệp không hợp lệ");
         }
         String folder = masterKey.substring(0, masterKey.lastIndexOf('/') + 1);
         return folder + fileName;
     }
 
-    private void checkCanWatch(VideoPlaybackProjection video, boolean admin) {
-        if (admin || isPublishedPreview(video) || Long.valueOf(1L).equals(video.getEnrolled())) {
-            return;
-        }
-        throw new ForbiddenException("Bạn chưa ghi danh khóa học này");
-    }
-
-    private boolean isPublishedPreview(VideoPlaybackProjection video) {
-        return video.isLessonPreview()
-                && CourseStatus.PUBLISHED.name().equals(video.getCourseStatus());
-    }
 }

@@ -26,7 +26,7 @@ public final class VideoPlaybackUrls {
 
     private static String build(Video video, String prefix) {
         String storageKey = video.getStorageKey();
-        if (!VideoStatus.READY.name().equals(video.getStatus())
+        if (video.getStatus() != VideoStatus.READY
                 || storageKey == null || storageKey.isBlank()) {
             return null;
         }

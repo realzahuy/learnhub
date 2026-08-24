@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.services.media;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.media.VideoReorderRequestDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -11,7 +12,6 @@ import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.course.CourseEditPolicy;
 import com.zh.learnhub_api.utils.PositionReorderer;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class VideoManagementService {
 
     private static final String WHAT = "video";
@@ -36,12 +35,13 @@ public class VideoManagementService {
     private final CourseEditPolicy courseEditPolicy;
     private final PositionReorderer positionReorderer;
     private final VideoLifecycle videoLifecycle;
+    private final AppProperties.VideoManagement videoManagementProperties;
 
     @Transactional(readOnly = true)
     public VideoResponseDTO getVideo(Long videoId, Long instructorId) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Video not found with id: " + videoId));
+                        "Không tìm thấy video có ID: " + videoId));
         courseEditPolicy.requireOwner(video.getLesson().getCourseId(), instructorId);
         return toResponse(video);
     }
@@ -54,8 +54,10 @@ public class VideoManagementService {
         }
 
         List<Long> distinctIds = new LinkedHashSet<>(videoIds).stream().toList();
-        if (distinctIds.size() > 50) {
-            throw new IllegalArgumentException("Chỉ được kiểm tra tối đa 50 video mỗi lần");
+        int statusBatchLimit = videoManagementProperties.statusBatchLimit();
+        if (distinctIds.size() > statusBatchLimit) {
+            throw new IllegalArgumentException(
+                    "Chỉ được kiểm tra tối đa " + statusBatchLimit + " video mỗi lần");
         }
 
         List<Video> videos = videoRepository.findByCourseIdAndIds(courseId, distinctIds);
@@ -70,13 +72,9 @@ public class VideoManagementService {
     @Transactional
     public List<VideoResponseDTO> reorderVideos(
             Long lessonId, List<VideoReorderRequestDTO> requests, Long instructorId) {
-        if (requests == null || requests.isEmpty()) {
-            throw new IllegalArgumentException("Danh sách sắp xếp không được rỗng");
-        }
-
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Lesson not found with id: " + lessonId));
+                        "Không tìm thấy bài học có ID: " + lessonId));
         Course course = lesson.getCourseId();
         courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
 
@@ -112,10 +110,19 @@ public class VideoManagementService {
     }
 
     @Transactional
+    public VideoResponseDTO updateTitle(Long videoId, String title, Long instructorId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video có ID: " + videoId));
+        courseEditPolicy.requireOwnerAndEditable(video.getLesson().getCourseId(), instructorId, WHAT);
+        video.setTitle(title.trim());
+        return toResponse(video);
+    }
+
+    @Transactional
     public void deleteVideo(Long videoId, Long instructorId) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Video not found with id: " + videoId));
+                        "Không tìm thấy video có ID: " + videoId));
 
         Course course = video.getLesson().getCourseId();
         courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
@@ -123,14 +130,13 @@ public class VideoManagementService {
 
         mediaCleanupService.scheduleVideoCleanup(video.getStorageKey());
         videoRepository.delete(video);
-        log.info("Deleted video entity with id: {}", videoId);
     }
 
     private VideoResponseDTO toResponse(Video video) {
         return VideoResponseDTO.builder()
                 .id(video.getId())
                 .title(video.getTitle())
-                .status(video.getStatus())
+                .status(video.getStatus().name())
                 .position(video.getPosition())
                 .durationSeconds(video.getDurationSeconds())
                 .playbackUrl(VideoPlaybackUrls.instructor(video))

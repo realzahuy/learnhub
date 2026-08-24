@@ -6,7 +6,6 @@ import com.zh.learnhub_api.exceptions.VideoProcessingException;
 import com.zh.learnhub_api.services.media.VideoStorageService;
 import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -31,7 +30,6 @@ import javax.crypto.spec.SecretKeySpec;
 @Service
 @ConditionalOnProperty(name = "video.storage.provider", havingValue = "s3")
 @RequiredArgsConstructor
-@Slf4j
 public class S3VideoStorageService implements VideoStorageService {
 
     private static final DateTimeFormatter AMZ_DATE_FORMAT =
@@ -84,12 +82,9 @@ public class S3VideoStorageService implements VideoStorageService {
             String uploadUrl = String.format(
                     "https://%s.s3.%s.amazonaws.com/",
                     properties.bucketRaw(), properties.region());
-            log.info("Generated presigned POST for RAW bucket key: {}, max size: {} bytes",
-                    objectKey, maxSizeBytes);
             return new PresignedUpload(uploadUrl, fields);
         } catch (Exception e) {
-            log.error("Failed to generate presigned POST for key: {}", objectKey, e);
-            throw new RuntimeException("Failed to generate upload form", e);
+            throw new RuntimeException("Không thể tạo biểu mẫu tải video lên", e);
         }
     }
 
@@ -110,28 +105,6 @@ public class S3VideoStorageService implements VideoStorageService {
     }
 
     @Override
-    public Long findObjectSize(String objectKey) {
-        try {
-
-            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
-                .bucket(properties.bucketRaw())
-                .key(objectKey)
-                .build();
-
-            long size = s3Client.headObject(headObjectRequest).contentLength();
-            log.info("Object exists in RAW bucket: {} ({} bytes)", objectKey, size);
-            return size;
-
-        } catch (NoSuchKeyException e) {
-            log.warn("Object not found in RAW bucket: {}", objectKey);
-            return null;
-        } catch (Exception e) {
-            log.error("Error checking object existence: {}", objectKey, e);
-            throw new RuntimeException("Failed to verify object existence", e);
-        }
-    }
-
-    @Override
     public StoredObject openHlsObject(String objectKey) {
         try {
             var response = s3Client.getObject(GetObjectRequest.builder()
@@ -145,11 +118,9 @@ public class S3VideoStorageService implements VideoStorageService {
                 contentTypeOf(objectKey));
 
         } catch (NoSuchKeyException e) {
-            log.warn("Không tìm thấy file HLS: {}", objectKey);
-            throw new ResourceNotFoundException("Không tìm thấy file video");
+            throw new ResourceNotFoundException("Không tìm thấy tệp video");
         } catch (Exception e) {
-            log.error("Lỗi đọc file HLS: {}", objectKey, e);
-            throw new VideoProcessingException("Không đọc được file video từ kho lưu trữ");
+            throw new VideoProcessingException("Không đọc được tệp video từ kho lưu trữ");
         }
     }
 
@@ -177,10 +148,12 @@ public class S3VideoStorageService implements VideoStorageService {
     }
 
     @Override
-    public String generateRawObjectKey(Long courseId, Long lessonId, String fileName) {
+    public String generateRawObjectKey(
+            Long courseId, Long lessonId, Long videoId, String fileName) {
         String extension = fileName.substring(fileName.lastIndexOf("."));
         String uuid = UUID.randomUUID().toString();
-        return rawLessonPrefix(String.valueOf(courseId), String.valueOf(lessonId)) + uuid + extension;
+        return rawLessonPrefix(String.valueOf(courseId), String.valueOf(lessonId))
+                + "videos/" + videoId + "/" + uuid + extension;
     }
 
     private String baseName(String objectKey) {
@@ -209,10 +182,8 @@ public class S3VideoStorageService implements VideoStorageService {
             s3Client.deleteObject(builder ->
                 builder.bucket(properties.bucketRaw()).key(objectKey)
             );
-            log.info("Deleted object from RAW bucket: {}", objectKey);
         } catch (S3Exception e) {
-            log.error("S3 delete error: {}", e.awsErrorDetails().errorMessage());
-            throw new IOException("Failed to delete S3 object: " + e.awsErrorDetails().errorMessage(), e);
+            throw new IOException("Không thể xóa đối tượng S3", e);
         }
     }
 
@@ -235,7 +206,6 @@ public class S3VideoStorageService implements VideoStorageService {
         int deleted = deletePrefix(properties.bucketRaw(), rawCoursePrefix(id))
                 + deletePrefix(properties.bucketHls(), hlsCoursePrefix(id));
 
-        log.info("Deleted {} video object(s) of course {} from S3", deleted, courseId);
         return deleted;
     }
 
@@ -246,58 +216,38 @@ public class S3VideoStorageService implements VideoStorageService {
         int deleted = deletePrefix(properties.bucketRaw(), rawLessonPrefix(course, lesson))
                 + deletePrefix(properties.bucketHls(), hlsLessonPrefix(course, lesson));
 
-        log.info("Deleted {} video object(s) of lesson {} from S3", deleted, lessonId);
         return deleted;
     }
 
     @Override
     public int deleteHlsOutputOf(String rawObjectKey) {
-        try {
-
-            String hlsPath = generateHlsOutputPath(rawObjectKey);
-            int deleted = deletePrefix(properties.bucketHls(), hlsPath);
-
-            log.info("Deleted {} HLS object(s) under {} (derived from raw key {})",
-                     deleted, hlsPath, rawObjectKey);
-            return deleted;
-
-        } catch (Exception e) {
-
-            log.error("Failed to derive HLS path from raw key {}", rawObjectKey, e);
-            return 0;
-        }
+        String hlsPath = generateHlsOutputPath(rawObjectKey);
+        return deletePrefix(properties.bucketHls(), hlsPath);
     }
 
     private int deletePrefix(String bucket, String prefix) {
         int deleted = 0;
 
-        try {
-            ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
-                .bucket(bucket)
-                .prefix(prefix)
-                .build();
+        ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+            .bucket(bucket)
+            .prefix(prefix)
+            .build();
 
-            for (ListObjectsV2Response page : s3Client.listObjectsV2Paginator(listRequest)) {
-                List<ObjectIdentifier> keys = page.contents().stream()
-                    .map(object -> ObjectIdentifier.builder().key(object.key()).build())
-                    .toList();
+        for (ListObjectsV2Response page : s3Client.listObjectsV2Paginator(listRequest)) {
+            List<ObjectIdentifier> keys = page.contents().stream()
+                .map(object -> ObjectIdentifier.builder().key(object.key()).build())
+                .toList();
 
-                if (keys.isEmpty()) {
-                    continue;
-                }
-
-                DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder()
-                    .bucket(bucket)
-                    .delete(Delete.builder().objects(keys).quiet(true).build())
-                    .build());
-
-                deleted += keys.size() - response.errors().size();
-                response.errors().forEach(error -> log.error(
-                    "Failed to delete object {} in bucket {}: {}", error.key(), bucket, error.message()));
+            if (keys.isEmpty()) {
+                continue;
             }
-        } catch (Exception e) {
 
-            log.error("Failed to delete objects under prefix {} in bucket {}", prefix, bucket, e);
+            DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder()
+                .bucket(bucket)
+                .delete(Delete.builder().objects(keys).quiet(true).build())
+                .build());
+
+            deleted += keys.size() - response.errors().size();
         }
 
         return deleted;

@@ -1,9 +1,11 @@
 package com.zh.learnhub_api.repositories.media;
 
+import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.pojo.Lesson;
 import com.zh.learnhub_api.pojo.Video;
 import com.zh.learnhub_api.projections.learning.VideoPlaybackProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,16 +13,19 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.LockModeType;
+
 @Repository
 public interface VideoRepository extends JpaRepository<Video, Long> {
 
-    @Query("SELECT v.id AS videoId, v.storageKey AS storageKey, v.status AS status, "
+    @Query("SELECT v.id AS videoId, c.id AS courseId, v.storageKey AS storageKey, v.status AS status, "
          + "l.isPreview AS lessonPreview, c.status AS courseStatus "
          + "FROM Video v JOIN v.lesson l JOIN l.courseId c WHERE v.id = :videoId")
     Optional<VideoPlaybackProjection> findPlaybackById(@Param("videoId") Long videoId);
 
     @Query(value = """
             SELECT v.id AS videoId,
+                   c.id AS courseId,
                    v.storage_key AS storageKey,
                    v.status AS status,
                    l.is_preview AS lessonPreview,
@@ -38,7 +43,7 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
             @Param("videoId") Long videoId,
             @Param("userId") Long userId);
 
-    @Query("SELECT v.id AS videoId, v.storageKey AS storageKey, v.status AS status, "
+    @Query("SELECT v.id AS videoId, c.id AS courseId, v.storageKey AS storageKey, v.status AS status, "
          + "l.isPreview AS lessonPreview, c.status AS courseStatus "
          + "FROM Video v JOIN v.lesson l JOIN l.courseId c "
          + "WHERE v.id = :videoId AND c.instructorId.id = :instructorId")
@@ -47,6 +52,13 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
             @Param("instructorId") Long instructorId);
 
     Optional<Video> findByLessonAndPosition(Lesson lesson, Integer position);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT v FROM Video v "
+         + "JOIN FETCH v.lesson l "
+         + "JOIN FETCH l.courseId "
+         + "WHERE v.id = :videoId")
+    Optional<Video> findByIdForUploadProcessing(@Param("videoId") Long videoId);
 
     List<Video> findByLesson_IdOrderByPositionAsc(Long lessonId);
 
@@ -62,7 +74,7 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
                                      @Param("videoIds") List<Long> videoIds);
 
     @Query("SELECT v FROM Video v WHERE v.lesson.courseId.id = :courseId "
-         + "AND v.status IN ('READY', 'PROCESSING') "
+         + "AND v.status IN (com.zh.learnhub_api.enums.VideoStatus.READY, com.zh.learnhub_api.enums.VideoStatus.PROCESSING) "
          + "ORDER BY v.lesson.position ASC, v.position ASC")
     List<Video> findPublicByCourseId(@Param("courseId") Long courseId);
 
@@ -77,12 +89,12 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
          + "AND v.status = :status "
          + "AND v.mediaconvertJobId IS NOT NULL")
     List<String> findJobIdsByCourseIdAndStatus(@Param("courseId") Long courseId,
-                                              @Param("status") String status);
+                                              @Param("status") VideoStatus status);
 
     @Query("SELECT v.mediaconvertJobId FROM Video v "
          + "WHERE v.lesson.id = :lessonId "
          + "AND v.status = :status "
          + "AND v.mediaconvertJobId IS NOT NULL")
     List<String> findJobIdsByLessonIdAndStatus(@Param("lessonId") Long lessonId,
-                                               @Param("status") String status);
+                                               @Param("status") VideoStatus status);
 }

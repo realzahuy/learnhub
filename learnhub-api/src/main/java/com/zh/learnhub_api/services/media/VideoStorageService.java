@@ -18,11 +18,9 @@ public interface VideoStorageService {
     PresignedUpload generatePresignedUpload(
             String objectKey, String contentType, long maxSizeBytes);
 
-    Long findObjectSize(String objectKey);
-
     void deleteVideo(String objectKey) throws IOException;
 
-    String generateRawObjectKey(Long courseId, Long lessonId, String fileName);
+    String generateRawObjectKey(Long courseId, Long lessonId, Long videoId, String fileName);
 
     String generateHlsOutputPath(String rawObjectKey);
 

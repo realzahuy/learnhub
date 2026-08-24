@@ -1,14 +1,12 @@
 package com.zh.learnhub_api.controllers.learning;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.learning.LearnCourseDTO;
-import com.zh.learnhub_api.dtos.learning.LessonProgressRequestDTO;
-import com.zh.learnhub_api.dtos.learning.LessonProgressResponseDTO;
-import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
+import com.zh.learnhub_api.dtos.course.RecommendationCardDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResponseDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResultDTO;
 import com.zh.learnhub_api.dtos.learning.QuizSubmitRequestDTO;
 import com.zh.learnhub_api.services.learning.LearningCourseService;
-import com.zh.learnhub_api.services.learning.LessonProgressService;
 import com.zh.learnhub_api.services.learning.QuizService;
 import com.zh.learnhub_api.services.learning.VideoPlaybackService;
 import com.zh.learnhub_api.services.media.VideoStorageService;
@@ -33,8 +31,8 @@ public class LearningController {
 
     private final LearningCourseService learningCourseService;
     private final VideoPlaybackService videoPlaybackService;
-    private final LessonProgressService lessonProgressService;
     private final QuizService quizService;
+    private final AppProperties.Hls hlsProperties;
 
     @GetMapping("/courses/by-slug/{slug}")
     public ResponseEntity<LearnCourseDTO> getCourseBySlug(
@@ -46,7 +44,7 @@ public class LearningController {
     }
 
     @GetMapping("/courses/{courseId}/recommendations")
-    public ResponseEntity<List<CourseListItemDTO>> getCourseRecommendations(
+    public ResponseEntity<List<RecommendationCardDTO>> getCourseRecommendations(
             @PathVariable Long courseId,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
@@ -68,7 +66,7 @@ public class LearningController {
                 .contentType(MediaType.parseMediaType(object.contentType()))
                 .contentLength(object.contentLength())
 
-                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=3600")
+                .header(HttpHeaders.CACHE_CONTROL, privateCacheControl())
                 .body(new InputStreamResource(object.content()));
     }
 
@@ -83,7 +81,7 @@ public class LearningController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(object.contentType()))
                 .contentLength(object.contentLength())
-                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=3600")
+                .header(HttpHeaders.CACHE_CONTROL, privateCacheControl())
                 .body(new InputStreamResource(object.content()));
     }
 
@@ -105,29 +103,12 @@ public class LearningController {
                 quizService.submit(lessonId, request, principal.getUserId()));
     }
 
-    @PutMapping("/lessons/{lessonId}/progress")
-    public ResponseEntity<LessonProgressResponseDTO> setProgress(
-            @PathVariable Long lessonId,
-            @Valid @RequestBody LessonProgressRequestDTO request,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-
-        LessonProgressResponseDTO saved = lessonProgressService.setLessonCompleted(
-                lessonId, request.completed(), principal.getUserId());
-
-        return ResponseEntity.ok(saved);
-    }
-
-    @PutMapping("/lessons/{lessonId}/video-completed")
-    public ResponseEntity<LessonProgressResponseDTO> markVideoCompleted(
-            @PathVariable Long lessonId,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-
-        return ResponseEntity.ok(
-                lessonProgressService.markVideoCompleted(lessonId, principal.getUserId()));
-    }
-
     private boolean isAdmin(AuthenticatedUserPrincipal principal) {
         return principal.getAuthorities().stream()
                 .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
+    }
+
+    private String privateCacheControl() {
+        return "private, max-age=" + hlsProperties.privateCacheMaxAgeSeconds();
     }
 }

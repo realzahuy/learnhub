@@ -1,11 +1,11 @@
 package com.zh.learnhub_api.services.media;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.media.VideoProgressEventDTO;
 import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -17,12 +17,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class VideoProgressSseService {
 
-    private static final long EMITTER_TIMEOUT_MS = 30 * 60 * 1000L;
-
     private final CourseRepository courseRepository;
+    private final AppProperties.Sse sseProperties;
     private final Map<Long, CopyOnWriteArrayList<SseEmitter>> emittersByCourse =
             new ConcurrentHashMap<>();
     private final Map<Long, Map<Long, VideoProgressEventDTO>> latestByCourse =
@@ -31,12 +29,12 @@ public class VideoProgressSseService {
     public SseEmitter subscribe(Long courseId, Long instructorId) {
         Long ownerId = courseRepository.findInstructorIdByCourseId(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Course not found with id: " + courseId));
+                        "Không tìm thấy khóa học có ID: " + courseId));
         if (!ownerId.equals(instructorId)) {
             throw new ForbiddenException("Bạn không có quyền theo dõi tiến độ video của khóa học này");
         }
 
-        SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT_MS);
+        SseEmitter emitter = new SseEmitter(sseProperties.timeoutMs());
         emittersByCourse.computeIfAbsent(courseId, ignored -> new CopyOnWriteArrayList<>())
                 .add(emitter);
 
@@ -47,16 +45,11 @@ public class VideoProgressSseService {
 
         try {
             emitter.send(SseEmitter.event().name("connected").data(Map.of("courseId", courseId)));
-            latestByCourse.getOrDefault(courseId, Map.of()).values().forEach(event -> {
-                try {
-                    send(emitter, event);
-                } catch (IOException e) {
-                    throw new SseSendException(e);
-                }
-            });
-        } catch (IOException | SseSendException e) {
+            for (VideoProgressEventDTO event : latestByCourse.getOrDefault(courseId, Map.of()).values()) {
+                send(emitter, event);
+            }
+        } catch (IOException | IllegalStateException ignored) {
             remove.run();
-            emitter.completeWithError(e);
         }
 
         return emitter;
@@ -78,9 +71,8 @@ public class VideoProgressSseService {
                 courseId, new CopyOnWriteArrayList<>())) {
             try {
                 send(emitter, event);
-            } catch (IOException e) {
+            } catch (IOException | IllegalStateException ignored) {
                 removeEmitter(courseId, emitter);
-                emitter.completeWithError(e);
             }
         }
 
@@ -90,15 +82,14 @@ public class VideoProgressSseService {
         }
     }
 
-    @Scheduled(fixedRate = 15_000L)
+    @Scheduled(fixedRateString = "${app.sse.heartbeat-ms}")
     void heartbeat() {
         emittersByCourse.forEach((courseId, emitters) -> {
             for (SseEmitter emitter : emitters) {
                 try {
                     emitter.send(SseEmitter.event().comment("keep-alive"));
-                } catch (IOException e) {
+                } catch (IOException | IllegalStateException ignored) {
                     removeEmitter(courseId, emitter);
-                    emitter.completeWithError(e);
                 }
             }
         });
@@ -118,9 +109,4 @@ public class VideoProgressSseService {
         if (emitters.isEmpty()) emittersByCourse.remove(courseId, emitters);
     }
 
-    private static final class SseSendException extends RuntimeException {
-        private SseSendException(IOException cause) {
-            super(cause);
-        }
-    }
 }

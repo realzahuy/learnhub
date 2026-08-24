@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.pojo;
 
+import com.zh.learnhub_api.enums.VideoStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -42,8 +43,9 @@ public class Video implements Serializable {
     private String mediaconvertJobId;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private VideoStatus status;
 
     @Column(name = "duration_seconds")
     private Integer durationSeconds;

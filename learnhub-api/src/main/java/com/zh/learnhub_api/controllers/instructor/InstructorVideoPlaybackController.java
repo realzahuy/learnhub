@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.controllers.instructor;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.learning.VideoPlaybackService;
 import com.zh.learnhub_api.services.media.VideoStorageService;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class InstructorVideoPlaybackController {
 
     private final VideoPlaybackService videoPlaybackService;
+    private final AppProperties.Hls hlsProperties;
 
     @GetMapping("/{videoId}/hls/{fileName}")
     public ResponseEntity<InputStreamResource> streamHlsFile(
@@ -32,7 +34,11 @@ public class InstructorVideoPlaybackController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(object.contentType()))
                 .contentLength(object.contentLength())
-                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=3600")
+                .header(HttpHeaders.CACHE_CONTROL, privateCacheControl())
                 .body(new InputStreamResource(object.content()));
+    }
+
+    private String privateCacheControl() {
+        return "private, max-age=" + hlsProperties.privateCacheMaxAgeSeconds();
     }
 }

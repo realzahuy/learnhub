@@ -4,7 +4,6 @@ import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.services.media.VideoStorageService;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.mediaconvert.MediaConvertClient;
 import software.amazon.awssdk.services.mediaconvert.model.*;
@@ -14,54 +13,34 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class MediaConvertTranscoder {
 
     private final MediaConvertClient mediaConvertClient;
     private final VideoStorageService videoStorageService;
-    private final AppProperties.AwsMediaConvert properties;
+    private final AppProperties.AwsMediaConvert awsProperties;
+    private final AppProperties.MediaConvert mediaConvertProperties;
 
-    public String createHlsTranscodingJob(String inputObjectKey, String outputPath) {
-        try {
-
-            String inputUri = videoStorageService.getS3Uri(inputObjectKey);
-
-            String outputUri = videoStorageService.getHlsS3Uri(outputPath);
-
-            log.info("Creating MediaConvert job - Input (RAW): {}, Output (HLS): {}", inputUri, outputUri);
-
-            JobSettings jobSettings = buildJobSettings(inputUri, outputUri);
-
-            CreateJobRequest createJobRequest = CreateJobRequest.builder()
-                .role(properties.roleArn())
-                .settings(jobSettings)
-                .statusUpdateInterval(StatusUpdateInterval.SECONDS_15)
-                .build();
-
-            CreateJobResponse response = mediaConvertClient.createJob(createJobRequest);
-            String jobId = response.job().id();
-
-            log.info("MediaConvert job created successfully. Job ID: {}", jobId);
-            return jobId;
-
-        } catch (Exception e) {
-            log.error("Failed to create MediaConvert job for input: {}", inputObjectKey, e);
-            throw new RuntimeException("Failed to create transcoding job", e);
-        }
+    public String createHlsTranscodingJob(
+            String inputObjectKey, String outputPath, String clientRequestToken) {
+        String inputUri = videoStorageService.getS3Uri(inputObjectKey);
+        String outputUri = videoStorageService.getHlsS3Uri(outputPath);
+        JobSettings jobSettings = buildJobSettings(inputUri, outputUri);
+        CreateJobRequest createJobRequest = CreateJobRequest.builder()
+            .role(awsProperties.roleArn())
+            .settings(jobSettings)
+            .statusUpdateInterval(StatusUpdateInterval.SECONDS_15)
+            .clientRequestToken(clientRequestToken)
+            .build();
+        CreateJobResponse response = mediaConvertClient.createJob(createJobRequest);
+        return response.job().id();
     }
 
-    public boolean cancelJob(String jobId) {
+    public void cancelJob(String jobId) {
         try {
             mediaConvertClient.cancelJob(CancelJobRequest.builder()
                 .id(jobId)
                 .build());
-
-            log.info("Cancelled MediaConvert job: {}", jobId);
-            return true;
-
         } catch (Exception e) {
-            log.warn("Could not cancel MediaConvert job {}: {}", jobId, e.getMessage());
-            return false;
         }
     }
 
@@ -89,18 +68,15 @@ public class MediaConvertTranscoder {
                         HlsGroupSettings.builder()
                             .destination(outputUri)
                             .minSegmentLength(0)
-                            .segmentLength(10)
+                            .segmentLength(6)
                             .manifestDurationFormat(HlsManifestDurationFormat.INTEGER)
                             .build()
                     )
                     .build()
             )
-            .outputs(
-
-                buildOutput("720p", 1280, 720, 2500000),
-
-                buildOutput("480p", 854, 480, 1000000)
-            )
+            .outputs(mediaConvertProperties.activeRenditions().stream()
+                .map(this::buildOutput)
+                .toList())
             .build();
 
         return JobSettings.builder()
@@ -109,9 +85,9 @@ public class MediaConvertTranscoder {
             .build();
     }
 
-    private Output buildOutput(String nameModifier, int width, int height, int bitrate) {
+    private Output buildOutput(AppProperties.MediaConvert.Rendition rendition) {
         return Output.builder()
-            .nameModifier(nameModifier)
+            .nameModifier(rendition.nameModifier())
             .containerSettings(
                 ContainerSettings.builder()
                     .container(ContainerType.M3_U8)
@@ -119,14 +95,14 @@ public class MediaConvertTranscoder {
             )
             .videoDescription(
                 VideoDescription.builder()
-                    .width(width)
-                    .height(height)
+                    .width(rendition.width())
+                    .height(rendition.height())
                     .codecSettings(
                         VideoCodecSettings.builder()
                             .codec(VideoCodec.H_264)
                             .h264Settings(
                                 H264Settings.builder()
-                                    .bitrate(bitrate)
+                                    .bitrate(rendition.videoBitrate())
                                     .rateControlMode(H264RateControlMode.CBR)
                                     .codecProfile(H264CodecProfile.MAIN)
                                     .build()
@@ -143,7 +119,7 @@ public class MediaConvertTranscoder {
                             .codec(AudioCodec.AAC)
                             .aacSettings(
                                 AacSettings.builder()
-                                    .bitrate(96000)
+                                    .bitrate(rendition.audioBitrate())
                                     .codingMode(AacCodingMode.CODING_MODE_2_0)
                                     .sampleRate(48000)
                                     .build()

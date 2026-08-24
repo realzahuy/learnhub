@@ -15,21 +15,21 @@ public class VideoLifecycle {
     private static final Set<VideoStatus> FAILED_SOURCES =
             EnumSet.of(VideoStatus.UPLOADING, VideoStatus.PROCESSING);
     private static final Set<VideoStatus> DELETABLE_STATUSES =
-            EnumSet.of(VideoStatus.UPLOADING, VideoStatus.FAILED);
+            EnumSet.of(VideoStatus.UPLOADING, VideoStatus.FAILED, VideoStatus.READY);
 
     public void initializeUploading(Video video, LocalDateTime now) {
-        Objects.requireNonNull(video, "video không được null");
+        Objects.requireNonNull(video, "video không được để trống");
         if (video.getStatus() != null) {
             throw new IllegalStateException(
                     "Không thể khởi tạo video đã có trạng thái " + video.getStatus());
         }
 
-        video.setStatus(VideoStatus.UPLOADING.name());
+        video.setStatus(VideoStatus.UPLOADING);
         video.setUpdatedAt(requireTime(now));
     }
 
     public void requireUploading(Video video) {
-        requireStatus(video, VideoStatus.UPLOADING, "tiếp tục upload");
+        requireStatus(video, VideoStatus.UPLOADING, "tiếp tục tải lên");
     }
 
     public boolean isProcessing(Video video) {
@@ -45,7 +45,7 @@ public class VideoLifecycle {
         if (!DELETABLE_STATUSES.contains(current)) {
             throw new IllegalStateException(
                     "Không thể xóa video ở trạng thái " + current
-                            + ". Chỉ video UPLOADING hoặc FAILED mới được xóa");
+                            + ". Chỉ video UPLOADING, FAILED hoặc READY mới được xóa");
         }
     }
 
@@ -82,21 +82,16 @@ public class VideoLifecycle {
                     "Không thể chuyển video từ " + current + " sang " + target);
         }
 
-        video.setStatus(target.name());
+        video.setStatus(target);
         video.setUpdatedAt(requireTime(now));
     }
 
     private VideoStatus currentStatus(Video video) {
-        Objects.requireNonNull(video, "video không được null");
-        try {
-            return VideoStatus.valueOf(video.getStatus());
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new IllegalStateException(
-                    "Video có trạng thái không hợp lệ: " + video.getStatus(), e);
-        }
+        Objects.requireNonNull(video, "video không được để trống");
+        return video.getStatus();
     }
 
     private LocalDateTime requireTime(LocalDateTime now) {
-        return Objects.requireNonNull(now, "thời điểm chuyển trạng thái không được null");
+        return Objects.requireNonNull(now, "thời điểm chuyển trạng thái không được để trống");
     }
 }

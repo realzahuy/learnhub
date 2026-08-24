@@ -3,12 +3,13 @@ package com.zh.learnhub_api.controllers.instructor;
 import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.dtos.media.VideoReorderRequestDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
-import com.zh.learnhub_api.dtos.media.VideoConfirmUploadResponseDTO;
+import com.zh.learnhub_api.dtos.media.VideoTitleRequestDTO;
 import com.zh.learnhub_api.dtos.media.VideoUploadRequestDTO;
 import com.zh.learnhub_api.dtos.media.VideoUploadResponseDTO;
 import com.zh.learnhub_api.services.media.VideoManagementService;
 import com.zh.learnhub_api.services.media.VideoUploadService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,17 +36,6 @@ public class InstructorVideoController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @PostMapping("/{videoId}/confirm")
-    public ResponseEntity<VideoConfirmUploadResponseDTO> confirmUpload(
-            @PathVariable Long lessonId,
-            @PathVariable Long videoId,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
-
-        VideoConfirmUploadResponseDTO response = videoUploadService.confirmUpload(
-                videoId, userDetails.getUserId());
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/{videoId}")
     public ResponseEntity<VideoResponseDTO> getVideo(
             @PathVariable Long lessonId,
@@ -60,12 +50,23 @@ public class InstructorVideoController {
     @PutMapping("/reorder")
     public ResponseEntity<java.util.List<VideoResponseDTO>> reorderVideos(
             @PathVariable Long lessonId,
-            @Valid @RequestBody java.util.List<@Valid VideoReorderRequestDTO> requests,
+            @NotEmpty(message = "Danh sách sắp xếp không được rỗng") @RequestBody java.util.List<@Valid VideoReorderRequestDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         var reordered = videoManagementService.reorderVideos(
                 lessonId, requests, userDetails.getUserId());
         return ResponseEntity.ok(reordered);
+    }
+
+    @PutMapping("/{videoId}")
+    public ResponseEntity<VideoResponseDTO> updateVideoTitle(
+            @PathVariable Long lessonId,
+            @PathVariable Long videoId,
+            @Valid @RequestBody VideoTitleRequestDTO request,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
+
+        VideoResponseDTO updated = videoManagementService.updateTitle(videoId, request.title(), userDetails.getUserId());
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{videoId}")

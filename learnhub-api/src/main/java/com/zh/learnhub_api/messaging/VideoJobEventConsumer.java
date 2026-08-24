@@ -3,7 +3,6 @@ package com.zh.learnhub_api.messaging;
 import com.zh.learnhub_api.services.media.VideoTranscodeCallbackService;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
@@ -13,7 +12,6 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 @ConditionalOnProperty(name = "video.storage.provider", havingValue = "s3")
 @RequiredArgsConstructor
-@Slf4j
 public class VideoJobEventConsumer {
 
     private final VideoTranscodeCallbackService videoTranscodeCallbackService;
@@ -28,8 +26,6 @@ public class VideoJobEventConsumer {
         String status = textOrNull(detail, "status");
 
         if (jobId == null || status == null) {
-
-            log.warn("Tin SQS thiếu jobId/status, bỏ qua: {}", payload);
             return;
         }
 

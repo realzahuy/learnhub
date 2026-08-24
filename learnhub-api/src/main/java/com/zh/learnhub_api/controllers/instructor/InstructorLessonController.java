@@ -6,6 +6,7 @@ import com.zh.learnhub_api.dtos.course.LessonResponseDTO;
 import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.services.course.LessonService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +26,7 @@ public class InstructorLessonController {
     @PostMapping
     public ResponseEntity<List<LessonResponseDTO>> createLessons(
             @PathVariable Long courseId,
-            @Valid @RequestBody List<@Valid LessonRequestDTO> requests,
+            @NotEmpty(message = "Danh sách bài học không được rỗng") @RequestBody List<@Valid LessonRequestDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         List<LessonResponseDTO> created = lessonService.createLessons(courseId, requests, userDetails.getUserId());
@@ -46,7 +47,7 @@ public class InstructorLessonController {
     @PutMapping("/reorder")
     public ResponseEntity<List<LessonResponseDTO>> reorderLessons(
             @PathVariable Long courseId,
-            @Valid @RequestBody List<@Valid LessonReorderDTO> requests,
+            @NotEmpty(message = "Danh sách sắp xếp không được rỗng") @RequestBody List<@Valid LessonReorderDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         List<LessonResponseDTO> reordered = lessonService.reorderLessons(courseId, requests, userDetails.getUserId());

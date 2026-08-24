@@ -13,25 +13,25 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VideoUploadRequestDTO {
-    @NotBlank(message = "Title is required")
-    @Size(min = 1, max = 255, message = "Title must be between 1 and 255 characters")
+    @NotBlank(message = "Tiêu đề không được để trống")
+    @Size(min = 1, max = 255, message = "Tiêu đề phải có từ 1 đến 255 ký tự")
     private String title;
 
-    @NotNull(message = "Position is required")
-    @Min(value = 1, message = "Position must be at least 1")
+    @NotNull(message = "Vị trí không được để trống")
+    @Min(value = 1, message = "Vị trí phải từ 1 trở lên")
     private Integer position;
 
-    @NotBlank(message = "File name is required")
+    @NotBlank(message = "Tên tệp không được để trống")
     @Pattern(regexp = "^[\\w\\-. ]+\\.(mp4|mov|avi|mkv)$",
-            message = "Invalid file name or unsupported format. Supported: mp4, mov, avi, mkv")
+            message = "Tên tệp không hợp lệ hoặc định dạng không được hỗ trợ. Định dạng hỗ trợ: mp4, mov, avi, mkv")
     private String fileName;
 
-    @NotBlank(message = "Content type is required")
+    @NotBlank(message = "Loại nội dung không được để trống")
     @Pattern(regexp = "^video/(mp4|quicktime|x-msvideo|x-matroska)$",
-            message = "Invalid content type. Supported: video/mp4, video/quicktime, video/x-msvideo, video/x-matroska")
+            message = "Loại nội dung không hợp lệ. Loại được hỗ trợ: video/mp4, video/quicktime, video/x-msvideo, video/x-matroska")
     private String contentType;
 
-    @NotNull(message = "File size is required")
-    @Min(value = 1, message = "File size must be greater than 0")
+    @NotNull(message = "Kích thước tệp không được để trống")
+    @Min(value = 1, message = "Kích thước tệp phải lớn hơn 0")
     private Long fileSize;
 }

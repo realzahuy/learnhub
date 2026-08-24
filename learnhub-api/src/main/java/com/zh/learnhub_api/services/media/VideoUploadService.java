@@ -1,9 +1,9 @@
 package com.zh.learnhub_api.services.media;
 
 import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.dtos.media.VideoConfirmUploadResponseDTO;
 import com.zh.learnhub_api.dtos.media.VideoUploadRequestDTO;
 import com.zh.learnhub_api.dtos.media.VideoUploadResponseDTO;
+import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Lesson;
@@ -13,15 +13,17 @@ import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.course.CourseEditPolicy;
 import com.zh.learnhub_api.services.media.mediaconvert.MediaConvertTranscoder;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class VideoUploadService {
 
     private static final String WHAT = "video";
@@ -32,7 +34,7 @@ public class VideoUploadService {
     private final MediaConvertTranscoder mediaConvertService;
     private final CourseEditPolicy courseEditPolicy;
     private final VideoLifecycle videoLifecycle;
-    private final VideoStatusWriter videoStatusWriter;
+    private final VideoProgressSseService videoProgressSseService;
     private final AppProperties.AwsS3 s3Properties;
     private final AppProperties.Video videoProperties;
 
@@ -41,7 +43,7 @@ public class VideoUploadService {
             Long lessonId, VideoUploadRequestDTO request, Long instructorId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Lesson not found with id: " + lessonId));
+                        "Không tìm thấy bài học có ID: " + lessonId));
         Course course = lesson.getCourseId();
 
         courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
@@ -51,8 +53,6 @@ public class VideoUploadService {
                 .orElse(null);
         if (video != null) {
             videoLifecycle.requireUploading(video);
-            log.info("Retry upload for existing video ID: {}, updating with new upload session",
-                    video.getId());
             video.setTitle(request.getTitle());
             video.setUpdatedAt(LocalDateTime.now());
         } else {
@@ -65,13 +65,12 @@ public class VideoUploadService {
             videoLifecycle.initializeUploading(video, now);
         }
 
-        String objectKey = videoStorageService.generateRawObjectKey(
-                course.getId(), lessonId, request.getFileName());
-        video.setStorageKey(objectKey);
-
         video = videoRepository.save(video);
-        log.info("Video entity saved with id: {}, objectKey: {}, status: UPLOADING",
-                video.getId(), objectKey);
+
+        String objectKey = videoStorageService.generateRawObjectKey(
+                course.getId(), lessonId, video.getId(), request.getFileName());
+        video.setStorageKey(objectKey);
+        video = videoRepository.save(video);
 
         VideoStorageService.PresignedUpload upload = videoStorageService.generatePresignedUpload(
                 objectKey, request.getContentType(), videoProperties.maxSize());
@@ -86,58 +85,53 @@ public class VideoUploadService {
     }
 
     @Transactional
-    public VideoConfirmUploadResponseDTO confirmUpload(Long videoId, Long instructorId) {
-        Video video = videoRepository.findById(videoId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Video not found with id: " + videoId));
-
-        Course course = video.getLesson().getCourseId();
-
-        courseEditPolicy.requireOwner(course, instructorId);
-        videoLifecycle.requireUploading(video);
-
-        String objectKey = video.getStorageKey();
-        if (objectKey == null || objectKey.isEmpty()) {
-            throw new IllegalStateException("Video object key not found in database");
+    public void processUploadedObject(Long videoId, String objectKey) {
+        Video video = videoRepository.findByIdForUploadProcessing(videoId).orElse(null);
+        if (video == null) {
+            return;
         }
 
-        Long uploadedSize = videoStorageService.findObjectSize(objectKey);
-        if (uploadedSize == null) {
-            videoStatusWriter.markFailed(video.getId());
-            log.error("Object not found in S3: {}", objectKey);
-            throw new ResourceNotFoundException("Uploaded file not found in S3");
+        if (!objectKey.equals(video.getStorageKey())) {
+            return;
         }
 
-        if (uploadedSize > videoProperties.maxSize()) {
-            videoStatusWriter.markFailed(video.getId());
-            try {
-                videoStorageService.deleteVideo(objectKey);
-            } catch (Exception e) {
-                log.error("Không xóa được file quá cỡ {}", objectKey, e);
-            }
-            log.warn("Video {} bị từ chối: đã tải lên {} byte, trần {} byte",
-                    videoId, uploadedSize, videoProperties.maxSize());
-            throw new IllegalArgumentException(sizeLimitMessage());
+        if (video.getStatus() != VideoStatus.UPLOADING) {
+            return;
         }
 
         videoLifecycle.markProcessing(video, LocalDateTime.now());
-        try {
-            String outputPath = videoStorageService.generateHlsOutputPath(objectKey);
-            String jobId = mediaConvertService.createHlsTranscodingJob(objectKey, outputPath);
-            video.setMediaconvertJobId(jobId);
-            videoRepository.save(video);
-            log.info("Video {} status updated to PROCESSING, MediaConvert job: {}",
-                    videoId, jobId);
-        } catch (Exception e) {
-            videoStatusWriter.markFailed(video.getId());
-            log.error("Failed to create MediaConvert job for video: {}", videoId, e);
-            throw new RuntimeException("Failed to start video processing", e);
+        String outputPath = videoStorageService.generateHlsOutputPath(objectKey);
+        String jobId = mediaConvertService.createHlsTranscodingJob(
+                objectKey, outputPath, mediaConvertClientToken(videoId, objectKey));
+        video.setMediaconvertJobId(jobId);
+        videoRepository.save(video);
+
+        Long courseId = video.getLesson().getCourseId().getId();
+        publishProgressAfterCommit(courseId, videoId, VideoStatus.PROCESSING.name(), 0);
+    }
+
+    private String mediaConvertClientToken(Long videoId, String objectKey) {
+        UUID objectToken = UUID.nameUUIDFromBytes(objectKey.getBytes(StandardCharsets.UTF_8));
+        return "learnhub-video-" + videoId + "-" + objectToken;
+    }
+
+    private void publishProgressAfterCommit(
+            Long courseId, Long videoId, String status, Integer progress) {
+        Runnable publish = () -> videoProgressSseService.publish(
+                courseId, videoId, status, progress);
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            publish.run();
+            return;
         }
 
-        return VideoConfirmUploadResponseDTO.builder()
-                .videoId(video.getId())
-                .status(video.getStatus())
-                .build();
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        publish.run();
+                    }
+                });
     }
 
     private void requireWithinSizeLimit(long fileSize) {

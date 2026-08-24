@@ -8,7 +8,6 @@ import com.zh.learnhub_api.exceptions.ImageUploadException;
 import com.zh.learnhub_api.services.media.ImageStorageService;
 import com.zh.learnhub_api.services.media.ImageUploadResult;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,7 +19,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class CloudinaryImageStorageService implements ImageStorageService {
 
     private final Cloudinary cloudinary;
@@ -84,11 +82,8 @@ public class CloudinaryImageStorageService implements ImageStorageService {
 
     private void destroy(String publicId) {
         try {
-            Map<?, ?> result = cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("invalidate", true));
-            log.info("Xóa ảnh Cloudinary {} -> {}", publicId, result.get("result"));
+            cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("invalidate", true));
         } catch (IOException | RuntimeException e) {
-
-            log.error("Không xóa được ảnh trên Cloudinary: {}", publicId, e);
         }
     }
 
@@ -107,7 +102,6 @@ public class CloudinaryImageStorageService implements ImageStorageService {
                     "transformation", transformation
             ));
         } catch (IOException | RuntimeException e) {
-            log.error("Upload ảnh lên Cloudinary thất bại: {}", publicId, e);
             throw new ImageUploadException("Không thể tải ảnh lên. Vui lòng thử lại sau.", e);
         }
 
@@ -118,7 +112,6 @@ public class CloudinaryImageStorageService implements ImageStorageService {
             throw new ImageUploadException("Cloudinary không trả về URL ảnh");
         }
 
-        log.info("Upload ảnh thành công: {}", returnedPublicId);
         return new ImageUploadResult(secureUrl, returnedPublicId);
     }
 
@@ -137,7 +130,7 @@ public class CloudinaryImageStorageService implements ImageStorageService {
         try {
             bytes = file.getBytes();
         } catch (IOException e) {
-            throw new ImageUploadException("Không đọc được file ảnh", e);
+            throw new ImageUploadException("Không đọc được tệp ảnh", e);
         }
 
         String actualType = detectMimeType(bytes);
