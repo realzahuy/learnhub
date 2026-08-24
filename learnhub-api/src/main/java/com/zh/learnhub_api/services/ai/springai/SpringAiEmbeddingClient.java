@@ -58,22 +58,11 @@ public class SpringAiEmbeddingClient implements EmbeddingClient {
     }
 
     private List<Float> embed(String text) {
-        if (dimension <= 0) {
-            throw new IllegalStateException("Số chiều embedding phải lớn hơn 0");
-        }
-
         GoogleGenAiTextEmbeddingOptions options = GoogleGenAiTextEmbeddingOptions.builder()
                 .dimensions(dimension)
                 .build();
 
-        EmbeddingResponse response;
-        try {
-            response = embeddingModel.call(new EmbeddingRequest(
-                    List.of(text),
-                    options));
-        } catch (RuntimeException ex) {
-            throw new IllegalStateException("Không thể tạo embedding bằng Spring AI", ex);
-        }
+        EmbeddingResponse response = embeddingModel.call(new EmbeddingRequest(List.of(text), options));
 
         if (response == null || response.getResult() == null
                 || response.getResult().getOutput() == null) {

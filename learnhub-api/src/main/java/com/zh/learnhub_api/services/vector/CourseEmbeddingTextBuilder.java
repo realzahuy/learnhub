@@ -26,7 +26,7 @@ public class CourseEmbeddingTextBuilder {
     private final AppProperties.EmbeddingText embeddingProperties;
 
     @Transactional(readOnly = true)
-    public Optional<CourseEmbeddingDocument> buildPublishedCourse(Long courseId) {
+    public Optional<EmbeddingDocument> buildPublishedCourse(Long courseId) {
         Course course = courseRepository.findById(courseId).orElse(null);
         if (course == null || !CourseStatus.PUBLISHED.name().equals(course.getStatus())) {
             return Optional.empty();
@@ -36,9 +36,8 @@ public class CourseEmbeddingTextBuilder {
     }
 
     @Transactional(readOnly = true)
-    public CourseEmbeddingDocument buildCourse(Course course) {
+    public EmbeddingDocument buildCourse(Course course) {
         Long courseId = course.getId();
-
         List<Lesson> lessons = lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId);
         StringBuilder text = new StringBuilder();
         text.append("Biểu diễn khóa học để tìm các khóa học có nội dung tương tự.\n\n");
@@ -64,7 +63,8 @@ public class CourseEmbeddingTextBuilder {
         if (document.length() > safeLimit) {
             document = document.substring(0, safeLimit);
         }
-        return new CourseEmbeddingDocument(courseId, normalize(course.getTitle()), document);
+        CourseVectorStore.Payload payload = new CourseVectorStore.Payload(course.getSlug(), course.getTitle(), course.getThumbnail(), course.getPrice());
+        return new EmbeddingDocument(courseId, normalize(course.getTitle()), document, payload);
     }
 
     private void append(StringBuilder target, String label, String value) {
@@ -86,5 +86,8 @@ public class CourseEmbeddingTextBuilder {
                 .replace("&quot;", "\"")
                 .replace("&#39;", "'");
         return WHITESPACE.matcher(withoutTags).replaceAll(" ").trim();
+    }
+
+    record EmbeddingDocument(Long courseId, String title, String text, CourseVectorStore.Payload payload) {
     }
 }

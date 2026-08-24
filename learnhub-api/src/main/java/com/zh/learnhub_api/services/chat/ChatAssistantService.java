@@ -3,7 +3,7 @@ package com.zh.learnhub_api.services.chat;
 import com.zh.learnhub_api.dtos.chat.ChatRequestDTO;
 import com.zh.learnhub_api.dtos.chat.ChatResponseDTO;
 import com.zh.learnhub_api.services.ai.ChatPlan;
-import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
+import com.zh.learnhub_api.dtos.course.RecommendationCardDTO;
 import com.zh.learnhub_api.services.ai.ChatModelClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,9 +22,9 @@ public class ChatAssistantService {
 
     public ChatResponseDTO respond(ChatRequestDTO request, String username) {
         ChatPlan plan = chatModelClient.generatePlan(request);
-        List<CourseListItemDTO> courses = plan.shouldSearchCourses()
+        List<RecommendationCardDTO> courses = plan.shouldSearchCourses()
                 ? recommendationService.recommend(
-                        request.getMessage(), plan.searchKeywords(), username)
+                        plan.searchKeywords(), username)
                 : List.of();
 
         String reply = plan.reply();

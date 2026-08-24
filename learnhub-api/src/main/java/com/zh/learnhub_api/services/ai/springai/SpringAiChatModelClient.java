@@ -31,21 +31,14 @@ public class SpringAiChatModelClient implements ChatModelClient {
 
     @Override
     public ChatPlan generatePlan(ChatRequestDTO request) {
-        ChatPlan plan;
-        try {
-            plan = chatClient.prompt()
-                    .system(systemInstruction)
-                    .messages(buildMessages(request))
-                    .call()
-                    .entity(ChatPlan.class, schema -> schema
-                            .useProviderStructuredOutput()
-                            .validateSchema());
-        } catch (RuntimeException ex) {
-            throw new IllegalStateException("Không thể tạo kế hoạch chat bằng Spring AI", ex);
-        }
+        ChatPlan plan = chatClient.prompt()
+                .system(systemInstruction)
+                .messages(buildMessages(request))
+                .call()
+                .entity(ChatPlan.class, schema -> schema.useProviderStructuredOutput().validateSchema());
 
         if (plan == null) {
-            throw new IllegalStateException("Spring AI không trả về kế hoạch chat");
+            throw new IllegalStateException("Spring AI không trả về kế hoạch trò chuyện");
         }
         if (plan.reply().isBlank()) {
             throw new IllegalStateException("Spring AI trả về câu trả lời trống");
@@ -57,8 +50,7 @@ public class SpringAiChatModelClient implements ChatModelClient {
         List<Message> messages = new ArrayList<>();
         List<ChatMessageDTO> history = request.getHistory();
         if (history != null && !history.isEmpty()) {
-            int historyLimit = Math.max(0, maxHistoryMessages);
-            int firstHistoryIndex = Math.max(0, history.size() - historyLimit);
+            int firstHistoryIndex = Math.max(0, history.size() - maxHistoryMessages);
             for (int index = firstHistoryIndex; index < history.size(); index++) {
                 ChatMessageDTO message = history.get(index);
                 if ("assistant".equalsIgnoreCase(message.getRole())) {
