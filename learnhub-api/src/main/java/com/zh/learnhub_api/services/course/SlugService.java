@@ -30,7 +30,7 @@ public class SlugService {
             ensureSlugUniqueOrThrow(slug, currentCourseId);
         } else {
 
-            slug = slugify.slugify(title);
+            slug = slugify.slugify(title.replace('đ', 'd').replace('Đ', 'D'));
             validateSlugFormat(slug);
             ensureSlugUniqueOrThrow(slug, currentCourseId);
         }
