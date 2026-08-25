@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.projections.course;
 
+import com.zh.learnhub_api.enums.CourseStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -10,7 +11,7 @@ public interface CourseListProjection {
     String getShortDescription();
     String getThumbnail();
     BigDecimal getPrice();
-    String getStatus();
+    CourseStatus getStatus();
     LocalDateTime getCreatedAt();
     LocalDateTime getUpdatedAt();
     Long getInstructorId();

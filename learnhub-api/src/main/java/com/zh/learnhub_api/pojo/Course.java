@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.pojo;
 
+import com.zh.learnhub_api.enums.CourseStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -63,9 +64,9 @@ public class Course implements Serializable {
     private BigDecimal price;
 
     @NotNull
-    @Size(min = 1, max = 20)
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private CourseStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_id", referencedColumnName = "id")

@@ -137,11 +137,11 @@ public class AdminUserService {
                 .filter(id -> rolesByUser.getOrDefault(id, List.of()).contains(ROLE_INSTRUCTOR))
                 .toList();
 
-        Map<Long, Map<String, Long>> coursesByInstructor = new HashMap<>();
+        Map<Long, Map<CourseStatus, Long>> coursesByInstructor = new HashMap<>();
         if (!instructorIds.isEmpty()) {
             for (var row : courseRepository.countCoursesByInstructorGroupedByStatus(instructorIds)) {
                 Long instructorId = row.getInstructorId();
-                String status = row.getStatus();
+                CourseStatus status = row.getStatus();
                 long count = row.getCourseCount();
                 coursesByInstructor
                         .computeIfAbsent(instructorId, key -> new HashMap<>())
@@ -157,12 +157,12 @@ public class AdminUserService {
         }
 
         return users.stream().map(user -> {
-            Map<String, Long> byStatus = coursesByInstructor.getOrDefault(user.getId(), Map.of());
+            Map<CourseStatus, Long> byStatus = coursesByInstructor.getOrDefault(user.getId(), Map.of());
 
-            long published = byStatus.getOrDefault(CourseStatus.PUBLISHED.name(), 0L);
-            long pending = byStatus.getOrDefault(CourseStatus.PENDING.name(), 0L);
-            long draft = byStatus.getOrDefault(CourseStatus.DRAFT.name(), 0L);
-            long rejected = byStatus.getOrDefault(CourseStatus.REJECTED.name(), 0L);
+            long published = byStatus.getOrDefault(CourseStatus.PUBLISHED, 0L);
+            long pending = byStatus.getOrDefault(CourseStatus.PENDING, 0L);
+            long draft = byStatus.getOrDefault(CourseStatus.DRAFT, 0L);
+            long rejected = byStatus.getOrDefault(CourseStatus.REJECTED, 0L);
 
             return new AdminUserDTO(
                     user.getId(),

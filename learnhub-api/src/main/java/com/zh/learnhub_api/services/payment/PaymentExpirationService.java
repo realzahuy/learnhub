@@ -34,7 +34,7 @@ public class PaymentExpirationService {
     @Transactional
     public Payment expireIfOverdue(Payment payment, Long userId) {
         LocalDateTime now = LocalDateTime.now();
-        if (PaymentStatus.PENDING.name().equals(payment.getStatus())
+        if (payment.getStatus() == PaymentStatus.PENDING
                 && payment.getCreatedAt() != null
                 && !payment.getCreatedAt().isAfter(now.minusMinutes(expireMinutes))) {
             paymentRepository.expireOverdueByIdAndUserId(

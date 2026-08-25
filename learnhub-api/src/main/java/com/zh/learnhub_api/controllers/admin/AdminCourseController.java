@@ -24,7 +24,7 @@ public class AdminCourseController {
 
     @GetMapping
     public ResponseEntity<PageResponseDTO<CourseResponseDTO>> listCourses(
-            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "PENDING") CourseStatus status,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
             Pageable pageable) {
@@ -45,7 +45,7 @@ public class AdminCourseController {
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
         adminCourseService.approveCourse(id, principal.getUserId());
         return ResponseEntity.ok(new CourseModerationResponseDTO(
-                id, CourseStatus.PUBLISHED.name(), "Duyệt khóa học thành công"));
+                id, CourseStatus.PUBLISHED, "Duyệt khóa học thành công"));
     }
 
     @PostMapping("/{id}/reject")
@@ -56,6 +56,6 @@ public class AdminCourseController {
 
         adminCourseService.rejectCourse(id, request, principal.getUserId());
         return ResponseEntity.ok(new CourseModerationResponseDTO(
-                id, CourseStatus.REJECTED.name(), "Từ chối khóa học thành công"));
+                id, CourseStatus.REJECTED, "Từ chối khóa học thành công"));
     }
 }

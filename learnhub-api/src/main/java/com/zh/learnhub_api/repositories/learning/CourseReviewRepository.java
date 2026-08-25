@@ -38,7 +38,7 @@ public interface CourseReviewRepository extends JpaRepository<CourseReview, Long
 
     @Query("SELECT AVG(r.rating) AS averageRating, COUNT(r) AS reviewCount FROM CourseReview r "
          + "WHERE r.courseId.instructorId.id = :instructorId "
-         + "AND r.courseId.status = 'PUBLISHED'")
+         + "AND r.courseId.status = com.zh.learnhub_api.enums.CourseStatus.PUBLISHED")
     List<RatingStatsProjection> findRatingStatsByInstructor(@Param("instructorId") Long instructorId);
 
     @Query("SELECT r.courseId.id AS courseId, AVG(r.rating) AS averageRating, "

@@ -28,7 +28,7 @@ public class CourseEmbeddingTextBuilder {
     @Transactional(readOnly = true)
     public Optional<EmbeddingDocument> buildPublishedCourse(Long courseId) {
         Course course = courseRepository.findById(courseId).orElse(null);
-        if (course == null || !CourseStatus.PUBLISHED.name().equals(course.getStatus())) {
+        if (course == null || course.getStatus() != CourseStatus.PUBLISHED) {
             return Optional.empty();
         }
 

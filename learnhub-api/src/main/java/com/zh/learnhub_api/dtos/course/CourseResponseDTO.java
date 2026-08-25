@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.dtos.course;
 
+import com.zh.learnhub_api.enums.CourseStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -17,7 +18,7 @@ public class CourseResponseDTO {
     private String description;
     private String thumbnail;
     private BigDecimal price;
-    private String status;
+    private CourseStatus status;
     private Long instructorId;
     private String instructorName;
     private Long categoryId;

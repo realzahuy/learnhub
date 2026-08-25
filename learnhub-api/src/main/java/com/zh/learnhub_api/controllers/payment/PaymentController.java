@@ -33,13 +33,13 @@ public class PaymentController {
             @Valid @RequestBody CreatePaymentRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
         return ResponseEntity.ok(paymentFactory
-                .getMethod(request.getPaymentMethod().name())
+                .getMethod(request.getPaymentMethod())
                 .createPayment(request, principal.getUserId()));
     }
 
     @PostMapping("/momo/notify")
     public ResponseEntity<Void> momoNotify(@RequestBody Map<String, Object> data) {
-        ((MoMoPaymentService) paymentFactory.getMethod(PaymentMethod.MOMO.name()))
+        ((MoMoPaymentService) paymentFactory.getMethod(PaymentMethod.MOMO))
                 .handleNotify(data);
         return ResponseEntity.noContent().build();
     }
@@ -50,7 +50,7 @@ public class PaymentController {
             @Valid @RequestBody PayPalCaptureRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
         return ResponseEntity.ok(((PayPalPaymentService) paymentFactory
-                .getMethod(PaymentMethod.PAYPAL.name()))
+                .getMethod(PaymentMethod.PAYPAL))
                 .capturePayment(id, request.orderId(), principal.getUserId()));
     }
 
@@ -58,7 +58,7 @@ public class PaymentController {
     public ResponseEntity<PaymentResponseDTO> getPaymentStatus(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return ResponseEntity.ok(paymentFactory.getMethod(PaymentMethod.MOMO.name())
+        return ResponseEntity.ok(paymentFactory.getMethod(PaymentMethod.MOMO)
                 .getPaymentStatus(id, principal.getUserId()));
     }
 }

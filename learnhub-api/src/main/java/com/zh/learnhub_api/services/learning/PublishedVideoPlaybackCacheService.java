@@ -26,9 +26,9 @@ public class PublishedVideoPlaybackCacheService {
         VideoPlaybackProjection video = videoRepository.findPlaybackById(videoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
 
-        if (!CourseStatus.PUBLISHED.name().equals(video.getCourseStatus())
+        if (video.getCourseStatus() != CourseStatus.PUBLISHED
                 || video.getStorageKey() == null
-                || !VideoStatus.READY.name().equals(video.getStatus())) {
+                || video.getStatus() != VideoStatus.READY) {
             throw new ResourceNotFoundException("Video chưa sẵn sàng để phát");
         }
         return new PublishedVideoPlayback(

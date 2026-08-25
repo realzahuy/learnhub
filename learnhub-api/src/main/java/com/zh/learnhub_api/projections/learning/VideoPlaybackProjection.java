@@ -1,11 +1,14 @@
 package com.zh.learnhub_api.projections.learning;
 
+import com.zh.learnhub_api.enums.CourseStatus;
+import com.zh.learnhub_api.enums.VideoStatus;
+
 public interface VideoPlaybackProjection {
     Long getVideoId();
     Long getCourseId();
     String getStorageKey();
-    String getStatus();
+    VideoStatus getStatus();
     boolean isLessonPreview();
-    String getCourseStatus();
+    CourseStatus getCourseStatus();
     Long getEnrolled();
 }

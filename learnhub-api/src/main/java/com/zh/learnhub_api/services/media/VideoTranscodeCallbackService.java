@@ -2,6 +2,7 @@ package com.zh.learnhub_api.services.media;
 
 import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.enums.CourseStatus;
+import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Video;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
@@ -43,7 +44,7 @@ public class VideoTranscodeCallbackService {
         if ("STATUS_UPDATE".equals(status)) {
             if (progress != null) {
                 videoProgressSseService.publish(
-                        courseId, video.getId(), "PROCESSING", progress);
+                        courseId, video.getId(), VideoStatus.PROCESSING, progress);
             }
             return;
         }
@@ -57,7 +58,7 @@ public class VideoTranscodeCallbackService {
             videoLifecycle.markFailed(video, LocalDateTime.now());
             videoRepository.save(video);
             evictPublishedCourseDetail(video);
-            publishProgressAfterCommit(courseId, video.getId(), "FAILED", progress);
+            publishProgressAfterCommit(courseId, video.getId(), VideoStatus.FAILED, progress);
             return;
         }
     }
@@ -72,7 +73,7 @@ public class VideoTranscodeCallbackService {
         videoRepository.save(video);
         evictPublishedCourseDetail(video);
 
-        publishProgressAfterCommit(courseId, video.getId(), "READY", 100);
+        publishProgressAfterCommit(courseId, video.getId(), VideoStatus.READY, 100);
 
         try {
             videoStorageService.deleteVideo(rawObjectKey);
@@ -83,7 +84,7 @@ public class VideoTranscodeCallbackService {
     private void publishProgressAfterCommit(
             Long courseId,
             Long videoId,
-            String status,
+            VideoStatus status,
             Integer progress) {
         Runnable publish = () -> videoProgressSseService.publish(
                 courseId, videoId, status, progress);
@@ -104,7 +105,7 @@ public class VideoTranscodeCallbackService {
 
     private void evictPublishedCourseDetail(Video video) {
         Course course = video.getLesson().getCourseId();
-        if (CourseStatus.PUBLISHED.name().equals(course.getStatus())) {
+        if (course.getStatus() == CourseStatus.PUBLISHED) {
             cacheInvalidator.evictAfterCommit(
                     CacheNames.PUBLIC_COURSE_DETAILS,
                     course.getSlug());

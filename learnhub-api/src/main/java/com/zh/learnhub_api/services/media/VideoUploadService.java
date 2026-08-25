@@ -107,7 +107,7 @@ public class VideoUploadService {
         videoRepository.save(video);
 
         Long courseId = video.getLesson().getCourseId().getId();
-        publishProgressAfterCommit(courseId, videoId, VideoStatus.PROCESSING.name(), 0);
+        publishProgressAfterCommit(courseId, videoId, VideoStatus.PROCESSING, 0);
     }
 
     private String mediaConvertClientToken(Long videoId, String objectKey) {
@@ -116,7 +116,7 @@ public class VideoUploadService {
     }
 
     private void publishProgressAfterCommit(
-            Long courseId, Long videoId, String status, Integer progress) {
+            Long courseId, Long videoId, VideoStatus status, Integer progress) {
         Runnable publish = () -> videoProgressSseService.publish(
                 courseId, videoId, status, progress);
 

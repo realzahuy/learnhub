@@ -62,12 +62,12 @@ public class VideoPlaybackService {
                 video.getTitle(),
                 video.getDurationSeconds(),
                 VideoPlaybackUrls.authenticated(video),
-                video.getStatus().name());
+                video.getStatus());
     }
 
     private VideoStorageService.StoredObject openReadyVideoFile(
             VideoPlaybackProjection video, String fileName) {
-        if (video.getStorageKey() == null || !VideoStatus.READY.name().equals(video.getStatus())) {
+        if (video.getStorageKey() == null || video.getStatus() != VideoStatus.READY) {
             throw new ResourceNotFoundException("Video chưa sẵn sàng để phát");
         }
         return videoStorageService.openHlsObject(resolveHlsKey(video.getStorageKey(), fileName));

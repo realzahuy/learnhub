@@ -7,6 +7,7 @@ import com.zh.learnhub_api.services.learning.ReviewService;
 
 import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorProfileDTO;
+import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.projections.instructor.PublicInstructorProjection;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
@@ -58,7 +59,7 @@ public class InstructorProfileService {
                 ratingStats.average(),
                 ratingStats.reviewCount(),
                 enrollmentRepository.countDistinctStudents(instructorId),
-                courseRepository.countByInstructorId_IdAndStatus(instructorId, "PUBLISHED")
+                courseRepository.countByInstructorId_IdAndStatus(instructorId, CourseStatus.PUBLISHED)
         );
     }
 

@@ -136,7 +136,7 @@ public class VideoManagementService {
         return VideoResponseDTO.builder()
                 .id(video.getId())
                 .title(video.getTitle())
-                .status(video.getStatus().name())
+                .status(video.getStatus())
                 .position(video.getPosition())
                 .durationSeconds(video.getDurationSeconds())
                 .playbackUrl(VideoPlaybackUrls.instructor(video))

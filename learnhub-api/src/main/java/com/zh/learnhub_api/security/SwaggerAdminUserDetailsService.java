@@ -23,7 +23,7 @@ public class SwaggerAdminUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
-                .accountLocked(AccountStatus.LOCKED.name().equals(user.getAccountStatus()))
+                .accountLocked(user.getAccountStatus() == AccountStatus.LOCKED)
                 .authorities(user.getRoles().toArray(String[]::new))
                 .build();
     }

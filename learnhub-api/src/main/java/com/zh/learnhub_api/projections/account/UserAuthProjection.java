@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.projections.account;
 
+import com.zh.learnhub_api.enums.AccountStatus;
 import java.util.Arrays;
 import java.util.List;
 
@@ -7,7 +8,7 @@ public interface UserAuthProjection {
     Long getId();
     String getUsername();
     String getPassword();
-    String getAccountStatus();
+    AccountStatus getAccountStatus();
     String getRoleNames();
 
     default List<String> getRoles() {

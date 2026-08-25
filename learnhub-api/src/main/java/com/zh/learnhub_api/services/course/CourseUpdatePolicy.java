@@ -17,7 +17,7 @@ public class CourseUpdatePolicy {
     private final SlugService slugService;
 
     public void applyUpdate(Course course, CourseUpsertRequestDTO request) {
-        CourseStatus status = CourseStatus.fromString(course.getStatus());
+        CourseStatus status = course.getStatus();
 
         switch (status) {
             case DRAFT, REJECTED -> updateAllFields(course, request);

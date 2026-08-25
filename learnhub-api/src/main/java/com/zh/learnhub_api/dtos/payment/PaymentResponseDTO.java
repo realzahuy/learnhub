@@ -1,5 +1,7 @@
 package com.zh.learnhub_api.dtos.payment;
 
+import com.zh.learnhub_api.enums.PaymentMethod;
+import com.zh.learnhub_api.enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,8 +20,8 @@ public class PaymentResponseDTO {
     private Long paymentId;
     private String payUrl;
     private BigDecimal totalPrice;
-    private String paymentMethod;
-    private String status;
+    private PaymentMethod paymentMethod;
+    private PaymentStatus status;
     private String transactionId;
     private LocalDateTime createdAt;
 

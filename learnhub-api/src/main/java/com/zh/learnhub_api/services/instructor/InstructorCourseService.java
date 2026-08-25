@@ -77,7 +77,7 @@ public class InstructorCourseService {
         course.setDescription(request.getDescription());
         course.setThumbnail(request.getThumbnail());
         course.setPrice(request.getPrice());
-        course.setStatus(CourseStatus.DRAFT.name());
+        course.setStatus(CourseStatus.DRAFT);
         course.setInstructorId(instructor);
         course.setCategoryId(category);
 
@@ -100,7 +100,7 @@ public class InstructorCourseService {
     @Transactional
     public void deleteCourse(Long courseId, Long instructorId) {
         Course course = findOwnedCourse(courseId, instructorId, "xóa");
-        CourseStatus status = CourseStatus.fromString(course.getStatus());
+        CourseStatus status = course.getStatus();
         if (status != CourseStatus.DRAFT && status != CourseStatus.REJECTED) {
             throw new IllegalArgumentException(
                     "Chỉ có thể xóa khóa học ở trạng thái DRAFT hoặc REJECTED. "
@@ -117,7 +117,7 @@ public class InstructorCourseService {
             Long instructorId,
             MultipartFile thumbnailFile) {
         Course course = findOwnedCourse(courseId, instructorId, "chỉnh sửa");
-        CourseStatus statusBeforeUpdate = CourseStatus.fromString(course.getStatus());
+        CourseStatus statusBeforeUpdate = course.getStatus();
         String oldTitle = course.getTitle();
         String oldShortDescription = course.getShortDescription();
         String oldDescription = course.getDescription();
@@ -151,7 +151,7 @@ public class InstructorCourseService {
     @Transactional
     public void submitCourse(Long courseId, Long instructorId) {
         Course course = findOwnedCourse(courseId, instructorId, "gửi kiểm duyệt");
-        CourseStatus currentStatus = CourseStatus.fromString(course.getStatus());
+        CourseStatus currentStatus = course.getStatus();
         if (currentStatus != CourseStatus.DRAFT && currentStatus != CourseStatus.REJECTED) {
             throw new IllegalStateException(
                     "Chỉ có thể gửi kiểm duyệt khóa học ở trạng thái DRAFT hoặc REJECTED");
@@ -166,8 +166,8 @@ public class InstructorCourseService {
         int updated = courseRepository.submitForReview(
                 courseId,
                 instructorId,
-                List.of(CourseStatus.DRAFT.name(), CourseStatus.REJECTED.name()),
-                CourseStatus.PENDING.name());
+                List.of(CourseStatus.DRAFT, CourseStatus.REJECTED),
+                CourseStatus.PENDING);
         if (updated == 0) {
             throw new IllegalStateException(
                     "Khóa học đã thay đổi; vui lòng tải lại trước khi gửi kiểm duyệt");
@@ -188,7 +188,7 @@ public class InstructorCourseService {
         if (!course.getInstructorId().getId().equals(instructorId)) {
             throw new ForbiddenException("Bạn không có quyền xem thông tin này");
         }
-        if (CourseStatus.fromString(course.getStatus()) != CourseStatus.REJECTED) {
+        if (course.getStatus() != CourseStatus.REJECTED) {
             throw new IllegalArgumentException("Khóa học này không ở trạng thái REJECTED");
         }
 
@@ -201,7 +201,7 @@ public class InstructorCourseService {
 
     public PageResponseDTO<CourseResponseDTO> getInstructorCourses(
             Long instructorId,
-            String status,
+            CourseStatus status,
             String category,
             String search,
             Pageable requestedPage) {
@@ -212,7 +212,7 @@ public class InstructorCourseService {
 
         Page<CourseDetailProjection> coursePage = courseRepository.findFilteredCourseDetails(
                 instructorId,
-                normalizeFilter(status),
+                status,
                 normalizeFilter(category),
                 normalizeFilter(search),
                 pageable);

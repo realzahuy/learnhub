@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.projections.account;
 
+import com.zh.learnhub_api.enums.AccountStatus;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -12,7 +13,7 @@ public interface SessionRefreshProjection {
     String getUsername();
     String getFullName();
     String getAvatar();
-    String getAccountStatus();
+    AccountStatus getAccountStatus();
     String getRoleNames();
 
     default List<String> getRoles() {

@@ -8,6 +8,7 @@ import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorCourseContentDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
+import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.services.instructor.InstructorCourseContentService;
 import com.zh.learnhub_api.services.instructor.InstructorCourseService;
 import com.zh.learnhub_api.services.media.VideoProgressSseService;
@@ -38,7 +39,7 @@ public class InstructorCourseController {
 
     @GetMapping
     public ResponseEntity<PageResponseDTO<CourseResponseDTO>> listInstructorCourses(
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) CourseStatus status,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
             Pageable pageable,

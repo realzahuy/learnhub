@@ -1,6 +1,7 @@
 package com.zh.learnhub_api.services.payment.momo;
 
 import com.zh.learnhub_api.configs.AppProperties;
+import com.zh.learnhub_api.enums.PaymentMethod;
 import com.zh.learnhub_api.enums.PaymentStatus;
 import com.zh.learnhub_api.exceptions.PaymentGatewayException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -28,8 +29,8 @@ public class MoMoPaymentService extends PaymentService {
     private final AppProperties.Payment paymentProperties;
 
     @Override
-    public String getProviderName() {
-        return "MOMO";
+    public PaymentMethod getProvider() {
+        return PaymentMethod.MOMO;
     }
 
     @Override
@@ -103,13 +104,13 @@ public class MoMoPaymentService extends PaymentService {
         int resultCode = Integer.parseInt(params.get("resultCode"));
         Payment payment = paymentRepository.findByIdForUpdate(paymentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn thanh toán"));
-        if (!PaymentStatus.PENDING.name().equals(payment.getStatus())) {
+        if (payment.getStatus() != PaymentStatus.PENDING) {
             return;
         }
 
         LocalDateTime now = LocalDateTime.now();
         if (resultCode != MOMO_SUCCESS_RESULT_CODE) {
-            payment.setStatus(PaymentStatus.FAILED.name());
+            payment.setStatus(PaymentStatus.FAILED);
             payment.setUpdatedAt(now);
             return;
         }

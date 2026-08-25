@@ -15,7 +15,7 @@ public class CourseEditPolicy {
     }
 
     public void requireEditable(Course course, String what) {
-        CourseStatus status = CourseStatus.fromString(course.getStatus());
+        CourseStatus status = course.getStatus();
 
         if (status == CourseStatus.PENDING) {
             throw new IllegalArgumentException(

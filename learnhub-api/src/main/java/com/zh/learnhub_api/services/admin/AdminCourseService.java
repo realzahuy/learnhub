@@ -99,11 +99,7 @@ public class AdminCourseService {
     }
 
     public PageResponseDTO<CourseResponseDTO> listCourses(
-            String statusParam, String category, String search, Pageable requestedPage) {
-
-        CourseStatus status = (statusParam == null || statusParam.trim().isEmpty())
-            ? CourseStatus.PENDING
-            : CourseStatus.fromString(statusParam);
+            CourseStatus status, String category, String search, Pageable requestedPage) {
 
         Pageable pageable = PageRequest.of(
                 requestedPage.getPageNumber(),
@@ -112,7 +108,7 @@ public class AdminCourseService {
 
         Page<CourseDetailProjection> coursePage = courseRepository.findFilteredCourseDetails(
             null,
-            status.name(),
+            status,
             normalizeFilter(category),
             normalizeFilter(search),
             pageable);
@@ -129,8 +125,8 @@ public class AdminCourseService {
 
         int updated = courseRepository.updateStatus(
             courseId,
-            CourseStatus.PENDING.name(),
-            CourseStatus.PUBLISHED.name()
+            CourseStatus.PENDING,
+            CourseStatus.PUBLISHED
         );
 
         if (updated == 0) {
@@ -138,7 +134,7 @@ public class AdminCourseService {
             Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-            CourseStatus currentStatus = CourseStatus.fromString(course.getStatus());
+            CourseStatus currentStatus = course.getStatus();
             throw new IllegalStateException(
                 "Chỉ có thể duyệt khóa học ở trạng thái PENDING. " +
                 "Trạng thái hiện tại: " + currentStatus
@@ -176,15 +172,15 @@ public class AdminCourseService {
 
         int updated = courseRepository.updateStatus(
             courseId,
-            CourseStatus.PENDING.name(),
-            CourseStatus.REJECTED.name()
+            CourseStatus.PENDING,
+            CourseStatus.REJECTED
         );
 
         if (updated == 0) {
             Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-            CourseStatus currentStatus = CourseStatus.fromString(course.getStatus());
+            CourseStatus currentStatus = course.getStatus();
             throw new IllegalStateException(
                 "Chỉ có thể từ chối khóa học ở trạng thái PENDING. " +
                 "Trạng thái hiện tại: " + currentStatus

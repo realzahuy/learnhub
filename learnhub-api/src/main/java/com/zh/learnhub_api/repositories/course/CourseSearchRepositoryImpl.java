@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.repositories.course;
 
+import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.projections.course.CourseDetailProjection;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
 import com.zh.learnhub_api.projections.course.RatedCourseListProjection;
@@ -51,7 +52,7 @@ public class CourseSearchRepositoryImpl implements CourseSearchRepository {
     @Override
     public Page<CourseDetailProjection> findFilteredCourseDetails(
             Long instructorId,
-            String status,
+            CourseStatus status,
             String categoryName,
             String keyword,
             Pageable pageable) {
@@ -144,7 +145,8 @@ public class CourseSearchRepositoryImpl implements CourseSearchRepository {
         Map<String, Object> parameters = new HashMap<>();
 
         if (filters.publishedOnly()) {
-            predicates.add("c.status = 'PUBLISHED'");
+            predicates.add("c.status = :publishedStatus");
+            parameters.put("publishedStatus", CourseStatus.PUBLISHED);
         } else if (filters.status() != null) {
             predicates.add("c.status = :status");
             parameters.put("status", filters.status());
@@ -201,14 +203,14 @@ public class CourseSearchRepositoryImpl implements CourseSearchRepository {
 
     private record Filters(
             Long instructorId,
-            String status,
+            CourseStatus status,
             String categoryName,
             String keyword,
             boolean publishedOnly,
             boolean searchShortDescription) {
 
         private static Filters management(
-                Long instructorId, String status, String categoryName, String keyword) {
+                Long instructorId, CourseStatus status, String categoryName, String keyword) {
             return new Filters(instructorId, status, categoryName, keyword, false, false);
         }
 
@@ -224,7 +226,7 @@ public class CourseSearchRepositoryImpl implements CourseSearchRepository {
         private final String shortDescription;
         private final String thumbnail;
         private final BigDecimal price;
-        private final String status;
+        private final CourseStatus status;
         private final LocalDateTime createdAt;
         private final LocalDateTime updatedAt;
         private final Long instructorId;
@@ -239,7 +241,7 @@ public class CourseSearchRepositoryImpl implements CourseSearchRepository {
             this.shortDescription = row.get("shortDescription", String.class);
             this.thumbnail = row.get("thumbnail", String.class);
             this.price = row.get("price", BigDecimal.class);
-            this.status = row.get("status", String.class);
+            this.status = row.get("status", CourseStatus.class);
             this.createdAt = row.get("createdAt", LocalDateTime.class);
             this.updatedAt = row.get("updatedAt", LocalDateTime.class);
             this.instructorId = row.get("instructorId", Long.class);
@@ -254,7 +256,7 @@ public class CourseSearchRepositoryImpl implements CourseSearchRepository {
         @Override public String getShortDescription() { return shortDescription; }
         @Override public String getThumbnail() { return thumbnail; }
         @Override public BigDecimal getPrice() { return price; }
-        @Override public String getStatus() { return status; }
+        @Override public CourseStatus getStatus() { return status; }
         @Override public LocalDateTime getCreatedAt() { return createdAt; }
         @Override public LocalDateTime getUpdatedAt() { return updatedAt; }
         @Override public Long getInstructorId() { return instructorId; }

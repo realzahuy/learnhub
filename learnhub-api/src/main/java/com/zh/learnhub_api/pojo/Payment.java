@@ -1,5 +1,7 @@
 package com.zh.learnhub_api.pojo;
 
+import com.zh.learnhub_api.enums.PaymentMethod;
+import com.zh.learnhub_api.enums.PaymentStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -38,9 +40,9 @@ public class Payment implements Serializable {
     private BigDecimal totalPrice;
 
     @NotNull
-    @Size(min = 1, max = 50)
+    @Enumerated(EnumType.STRING)
     @Column(name = "method", nullable = false, length = 50)
-    private String method;
+    private PaymentMethod method;
 
     @Size(max = 255)
     @Column(name = "transaction_id")
@@ -48,9 +50,9 @@ public class Payment implements Serializable {
     private String transactionId;
 
     @NotNull
-    @Size(min = 1, max = 20)
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private PaymentStatus status;
 
     @NotNull
     @Column(name = "created_at", nullable = false)

@@ -125,7 +125,7 @@ public class NotificationService {
             NotificationRepository.NotificationPageRow row) {
         return new NotificationResponseDTO(
                 row.getId(),
-                NotificationType.valueOf(row.getType()),
+                row.getType(),
                 row.getTitle(),
                 row.getContent(),
                 row.getCourseId(),

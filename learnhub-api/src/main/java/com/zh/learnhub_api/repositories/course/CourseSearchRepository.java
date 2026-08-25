@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.repositories.course;
 
+import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.projections.course.CourseDetailProjection;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
 import com.zh.learnhub_api.projections.course.RatedCourseListProjection;
@@ -10,7 +11,7 @@ public interface CourseSearchRepository {
 
     Page<CourseDetailProjection> findFilteredCourseDetails(
             Long instructorId,
-            String status,
+            CourseStatus status,
             String categoryName,
             String keyword,
             Pageable pageable);

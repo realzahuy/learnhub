@@ -22,6 +22,7 @@ import com.paypal.sdk.models.PurchaseUnit;
 import com.paypal.sdk.models.PurchaseUnitRequest;
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.payment.PaymentResponseDTO;
+import com.zh.learnhub_api.enums.PaymentMethod;
 import com.zh.learnhub_api.enums.PaymentStatus;
 import com.zh.learnhub_api.exceptions.PaymentGatewayException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -50,8 +51,8 @@ public class PayPalPaymentService extends PaymentService {
     private final ExchangeRateHttpClient exchangeRateHttpClient;
 
     @Override
-    public String getProviderName() {
-        return "PAYPAL";
+    public PaymentMethod getProvider() {
+        return PaymentMethod.PAYPAL;
     }
 
     @Override
@@ -62,12 +63,12 @@ public class PayPalPaymentService extends PaymentService {
                 .divide(exchangeRate.rate(), 2, RoundingMode.HALF_UP);
         String paymentId = payment.getId().toString();
         String returnUrl = UriComponentsBuilder.fromUriString(properties.returnUrl())
-                .queryParam("provider", getProviderName())
+                .queryParam("provider", getProvider())
                 .queryParam("paymentId", payment.getId())
                 .build()
                 .toUriString();
         String cancelUrl = UriComponentsBuilder.fromUriString(properties.cancelUrl())
-                .queryParam("provider", getProviderName())
+                .queryParam("provider", getProvider())
                 .queryParam("paymentId", payment.getId())
                 .queryParam("cancelled", true)
                 .build()
@@ -125,7 +126,7 @@ public class PayPalPaymentService extends PaymentService {
     public PaymentResponseDTO capturePayment(Long paymentId, String orderId, Long userId) {
         Payment payment = paymentRepository.findByIdAndUserIdForUpdate(paymentId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thanh toán"));
-        if (!PaymentStatus.PENDING.name().equals(payment.getStatus())) {
+        if (payment.getStatus() != PaymentStatus.PENDING) {
             return toPaymentResponse(payment);
         }
 

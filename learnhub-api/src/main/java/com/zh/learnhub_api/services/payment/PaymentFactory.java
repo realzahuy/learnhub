@@ -1,26 +1,27 @@
 package com.zh.learnhub_api.services.payment;
 
+import com.zh.learnhub_api.enums.PaymentMethod;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
 @Component
 public class PaymentFactory {
 
-    private final Map<String, PaymentService> providers = new HashMap<>();
+    private final Map<PaymentMethod, PaymentService> providers = new EnumMap<>(PaymentMethod.class);
 
     @Autowired
     public PaymentFactory(List<PaymentService> providerList) {
         for (PaymentService provider : providerList) {
-            providers.put(provider.getProviderName(), provider);
+            providers.put(provider.getProvider(), provider);
         }
     }
 
-    public PaymentService getMethod(String methodName) {
-        PaymentService provider = providers.get(methodName.toUpperCase());
+    public PaymentService getMethod(PaymentMethod method) {
+        PaymentService provider = providers.get(method);
         if (provider == null) {
             throw new IllegalArgumentException("Phương thức thanh toán không được hỗ trợ");
         }

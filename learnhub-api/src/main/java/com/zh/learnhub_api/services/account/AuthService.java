@@ -93,7 +93,7 @@ public class AuthService {
             throw new InvalidCredentialsException("Mã làm mới phiên đăng nhập không hợp lệ");
         }
 
-        if (AccountStatus.LOCKED.name().equals(session.getAccountStatus())) {
+        if (session.getAccountStatus() == AccountStatus.LOCKED) {
             throw new AccountLockedException(ACCOUNT_LOCKED_MESSAGE);
         }
 

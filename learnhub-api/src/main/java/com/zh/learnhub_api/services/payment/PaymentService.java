@@ -2,6 +2,7 @@ package com.zh.learnhub_api.services.payment;
 
 import com.zh.learnhub_api.dtos.payment.CreatePaymentRequestDTO;
 import com.zh.learnhub_api.dtos.payment.PaymentResponseDTO;
+import com.zh.learnhub_api.enums.PaymentMethod;
 import com.zh.learnhub_api.enums.PaymentStatus;
 import com.zh.learnhub_api.exceptions.PaymentGatewayException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -44,7 +45,7 @@ public abstract class PaymentService {
     @Autowired
     protected PaymentExpirationService expirationService;
 
-    public abstract String getProviderName();
+    public abstract PaymentMethod getProvider();
 
     protected abstract String createPaymentUrl(Payment payment);
 
@@ -71,8 +72,8 @@ public abstract class PaymentService {
         Payment payment = new Payment();
         payment.setUserId(user);
         payment.setTotalPrice(totalPrice);
-        payment.setMethod(getProviderName());
-        payment.setStatus(PaymentStatus.PENDING.name());
+        payment.setMethod(getProvider());
+        payment.setStatus(PaymentStatus.PENDING);
         payment.setCreatedAt(now);
         payment.setUpdatedAt(now);
         payment = paymentRepository.save(payment);
@@ -100,8 +101,8 @@ public abstract class PaymentService {
                 .paymentId(payment.getId())
                 .payUrl(payUrl)
                 .totalPrice(totalPrice)
-                .paymentMethod(getProviderName())
-                .status(PaymentStatus.PENDING.name())
+                .paymentMethod(getProvider())
+                .status(PaymentStatus.PENDING)
                 .paidCourseIds(courseIds)
                 .message("Tiếp tục thanh toán " + courseIds.size() + " khóa học.")
                 .build();
@@ -117,7 +118,7 @@ public abstract class PaymentService {
 
     protected void completePayment(Payment payment, String transactionId) {
         LocalDateTime now = LocalDateTime.now();
-        payment.setStatus(PaymentStatus.SUCCESS.name());
+        payment.setStatus(PaymentStatus.SUCCESS);
         payment.setTransactionId(transactionId);
         payment.setUpdatedAt(now);
         List<PaymentItem> items = paymentItemRepository.findByPaymentId(payment);
@@ -142,7 +143,7 @@ public abstract class PaymentService {
     }
 
     protected void failPayment(Payment payment) {
-        payment.setStatus(PaymentStatus.FAILED.name());
+        payment.setStatus(PaymentStatus.FAILED);
         payment.setUpdatedAt(LocalDateTime.now());
     }
 

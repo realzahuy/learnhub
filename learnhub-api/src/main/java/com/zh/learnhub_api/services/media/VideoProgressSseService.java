@@ -2,6 +2,7 @@ package com.zh.learnhub_api.services.media;
 
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.media.VideoProgressEventDTO;
+import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
@@ -55,7 +56,7 @@ public class VideoProgressSseService {
         return emitter;
     }
 
-    public void publish(Long courseId, Long videoId, String status, Integer incomingProgress) {
+    public void publish(Long courseId, Long videoId, VideoStatus status, Integer incomingProgress) {
         int progress = Math.max(0, Math.min(100, incomingProgress == null ? 0 : incomingProgress));
         Map<Long, VideoProgressEventDTO> courseProgress = latestByCourse.computeIfAbsent(
                 courseId, ignored -> new ConcurrentHashMap<>());
@@ -76,7 +77,7 @@ public class VideoProgressSseService {
             }
         }
 
-        if ("READY".equals(status) || "FAILED".equals(status)) {
+        if (status == VideoStatus.READY || status == VideoStatus.FAILED) {
             courseProgress.remove(videoId);
             if (courseProgress.isEmpty()) latestByCourse.remove(courseId, courseProgress);
         }

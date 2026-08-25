@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.repositories.notification;
 
+import com.zh.learnhub_api.enums.NotificationType;
 import com.zh.learnhub_api.pojo.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -79,7 +80,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     interface NotificationPageRow {
         Long getId();
-        String getType();
+        NotificationType getType();
         String getTitle();
         String getContent();
         Long getCourseId();

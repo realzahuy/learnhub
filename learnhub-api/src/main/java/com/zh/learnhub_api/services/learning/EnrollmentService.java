@@ -42,7 +42,7 @@ public class EnrollmentService {
     public FreeEnrollmentResponseDTO enrollFreeCourse(Long userId, Long courseId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
-        if (!CourseStatus.PUBLISHED.name().equals(course.getStatus())) {
+        if (course.getStatus() != CourseStatus.PUBLISHED) {
             throw new IllegalStateException("Khóa học không khả dụng để đăng ký");
         }
         if (course.getPrice().compareTo(BigDecimal.ZERO) != 0) {

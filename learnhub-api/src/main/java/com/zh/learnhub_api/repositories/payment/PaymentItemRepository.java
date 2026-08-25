@@ -19,12 +19,12 @@ public interface PaymentItemRepository extends JpaRepository<PaymentItem, Long> 
 
     @Query("SELECT COALESCE(SUM(pi.price), 0) FROM PaymentItem pi "
          + "WHERE pi.courseId.instructorId.id = :instructorId "
-         + "AND pi.paymentId.status = 'SUCCESS'")
+         + "AND pi.paymentId.status = com.zh.learnhub_api.enums.PaymentStatus.SUCCESS")
     BigDecimal sumRevenue(@Param("instructorId") Long instructorId);
 
     @Query("SELECT COALESCE(SUM(pi.price), 0) FROM PaymentItem pi "
          + "WHERE pi.courseId.instructorId.id = :instructorId "
-         + "AND pi.paymentId.status = 'SUCCESS' "
+         + "AND pi.paymentId.status = com.zh.learnhub_api.enums.PaymentStatus.SUCCESS "
          + "AND pi.paymentId.createdAt >= :from AND pi.paymentId.createdAt < :to")
     BigDecimal sumRevenueBetween(@Param("instructorId") Long instructorId,
                                  @Param("from") LocalDateTime from,
@@ -48,11 +48,11 @@ public interface PaymentItemRepository extends JpaRepository<PaymentItem, Long> 
                                                         @Param("groupBy") String groupBy);
 
     @Query("SELECT COALESCE(SUM(pi.price), 0) FROM PaymentItem pi "
-         + "WHERE pi.paymentId.status = 'SUCCESS'")
+         + "WHERE pi.paymentId.status = com.zh.learnhub_api.enums.PaymentStatus.SUCCESS")
     BigDecimal sumTotalRevenue();
 
     @Query("SELECT COALESCE(SUM(pi.price), 0) FROM PaymentItem pi "
-         + "WHERE pi.paymentId.status = 'SUCCESS' "
+         + "WHERE pi.paymentId.status = com.zh.learnhub_api.enums.PaymentStatus.SUCCESS "
          + "AND pi.paymentId.createdAt >= :from AND pi.paymentId.createdAt < :to")
     BigDecimal sumTotalRevenueBetween(@Param("from") LocalDateTime from,
                                       @Param("to") LocalDateTime to);

@@ -5,6 +5,7 @@ import com.zh.learnhub_api.dtos.instructor.InstructorOverviewDTO;
 import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.instructor.InstructorTimeSeriesDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorTimeSeriesDTO.InstructorStatsPointDTO;
+import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.payment.PaymentItemRepository;
@@ -40,7 +41,7 @@ public class InstructorStatsService {
         LocalDateTime currentFrom = now.minusDays(periodDays);
         LocalDateTime previousFrom = currentFrom.minusDays(periodDays);
 
-        Map<String, Long> byStatus = new HashMap<>();
+        Map<CourseStatus, Long> byStatus = new HashMap<>();
         for (var row : courseRepository.countCoursesByStatusForInstructor(instructorId)) {
             byStatus.put(row.getStatus(), row.getCourseCount());
         }
@@ -48,10 +49,10 @@ public class InstructorStatsService {
         return InstructorOverviewDTO.builder()
                 .totalStudents(enrollmentRepository.countDistinctStudents(instructorId))
                 .totalRevenue(paymentItemRepository.sumRevenue(instructorId))
-                .publishedCourses(byStatus.getOrDefault("PUBLISHED", 0L))
-                .pendingCourses(byStatus.getOrDefault("PENDING", 0L))
-                .draftCourses(byStatus.getOrDefault("DRAFT", 0L))
-                .rejectedCourses(byStatus.getOrDefault("REJECTED", 0L))
+                .publishedCourses(byStatus.getOrDefault(CourseStatus.PUBLISHED, 0L))
+                .pendingCourses(byStatus.getOrDefault(CourseStatus.PENDING, 0L))
+                .draftCourses(byStatus.getOrDefault(CourseStatus.DRAFT, 0L))
+                .rejectedCourses(byStatus.getOrDefault(CourseStatus.REJECTED, 0L))
                 .enrollmentsCurrentPeriod(
                         enrollmentRepository.countEnrollmentsBetween(instructorId, currentFrom, now))
                 .enrollmentsPreviousPeriod(
