@@ -29,8 +29,7 @@ public class AdminUserController {
 
     @PostMapping("/{userId}/lock")
     public ResponseEntity<Void> lockUser(
-            @PathVariable Long userId,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
+            @PathVariable Long userId, @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
         adminUserService.lockUser(userId, principal.getUserId());
         return ResponseEntity.noContent().build();
     }
@@ -40,5 +39,4 @@ public class AdminUserController {
         adminUserService.unlockUser(userId);
         return ResponseEntity.noContent().build();
     }
-
 }

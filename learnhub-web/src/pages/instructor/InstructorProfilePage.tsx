@@ -54,7 +54,7 @@ const InstructorProfilePage = () => {
     setCoursesLoading(true);
     setCoursesError(null);
     reviewService
-      .getInstructorCourses(Number(id), currentPage, undefined, controller.signal)
+      .getInstructorCourses(Number(id), currentPage, controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) setCoursePage(data);
       })
@@ -84,17 +84,15 @@ const InstructorProfilePage = () => {
 
   if (error || !profile) {
     return (
-      <>
-        <div className="container py-5 text-center">
-          <div className="text-start mb-4">
-            <BackButton fallback={ROUTE_PATHS.courses} />
-          </div>
-          <p className="text-muted fs-4">{error ?? 'Không tìm thấy giảng viên'}</p>
-          <Link to={ROUTE_PATHS.courses} className="btn btn-notion mt-3">
-            Xem các khóa học
-          </Link>
+      <div className="container py-5 text-center">
+        <div className="text-start mb-4">
+          <BackButton fallback={ROUTE_PATHS.courses} />
         </div>
-      </>
+        <p className="text-muted fs-4">{error ?? 'Không tìm thấy giảng viên'}</p>
+        <Link to={ROUTE_PATHS.courses} className="btn btn-notion mt-3">
+          Xem các khóa học
+        </Link>
+      </div>
     );
   }
 
@@ -104,8 +102,7 @@ const InstructorProfilePage = () => {
     : `Tham gia từ tháng ${joined.getMonth() + 1}/${joined.getFullYear()}`;
 
   return (
-    <>
-      <div className="instructor-profile">
+    <div className="instructor-profile">
         <BackButton fallback={ROUTE_PATHS.courses} />
         <div className="container">
           <div className="instructor-hero">
@@ -127,8 +124,6 @@ const InstructorProfilePage = () => {
                 <h1 className="instructor-hero__name">{profile.fullName}</h1>
                 {joinedLabel && <div className="instructor-hero__joined">{joinedLabel}</div>}
 
-                {
-}
                 {profile.totalReviews > 0 && (
                   <div className="mt-2">
                     <StarRating
@@ -143,9 +138,6 @@ const InstructorProfilePage = () => {
 
             {profile.bio && <p className="instructor-hero__bio">{profile.bio}</p>}
 
-            {
-
-}
             <div className="instructor-stats">
               <div className="instructor-stat">
                 <div className="instructor-stat__value instructor-stat__value--rating">
@@ -240,9 +232,7 @@ const InstructorProfilePage = () => {
             )}
           </div>
         </div>
-      </div>
-
-    </>
+    </div>
   );
 };
 

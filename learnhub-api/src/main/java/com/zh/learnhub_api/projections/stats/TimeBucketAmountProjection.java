@@ -4,5 +4,6 @@ import java.math.BigDecimal;
 
 public interface TimeBucketAmountProjection {
     String getBucket();
+
     BigDecimal getAmount();
 }

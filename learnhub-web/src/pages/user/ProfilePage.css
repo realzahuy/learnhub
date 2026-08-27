@@ -19,10 +19,6 @@
   z-index: 1;
 }
 
-.profile-page .text-notion {
-  color: var(--notion-blue) !important;
-}
-
 @media (max-width: 767px) {
   .profile-main > .back-button {
     position: static;

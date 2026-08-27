@@ -2,15 +2,14 @@ import { Link } from 'react-router-dom';
 import { RecommendationCard } from '../../../types/course.types';
 import { LearnCourse } from '../../../types/learn.types';
 import { CourseThumbnail, PageSkeleton } from '../../common';
-import { CourseReviewSection } from '../review';
+import CourseReviewSection from '../review/CourseReviewSection';
 import { formatPrice } from '../../../utils';
-import { LearnTab, Viewing } from './learnView.types';
+import { LearnTab } from './learnView.types';
 import { routeTo } from '../../../routes/paths';
 
 interface LearnCourseTabsProps {
   course: LearnCourse;
   slug: string;
-  viewing: Viewing | null;
   activeTab: LearnTab;
   recommendations: RecommendationCard[];
   recommendationsLoading: boolean;
@@ -21,7 +20,6 @@ interface LearnCourseTabsProps {
 const LearnCourseTabs = ({
   course,
   slug,
-  viewing,
   activeTab,
   recommendations,
   recommendationsLoading,
@@ -48,7 +46,6 @@ const LearnCourseTabs = ({
       <div className="learn-tab-panel">
         <div className="learn-stage-info">
           <h1 className="learn-course-title">{course.title}</h1>
-          {viewing?.kind === 'video' && <p className="learn-video-title">{viewing.video.title}</p>}
           <p className="learn-instructor">Giảng viên: {course.instructorName}</p>
         </div>
       </div>

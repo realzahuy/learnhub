@@ -72,8 +72,6 @@ const CoursePreviewModal = ({
           </div>
 
           <div className="course-preview-frame">
-            {
-}
             <HlsPlayer
               key={current.id}
               playbackUrl={current.previewUrl}
@@ -82,7 +80,6 @@ const CoursePreviewModal = ({
             />
           </div>
 
-          { }
           {videos.length > 1 && (
             <ul className="course-preview-list">
               {videos.map((video) => (

@@ -9,8 +9,7 @@ public final class VideoPlaybackUrls {
     private static final String PREVIEW_PREFIX = "/api/learn/preview/videos/";
     private static final String INSTRUCTOR_PREFIX = "/api/instructor/videos/";
 
-    private VideoPlaybackUrls() {
-    }
+    private VideoPlaybackUrls() {}
 
     public static String authenticated(Video video) {
         return build(video, AUTHENTICATED_PREFIX);
@@ -26,8 +25,7 @@ public final class VideoPlaybackUrls {
 
     private static String build(Video video, String prefix) {
         String storageKey = video.getStorageKey();
-        if (video.getStatus() != VideoStatus.READY
-                || storageKey == null || storageKey.isBlank()) {
+        if (video.getStatus() != VideoStatus.READY || storageKey == null || storageKey.isBlank()) {
             return null;
         }
 

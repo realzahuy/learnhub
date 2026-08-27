@@ -1,5 +1,5 @@
 
-export const ALLOWED_VIDEO_TYPES = [
+const ALLOWED_VIDEO_TYPES = [
   'video/mp4',
   'video/quicktime',
   'video/x-msvideo',
@@ -8,7 +8,7 @@ export const ALLOWED_VIDEO_TYPES = [
 
 export const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv'];
 
-export const MAX_VIDEO_SIZE = 2 * 1024 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 2 * 1024 * 1024 * 1024;
 
 const UPLOAD_SHARE = 50;
 const PROCESSING_SHARE = 49;

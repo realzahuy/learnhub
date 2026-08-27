@@ -1,18 +1,17 @@
 package com.zh.learnhub_api.security;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import com.zh.learnhub_api.configs.AppProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
@@ -24,42 +23,12 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(properties.secret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String getUsernameFromToken(String token) {
-        return getClaimFromToken(token, Claims::getSubject);
-    }
-
-    public List<String> getRolesFromToken(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        @SuppressWarnings("unchecked")
-        List<String> roles = claims.get("roles", List.class);
-        return roles != null ? roles : Collections.emptyList();
-    }
-
-    public Long getUserIdFromToken(String token) {
-        Number userId = getAllClaimsFromToken(token).get("userId", Number.class);
-        return userId == null ? null : userId.longValue();
-    }
-
-    public Date getExpirationDateFromToken(String token) {
-        return getClaimFromToken(token, Claims::getExpiration);
-    }
-
-    public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = getAllClaimsFromToken(token);
-        return claimsResolver.apply(claims);
-    }
-
     private Claims getAllClaimsFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
-
-    public Long getSessionIdFromToken(String token) {
-        Number sessionId = getAllClaimsFromToken(token).get("sessionId", Number.class);
-        return sessionId == null ? null : sessionId.longValue();
     }
 
     public String generateAccessToken(

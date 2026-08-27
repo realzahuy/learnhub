@@ -10,5 +10,4 @@ import java.util.List;
 public record EnrollmentBatchCheckRequestDTO(
         @NotEmpty(message = "Danh sách khóa học không được để trống")
         @Size(max = 20, message = "Chỉ được kiểm tra tối đa 20 khóa học")
-        List<@NotNull @Positive Long> courseIds) {
-}
+        List<@NotNull @Positive Long> courseIds) {}

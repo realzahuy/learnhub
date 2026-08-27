@@ -1,8 +1,8 @@
 package com.zh.learnhub_api.controllers.course;
 
+import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
 import com.zh.learnhub_api.dtos.course.PublicCourseDetailDTO;
-import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.services.course.CourseCatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

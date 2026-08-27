@@ -4,10 +4,6 @@
   --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 .motion-content-enter {
   animation: motion-content-enter var(--motion-normal) var(--motion-ease-out) both;
 }
@@ -27,39 +23,13 @@ html {
   position: relative;
 }
 
-.motion-loading-region > :not(.motion-loading-indicator) {
+.motion-loading-region > * {
   transition: opacity var(--motion-fast) ease;
 }
 
-.motion-loading-region.is-updating > :not(.motion-loading-indicator) {
+.motion-loading-region.is-updating > * {
   opacity: 0.52;
   pointer-events: none;
-}
-
-.motion-loading-indicator {
-  display: none;
-  position: absolute;
-  z-index: 5;
-  top: 0.75rem;
-  left: 50%;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d0d5dd;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.12);
-  color: #475467;
-  font-size: 0.85rem;
-  transform: translateX(-50%);
-  animation: motion-loading-indicator var(--motion-fast) ease-out both;
-}
-
-.motion-loading-indicator .spinner-border {
-  width: 1rem;
-  height: 1rem;
-  border-width: 0.15em;
 }
 
 :is(.btn, .page-link, .app-dropdown-toggle, .confirm-dialog-btn):not(:disabled):active {
@@ -74,10 +44,6 @@ html {
     background-color var(--motion-fast) ease;
 }
 
-.spinner-border {
-  display: none !important;
-}
-
 @keyframes motion-content-enter {
   from {
     opacity: 0;
@@ -89,16 +55,7 @@ html {
   }
 }
 
-@keyframes motion-loading-indicator {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
   .motion-content-enter,
   .motion-stagger > *,
   .loading-screen,
@@ -108,10 +65,6 @@ html {
     animation: none !important;
     opacity: 1;
     transform: none;
-  }
-
-  .motion-loading-indicator {
-    animation: none;
   }
 
   :is(.btn, .page-link, .app-dropdown-toggle, .confirm-dialog-btn) {

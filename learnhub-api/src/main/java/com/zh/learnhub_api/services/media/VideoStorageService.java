@@ -1,6 +1,5 @@
 package com.zh.learnhub_api.services.media;
 
-import java.io.IOException;
 import java.util.Map;
 
 public interface VideoStorageService {
@@ -15,10 +14,9 @@ public interface VideoStorageService {
 
     StoredObject openHlsObject(String objectKey);
 
-    PresignedUpload generatePresignedUpload(
-            String objectKey, String contentType, long maxSizeBytes);
+    PresignedUpload generatePresignedUpload(String objectKey, String contentType, long maxSizeBytes);
 
-    void deleteVideo(String objectKey) throws IOException;
+    void deleteVideo(String objectKey);
 
     String generateRawObjectKey(Long courseId, Long lessonId, Long videoId, String fileName);
 
@@ -30,9 +28,9 @@ public interface VideoStorageService {
 
     String getHlsS3Uri(String hlsPath);
 
-    int deleteCourseVideos(Long courseId);
+    void deleteCourseVideos(Long courseId);
 
-    int deleteLessonVideos(Long courseId, Long lessonId);
+    void deleteLessonVideos(Long courseId, Long lessonId);
 
-    int deleteHlsOutputOf(String rawObjectKey);
+    void deleteHlsOutputOf(String rawObjectKey);
 }

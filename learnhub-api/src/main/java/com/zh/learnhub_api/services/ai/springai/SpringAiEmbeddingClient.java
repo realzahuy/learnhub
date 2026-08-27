@@ -1,87 +1,69 @@
 package com.zh.learnhub_api.services.ai.springai;
 
+import com.google.genai.Models;
+import com.google.genai.types.ContentEmbedding;
+import com.google.genai.types.EmbedContentConfig;
+import com.google.genai.types.EmbedContentResponse;
 import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.services.ai.EmbeddingClient;
-import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.ai.embedding.EmbeddingRequest;
-import org.springframework.ai.embedding.EmbeddingResponse;
-import org.springframework.ai.google.genai.text.GoogleGenAiTextEmbeddingOptions;
+import org.springframework.ai.google.genai.embedding.GoogleGenAiEmbeddingConnectionDetails;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.cache.annotation.Cacheable;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 @Service
 public class SpringAiEmbeddingClient implements EmbeddingClient {
 
-    private final EmbeddingModel embeddingModel;
+    private final Models models;
     private final int dimension;
-    private final String modelName;
+    private final String modelEndpointName;
 
+    @Autowired
     public SpringAiEmbeddingClient(
-            EmbeddingModel embeddingModel,
+            GoogleGenAiEmbeddingConnectionDetails connectionDetails,
             AppProperties.Ai properties,
             @Value("${spring.ai.google.genai.embedding.text.options.model}") String modelName) {
-        this.embeddingModel = embeddingModel;
+        this(connectionDetails.getGenAiClient().models, properties, connectionDetails.getModelEndpointName(modelName));
+    }
+
+    SpringAiEmbeddingClient(Models models, AppProperties.Ai properties, String modelEndpointName) {
+        this.models = models;
         this.dimension = properties.embeddingDimension();
-        this.modelName = modelName.trim();
+        this.modelEndpointName = modelEndpointName;
     }
 
     @Override
     public List<Float> embedDocument(String text, String title) {
-        String documentInput = "title: " + normalizeInput(title) + " | text: " + normalizeInput(text);
-        return embed(documentInput);
+        EmbedContentConfig config = EmbedContentConfig.builder()
+                .taskType("RETRIEVAL_DOCUMENT")
+                .title(normalizeInput(title))
+                .outputDimensionality(dimension)
+                .build();
+        return embed(normalizeInput(text), config);
     }
 
     @Override
-    @Cacheable(
-            cacheNames = CacheNames.QUERY_EMBEDDINGS,
-            key = "#root.target.queryCacheKey(#text)",
-            sync = true)
     public List<Float> embedQuery(String text) {
-        return embed("task: search result | query: " + normalizeInput(text));
-    }
-
-    public String queryCacheKey(String text) {
-        String normalized = text == null
-                ? ""
-                : text.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
-        return modelName + ":" + dimension + ":" + normalized;
+        EmbedContentConfig config = EmbedContentConfig.builder()
+                .taskType("RETRIEVAL_QUERY")
+                .outputDimensionality(dimension)
+                .build();
+        return embed(normalizeInput(text), config);
     }
 
     private String normalizeInput(String value) {
         return value == null ? "" : value.trim();
     }
 
-    private List<Float> embed(String text) {
-        GoogleGenAiTextEmbeddingOptions options = GoogleGenAiTextEmbeddingOptions.builder()
-                .dimensions(dimension)
-                .build();
-
-        EmbeddingResponse response = embeddingModel.call(new EmbeddingRequest(List.of(text), options));
-
-        if (response == null || response.getResult() == null
-                || response.getResult().getOutput() == null) {
-            throw new IllegalStateException("Spring AI không trả về embedding");
+    private List<Float> embed(String text, EmbedContentConfig config) {
+        EmbedContentResponse response = models.embedContent(modelEndpointName, text, config);
+        List<ContentEmbedding> embeddings = response.embeddings().orElse(List.of());
+        if (embeddings.isEmpty()) {
+            throw new IllegalStateException("Thiếu embedding");
         }
 
-        float[] rawVector = response.getResult().getOutput();
-        if (rawVector.length != dimension) {
-            throw new IllegalStateException(
-                    "Spring AI trả vector " + rawVector.length + " chiều, cần đúng " + dimension);
-        }
-
-        List<Float> vector = new ArrayList<>(dimension);
-        for (float value : rawVector) {
-            if (!Float.isFinite(value)) {
-                throw new IllegalStateException("Spring AI trả phần tử vector không hữu hạn");
-            }
-            vector.add(value);
-        }
-        return List.copyOf(vector);
+        return embeddings.getFirst().values().orElse(List.of());
     }
 }

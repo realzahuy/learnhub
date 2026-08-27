@@ -9,7 +9,7 @@ export interface LearnVideo {
   status: string;
 }
 
-export interface LearnLesson {
+interface LearnLesson {
   id: number;
   title: string;
   position: number;

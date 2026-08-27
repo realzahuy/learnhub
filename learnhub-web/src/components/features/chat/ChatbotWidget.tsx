@@ -28,7 +28,7 @@ type ChatMessage = {
 const INITIAL_MESSAGE: ChatMessage = {
   id: 1,
   role: 'assistant',
-  content: 'Xin chào! Mình có thể hỗ trợ bạn tìm hiểu và lựa chọn khóa học trên LearnHub.',
+  content: 'Xin chào! Mình có thể hỗ trợ bạn tìm hiểu và lựa chọn khóa học trên learnhub.',
 };
 
 const CHATBOT_NAME = 'Trợ lý learnhub';

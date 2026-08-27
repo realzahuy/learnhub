@@ -181,14 +181,6 @@ export const InstructorCard = ({ course }: { course: CourseDetail }) => (
       </div>
       <div>
         <h5 className="mb-1">{course.instructorName}</h5>
-        {course.instructorReviewCount > 0 && (
-          <StarRating
-            value={course.instructorAverageRating}
-            size="sm"
-            showValue
-            count={course.instructorReviewCount}
-          />
-        )}
         <div className="instructor-card__hint">Xem hồ sơ giảng viên</div>
       </div>
     </div>

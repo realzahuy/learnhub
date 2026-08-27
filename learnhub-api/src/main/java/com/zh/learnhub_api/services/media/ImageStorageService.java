@@ -4,9 +4,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface ImageStorageService {
 
-    ImageUploadResult uploadAvatar(MultipartFile file, Long userId);
+    String uploadAvatar(MultipartFile file, Long userId);
 
-    ImageUploadResult uploadCourseThumbnail(MultipartFile file, Long courseId);
+    String uploadCourseThumbnail(MultipartFile file, Long courseId);
 
     void deleteCourseThumbnail(Long courseId);
 }

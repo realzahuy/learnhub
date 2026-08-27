@@ -2,25 +2,12 @@ package com.zh.learnhub_api.configs;
 
 import com.paypal.sdk.Environment;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.DateTimeException;
 import java.time.Duration;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -35,17 +22,6 @@ public final class AppProperties {
     public record Time(
             @NotBlank String timeZone,
             @NotBlank String dbSessionTimeZone) {
-
-        @AssertTrue(message = "app.time-zone và app.db-session-time-zone phải là múi giờ hợp lệ")
-        public boolean isValidTimeZones() {
-            try {
-                ZoneId.of(timeZone);
-                ZoneOffset.of(dbSessionTimeZone);
-                return true;
-            } catch (DateTimeException | NullPointerException ex) {
-                return false;
-            }
-        }
     }
 
     @Validated
@@ -53,11 +29,6 @@ public final class AppProperties {
     public record Pagination(
             @Positive int defaultPageSize,
             @Positive int maxPageSize) {
-
-        @AssertTrue(message = "Kích thước trang mặc định không được vượt quá kích thước trang tối đa")
-        public boolean isDefaultWithinMaximum() {
-            return defaultPageSize <= maxPageSize;
-        }
     }
 
     @Validated
@@ -95,11 +66,6 @@ public final class AppProperties {
             @NotBlank
             @Pattern(regexp = "(?i)Strict|Lax|None")
             String refreshCookieSameSite) {
-
-        @AssertTrue(message = "SameSite=None yêu cầu cookie làm mới phải bật Secure")
-        public boolean isSameSiteCompatibleWithSecureCookie() {
-            return !"None".equalsIgnoreCase(refreshCookieSameSite) || refreshCookieSecure;
-        }
     }
 
     @Validated
@@ -122,31 +88,16 @@ public final class AppProperties {
     @Validated
     @ConfigurationProperties("app.cache")
     public record ApplicationCache(
-            @NotNull @Valid CacheSpec roleIds,
             @NotNull @Valid CacheSpec categories,
-            @NotNull @Valid CacheSpec adminOverview,
-            @NotNull @Valid CacheSpec adminTimeSeries,
-            @NotNull @Valid CacheSpec instructorOverview,
-            @NotNull @Valid CacheSpec instructorTimeSeries,
-            @NotNull @Valid CacheSpec queryEmbeddings,
             @NotNull @Valid CacheSpec courseRatingStats,
             @NotNull @Valid CacheSpec courseRatingSummaries,
-            @NotNull @Valid CacheSpec instructorRatingStats,
             @NotNull @Valid CacheSpec publicCourseDetails,
-            @NotNull @Valid CacheSpec publicInstructorProfiles,
             @NotNull @Valid CacheSpec publicCourseCatalog) {
     }
 
     public record CacheSpec(
             @Positive long maximumSize,
             @NotNull Duration expireAfterWrite) {
-
-        @AssertTrue(message = "expire-after-write của bộ nhớ đệm phải lớn hơn 0")
-        public boolean isExpireAfterWritePositive() {
-            return expireAfterWrite != null
-                    && !expireAfterWrite.isZero()
-                    && !expireAfterWrite.isNegative();
-        }
     }
 
     @Validated
@@ -154,11 +105,6 @@ public final class AppProperties {
     public record Sse(
             @Positive long timeoutMs,
             @Positive long heartbeatMs) {
-
-        @AssertTrue(message = "Chu kỳ gửi tín hiệu SSE phải ngắn hơn thời gian chờ kết nối")
-        public boolean isHeartbeatShorterThanTimeout() {
-            return heartbeatMs < timeoutMs;
-        }
     }
 
     @Validated
@@ -210,7 +156,7 @@ public final class AppProperties {
 
     @Validated
     @ConfigurationProperties("app.payment")
-    public record Payment(@Positive int expireMinutes) {
+    public record Payment(@NotBlank String brand, @Positive int expireMinutes) {
     }
 
     @Validated
@@ -266,14 +212,6 @@ public final class AppProperties {
             @NotBlank String activeProfile,
             @NotEmpty Map<@NotBlank String, @NotEmpty List<@NotNull @Valid Rendition>> profiles) {
 
-        @AssertTrue(message = "Profile MediaConvert đang hoạt động phải tồn tại và có ít nhất một rendition")
-        public boolean isActiveProfileValid() {
-            return activeProfile != null
-                    && profiles != null
-                    && profiles.get(activeProfile) != null
-                    && !profiles.get(activeProfile).isEmpty();
-        }
-
         public List<Rendition> activeRenditions() {
             return List.copyOf(profiles.get(activeProfile));
         }
@@ -296,19 +234,6 @@ public final class AppProperties {
             @NotNull Duration apiCallAttemptTimeout,
             @NotNull Duration apiCallTimeout,
             @Min(1) @Max(10) int maxAttempts) {
-
-        @AssertTrue(message = "Các khoảng thời gian chờ AWS phải thỏa mãn: kết nối < mỗi lần thử <= tổng thời gian")
-        public boolean isTimeoutOrderValid() {
-            return isPositive(connectionTimeout)
-                    && isPositive(apiCallAttemptTimeout)
-                    && isPositive(apiCallTimeout)
-                    && connectionTimeout.compareTo(apiCallAttemptTimeout) < 0
-                    && apiCallAttemptTimeout.compareTo(apiCallTimeout) <= 0;
-        }
-
-        private static boolean isPositive(Duration value) {
-            return value != null && !value.isZero() && !value.isNegative();
-        }
     }
 
     @Validated
@@ -318,19 +243,6 @@ public final class AppProperties {
             @Positive int maxConcurrentMessages,
             @Positive int maxMessagesPerPoll,
             @NotNull Duration pollTimeout) {
-
-        @AssertTrue(message = "Thời gian chờ lấy tin nhắn SQS phải từ 0 đến 20 giây")
-        public boolean isPollTimeoutValid() {
-            return pollTimeout != null
-                    && !pollTimeout.isZero()
-                    && !pollTimeout.isNegative()
-                    && pollTimeout.compareTo(Duration.ofSeconds(20)) <= 0;
-        }
-
-        @AssertTrue(message = "Số tin nhắn SQS mỗi lần lấy không được vượt quá số tin nhắn xử lý đồng thời")
-        public boolean isPollBatchWithinConcurrency() {
-            return maxMessagesPerPoll <= maxConcurrentMessages;
-        }
     }
 
     @Validated
@@ -373,24 +285,9 @@ public final class AppProperties {
     }
 
     @Validated
-    @ConfigurationProperties("learnhub.chat")
-    public record Chat(
-            @Positive int courseLimit,
-            @DecimalMin("-1.0") @DecimalMax("1.0") double minimumVectorScore) {
-    }
-
-    @Validated
-    @ConfigurationProperties("learnhub.vector-search")
-    public record VectorSearch(@Min(1) @Max(100) int candidateLimit) {
-    }
-
-    @Validated
     @ConfigurationProperties("learnhub.recommendation")
     public record Recommendation(
             @DecimalMin("-1.0") @DecimalMax("1.0") double minimumVectorScore,
-            @DecimalMin("0.0") @DecimalMax("1.0") double semanticWeight,
-            @DecimalMin("1.0") @DecimalMax("5.0") double ratingPrior,
-            @PositiveOrZero double ratingPriorCount,
             @Positive int resultLimit) {
     }
 
@@ -398,7 +295,6 @@ public final class AppProperties {
     @ConfigurationProperties("learnhub.ai")
     public record Ai(
             @NotBlank String chatSystemPrompt,
-            @PositiveOrZero int maxHistoryMessages,
             @Positive int embeddingDimension) {
     }
 
@@ -415,14 +311,5 @@ public final class AppProperties {
             String collection,
             boolean enabled,
             @Positive long timeout) {
-
-        @AssertTrue(message = "URL và tên bộ sưu tập Qdrant là bắt buộc khi bật Qdrant")
-        public boolean isEnabledConfigurationComplete() {
-            return !enabled || (hasText(url) && hasText(collection));
-        }
-
-        private static boolean hasText(String value) {
-            return value != null && !value.isBlank();
-        }
     }
 }

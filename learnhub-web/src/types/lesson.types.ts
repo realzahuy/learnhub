@@ -19,7 +19,7 @@ export interface LessonReorderPayload {
   position: number;
 }
 
-export type VideoStatus = 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED';
+type VideoStatus = 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED';
 
 export const VIDEO_STATUS_LABELS: Record<VideoStatus, string> = {
   UPLOADING: 'Đang chờ xử lý',
@@ -58,7 +58,7 @@ export interface VideoUploadSession {
   expiresIn: number;
 }
 
-export interface InstructorLessonContent extends Lesson {
+interface InstructorLessonContent extends Lesson {
   videos: Video[];
   questions: Question[];
 }

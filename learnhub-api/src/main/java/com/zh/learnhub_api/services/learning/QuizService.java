@@ -1,13 +1,13 @@
 package com.zh.learnhub_api.services.learning;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.learning.QuizResponseDTO;
-import com.zh.learnhub_api.dtos.learning.QuizResultDTO;
-import com.zh.learnhub_api.dtos.learning.QuizSubmitRequestDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResponseDTO.QuizOptionDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResponseDTO.QuizQuestionDTO;
+import com.zh.learnhub_api.dtos.learning.QuizResultDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResultDTO.QuizQuestionResultDTO;
+import com.zh.learnhub_api.dtos.learning.QuizSubmitRequestDTO;
 import com.zh.learnhub_api.dtos.learning.QuizSubmitRequestDTO.QuizAnswerSubmissionDTO;
-import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Answer;
 import com.zh.learnhub_api.pojo.Question;
@@ -36,7 +36,7 @@ public class QuizService {
 
         List<Question> questions = loadQuestions(lessonId);
         if (questions.isEmpty()) {
-            throw new ResourceNotFoundException("Bài học này chưa có câu hỏi nào");
+            throw new ResourceNotFoundException("Bài giảng này chưa có câu hỏi nào");
         }
 
         List<QuizQuestionDTO> questionDTOs = questions.stream()
@@ -55,7 +55,7 @@ public class QuizService {
 
         List<Question> questions = loadQuestions(lessonId);
         if (questions.isEmpty()) {
-            throw new ResourceNotFoundException("Bài học này chưa có câu hỏi nào");
+            throw new ResourceNotFoundException("Bài giảng này chưa có câu hỏi nào");
         }
 
         Map<Long, List<Long>> submitted = new HashMap<>();
@@ -91,7 +91,7 @@ public class QuizService {
 
     private LessonAccessProjection requireQuizAccess(Long lessonId, Long userId) {
         LessonAccessProjection access = lessonRepository.findLearningAccess(lessonId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài giảng"));
         learningAccessService.requireEnrollment(access.getEnrolled());
         return access;
     }

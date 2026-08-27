@@ -46,11 +46,6 @@ export const useLearningCourse = (
   }, [enabled, slug]);
 
   useEffect(() => {
-    if (!courseQuery.error) return;
-    console.error('Không thể tải khóa học để học:', courseQuery.error);
-  }, [courseQuery.error]);
-
-  useEffect(() => {
     if (!enabled || !course || !slug) return;
 
     const wantedQuiz = quizLessonId ? Number(quizLessonId) : null;

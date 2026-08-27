@@ -43,41 +43,35 @@ const CourseReviewStep: React.FC<CourseReviewStepProps> = ({
         </dl>
       </div>
 
-      {lessons.length > 0 ? (
-        <ol className="course-review-lessons">
-          {lessons.map((lesson) => {
-            const lessonVideos = videos[lesson.id] ?? [];
-            const lessonQuestions = questions[lesson.id] ?? [];
-            const processing = lessonVideos.filter((video) => video.status !== 'READY').length;
-            const contentCount = lessonVideos.length + lessonQuestions.length;
-            const videoSummary = processing > 0
-              ? `${lessonVideos.length} video (${processing} đang xử lý)`
-              : `${lessonVideos.length} video`;
-            const summary = contentCount === 0
-              ? 'Chưa có nội dung'
-              : `${videoSummary} · ${lessonQuestions.length} câu hỏi`;
+      <ol className="course-review-lessons">
+        {lessons.map((lesson) => {
+          const lessonVideos = videos[lesson.id] ?? [];
+          const lessonQuestions = questions[lesson.id] ?? [];
+          const processing = lessonVideos.filter((video) => video.status !== 'READY').length;
+          const contentCount = lessonVideos.length + lessonQuestions.length;
+          const videoSummary = processing > 0
+            ? `${lessonVideos.length} video (${processing} đang xử lý)`
+            : `${lessonVideos.length} video`;
+          const summary = contentCount === 0
+            ? 'Chưa có nội dung'
+            : `${videoSummary} · ${lessonQuestions.length} câu hỏi`;
 
-            return (
-              <li key={lesson.id}>
-                <span className="course-review-lesson-title">{lesson.title}</span>
-                <span className={`lesson-status ${
-                  contentCount === 0
-                    ? 'lesson-status-empty'
-                    : processing > 0
-                      ? 'lesson-status-processing'
-                      : 'lesson-status-ready'
-                }`}>
-                  {summary}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      ) : (
-        <p className="course-create-section-hint course-review-lessons-empty">
-          Khóa học chưa có bài giảng nào.
-        </p>
-      )}
+          return (
+            <li key={lesson.id}>
+              <span className="course-review-lesson-title">{lesson.title}</span>
+              <span className={`lesson-status ${
+                contentCount === 0
+                  ? 'lesson-status-empty'
+                  : processing > 0
+                    ? 'lesson-status-processing'
+                    : 'lesson-status-ready'
+              }`}>
+                {summary}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
 
     </div>
   );

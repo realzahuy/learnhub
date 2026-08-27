@@ -1,5 +1,5 @@
 
-export interface Answer {
+interface Answer {
   id: number;
   answer: string;
   isCorrect: boolean;
@@ -19,7 +19,7 @@ export interface QuestionReorderPayload {
   position: number;
 }
 
-export interface AnswerPayload {
+interface AnswerPayload {
   answer: string;
   isCorrect: boolean;
 }

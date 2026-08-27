@@ -2,17 +2,15 @@ package com.zh.learnhub_api.services.admin;
 
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.admin.AdminOverviewDTO;
-import com.zh.learnhub_api.configs.CacheNames;
-import com.zh.learnhub_api.dtos.admin.AdminTimeSeriesDTO.AdminStatsPointDTO;
 import com.zh.learnhub_api.dtos.admin.AdminTimeSeriesDTO;
+import com.zh.learnhub_api.dtos.admin.AdminTimeSeriesDTO.AdminStatsPointDTO;
 import com.zh.learnhub_api.enums.CourseStatus;
+import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.payment.PaymentItemRepository;
-import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.utils.StatsBuckets;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +35,6 @@ public class AdminStatsService {
     private final CourseRepository courseRepository;
     private final AppProperties.Stats statsProperties;
 
-    @Cacheable(cacheNames = CacheNames.ADMIN_OVERVIEW, key = "'overview'", sync = true)
     public AdminOverviewDTO getOverview() {
         LocalDateTime now = LocalDateTime.now();
         int periodDays = statsProperties.overviewPeriodDays();
@@ -70,7 +67,6 @@ public class AdminStatsService {
                 .build();
     }
 
-    @Cacheable(cacheNames = CacheNames.ADMIN_TIME_SERIES)
     public AdminTimeSeriesDTO getTimeSeries(String groupBy, LocalDate fromDate, LocalDate toDate) {
         StatsBuckets buckets = StatsBuckets.plan(groupBy, fromDate, toDate, statsProperties);
 

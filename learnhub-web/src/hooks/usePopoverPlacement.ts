@@ -4,7 +4,7 @@ const GAP = 6;
 
 const VIEWPORT_MARGIN = 8;
 
-export interface PopoverPlacement {
+interface PopoverPlacement {
 
   dropUp: boolean;
 

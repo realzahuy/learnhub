@@ -146,11 +146,7 @@ const Header: React.FC = () => {
 
   const handleLogout = useCallback(async () => {
     setConfirmLogout(false);
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Đăng xuất thất bại:', error);
-    }
+    await logout();
   }, [logout]);
 
   useEffect(() => {
@@ -193,9 +189,6 @@ const Header: React.FC = () => {
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
       <div className="container-fluid px-4">
-        {
-
-}
         <Link
           className="navbar-brand fw-bold logo-hover"
           to={isInstructorMode ? ROUTE_PATHS.instructorCourses : ROUTE_PATHS.home}
@@ -204,7 +197,6 @@ const Header: React.FC = () => {
           <span className="text-dark">hub</span>
         </Link>
 
-        { }
         <div className="d-flex d-lg-none align-items-center gap-2 ms-auto">
           {isAuthenticated && isInstructorMode && !isDesktopViewport && <NotificationBell />}
           <button
@@ -219,9 +211,6 @@ const Header: React.FC = () => {
           </button>
         </div>
 
-        {
-
-}
         <div className="d-none d-lg-block ms-3">
           {isInstructorMode ? (
 
@@ -253,8 +242,6 @@ const Header: React.FC = () => {
           )}
         </div>
 
-        {
-}
         {!isInstructorMode && (
           <HeaderSearch
             value={searchQuery}
@@ -263,8 +250,6 @@ const Header: React.FC = () => {
           />
         )}
 
-        {
-}
         <div
           className={`header-actions d-none d-lg-flex align-items-center ${
             isInstructorMode ? 'ms-auto' : ''
@@ -326,8 +311,6 @@ const Header: React.FC = () => {
               <button className="header-login-button" onClick={goToLogin} type="button">
                 Đăng nhập
               </button>
-              {
-}
               <Link
                 to={ROUTE_PATHS.adminLogin}
                 className="admin-gear-link"

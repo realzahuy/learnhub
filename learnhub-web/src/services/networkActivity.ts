@@ -41,7 +41,5 @@ export const subscribeToNetworkActivity = (listener: NetworkActivityListener) =>
   };
 };
 
-export const isNetworkActive = (): boolean => pendingRequests > 0;
-
 export const isNetworkProgressActive = (): boolean =>
   pendingRequests > 0 && progressSuppressions === 0;

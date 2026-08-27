@@ -1,7 +1,7 @@
 import apiClient from './config';
 import { User } from '../../types/auth.types';
 
-export interface UpdateProfilePayload {
+interface UpdateProfilePayload {
   fullName: string;
   bio: string;
 

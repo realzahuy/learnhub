@@ -62,9 +62,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-    } catch (error) {
-      console.error('Không thể lưu giỏ hàng:', error);
-    }
+    } catch {}
   }, [items]);
 
   useEffect(() => {
@@ -94,10 +92,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const enrolledIds = new Set(enrolledCourseIds);
         setItems((current) => current.filter((item) => !enrolledIds.has(item.id)));
       })
-      .catch((error) => {
-        if (controller.signal.aborted) return;
-        console.error('Không thể đối chiếu giỏ hàng với các khóa học đã đăng ký:', error);
-      });
+      .catch(() => {});
 
     return () => controller.abort();
   }, [isAuthenticated]);

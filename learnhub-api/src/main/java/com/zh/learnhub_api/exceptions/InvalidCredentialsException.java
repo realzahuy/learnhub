@@ -1,4 +1,3 @@
-
 package com.zh.learnhub_api.exceptions;
 
 public class InvalidCredentialsException extends RuntimeException {

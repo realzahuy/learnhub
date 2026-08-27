@@ -117,9 +117,7 @@ export const useVideoProgress = (
           return next;
         });
         succeeded = true;
-      } catch (error) {
-        if (!stopped) console.error('Không thể làm mới trạng thái video:', error);
-      } finally {
+      } catch {} finally {
         const rerunIds: number[] = [];
         refreshIds.forEach((videoId) => {
           refreshingIds.delete(videoId);
@@ -201,9 +199,8 @@ export const useVideoProgress = (
       try {
         await videoService.streamProgress(courseId, handleProgress, controller.signal);
         reconnectDelay = uiConfig.video.sseReconnectInitialMs;
-      } catch (error) {
+      } catch {
         if (controller.signal.aborted || stopped) return;
-        console.warn('Kết nối SSE theo dõi tiến độ video bị gián đoạn; đang kết nối lại:', error);
       }
 
       if (stopped) return;

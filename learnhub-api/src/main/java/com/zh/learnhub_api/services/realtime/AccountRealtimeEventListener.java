@@ -8,12 +8,14 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
-public class AccountLockedRealtimeEventListener {
+public class AccountRealtimeEventListener {
 
     private final NotificationSseService notificationSseService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onAccountLocked(AccountLockedRealtimeEvent event) {
+    public void onAccountLocked(AccountLocked event) {
         notificationSseService.publishAccountLocked(event.userId());
     }
+
+    public record AccountLocked(Long userId) {}
 }

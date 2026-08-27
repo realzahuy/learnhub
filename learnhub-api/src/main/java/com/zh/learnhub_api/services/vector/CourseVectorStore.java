@@ -12,6 +12,8 @@ public interface CourseVectorStore {
 
     void upsert(Long courseId, List<Float> vector, Payload payload);
 
+    void updatePayload(Long courseId, Payload payload);
+
     void delete(Long courseId);
 
     List<Match> findSimilar(Long courseId, int limit, Set<Long> excludedCourseIds, Double scoreThreshold);
@@ -25,6 +27,5 @@ public interface CourseVectorStore {
         }
     }
 
-    record Match(Long courseId, double score, Payload payload) {
-    }
+    record Match(Long courseId, double score, Payload payload) {}
 }

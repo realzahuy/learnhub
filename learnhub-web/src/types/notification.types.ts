@@ -1,4 +1,4 @@
-export type NotificationType = 'COURSE_APPROVED' | 'COURSE_REJECTED';
+type NotificationType = 'COURSE_APPROVED' | 'COURSE_REJECTED';
 
 export interface AppNotification {
   id: number;

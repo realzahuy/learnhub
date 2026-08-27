@@ -15,8 +15,6 @@ import com.zh.learnhub_api.services.media.mediaconvert.MediaConvertTranscoder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -25,8 +23,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class VideoUploadService {
-
-    private static final String WHAT = "video";
 
     private final VideoRepository videoRepository;
     private final LessonRepository lessonRepository;
@@ -39,17 +35,17 @@ public class VideoUploadService {
     private final AppProperties.Video videoProperties;
 
     @Transactional
-    public VideoUploadResponseDTO createUploadSession(
-            Long lessonId, VideoUploadRequestDTO request, Long instructorId) {
-        Lesson lesson = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy bài học có ID: " + lessonId));
+    public VideoUploadResponseDTO createUploadSession(Long lessonId, VideoUploadRequestDTO request, Long instructorId) {
+        Lesson lesson = lessonRepository
+                .findByIdWithCourse(lessonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài giảng"));
         Course course = lesson.getCourseId();
 
-        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
+        courseEditPolicy.requireOwnerAndEditable(course, instructorId);
         requireWithinSizeLimit(request.getFileSize());
 
-        Video video = videoRepository.findByLessonAndPosition(lesson, request.getPosition())
+        Video video = videoRepository
+                .findByLessonAndPosition(lesson, request.getPosition())
                 .orElse(null);
         if (video != null) {
             videoLifecycle.requireUploading(video);
@@ -107,31 +103,12 @@ public class VideoUploadService {
         videoRepository.save(video);
 
         Long courseId = video.getLesson().getCourseId().getId();
-        publishProgressAfterCommit(courseId, videoId, VideoStatus.PROCESSING, 0);
+        videoProgressSseService.publishAfterCommit(courseId, videoId, VideoStatus.PROCESSING, 0);
     }
 
     private String mediaConvertClientToken(Long videoId, String objectKey) {
         UUID objectToken = UUID.nameUUIDFromBytes(objectKey.getBytes(StandardCharsets.UTF_8));
         return "learnhub-video-" + videoId + "-" + objectToken;
-    }
-
-    private void publishProgressAfterCommit(
-            Long courseId, Long videoId, VideoStatus status, Integer progress) {
-        Runnable publish = () -> videoProgressSseService.publish(
-                courseId, videoId, status, progress);
-
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            publish.run();
-            return;
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        publish.run();
-                    }
-                });
     }
 
     private void requireWithinSizeLimit(long fileSize) {
@@ -143,8 +120,8 @@ public class VideoUploadService {
     private String sizeLimitMessage() {
         long megabytes = videoProperties.maxSize() / (1024L * 1024L);
         String limit = (megabytes >= 1024 && megabytes % 1024 == 0)
-                ? (megabytes / 1024) + " GB"
-                : megabytes + " MB";
-        return "Video vượt quá dung lượng cho phép (tối đa " + limit + ")";
+                ? "%d GB".formatted(megabytes / 1024)
+                : "%d MB".formatted(megabytes);
+        return "Video vượt quá %s".formatted(limit);
     }
 }

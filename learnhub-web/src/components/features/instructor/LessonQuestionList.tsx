@@ -8,12 +8,10 @@ import {
 } from '../../../types/question.types';
 import { questionService } from '../../../services/api/question.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
-import { uiConfig } from '../../../config/uiConfig';
 import { useDeferredSave } from '../../../hooks/useDeferredSave';
 import { getApiErrorMessage } from '../../../utils';
 
 interface LessonQuestionListProps {
-  courseId: number;
   lesson: Lesson;
   questions: Question[];
   disabled: boolean;
@@ -68,7 +66,6 @@ const validateDraft = (draft: DraftQuestion): string | null => {
 };
 
 const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
-  courseId,
   lesson,
   questions,
   disabled,
@@ -93,27 +90,22 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
     async (order: Question[]) => {
       try {
         const saved = await questionService.reorder(
-          courseId,
           lesson.id,
           order.map((question) => ({ id: question.id, position: question.position }))
         );
         rollbackRef.current = null;
         onQuestionsChange(lesson.id, saved);
       } catch (err) {
-        console.error('Không thể đổi thứ tự câu hỏi:', err);
         const rollback = rollbackRef.current;
         rollbackRef.current = null;
         if (rollback) onQuestionsChange(lesson.id, rollback);
         setError(getApiErrorMessage(err, 'Không đổi được thứ tự câu hỏi. Vui lòng thử lại.'));
       }
     },
-    [courseId, lesson.id, onQuestionsChange]
+    [lesson.id, onQuestionsChange]
   );
 
-  const [scheduleSaveOrder] = useDeferredSave(
-    saveOrder,
-    uiConfig.timing.reorderSaveDelayMs
-  );
+  const scheduleSaveOrder = useDeferredSave(saveOrder);
 
   const applyOrder = useCallback(
     (next: Question[]) => {
@@ -163,11 +155,11 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
     setError(null);
     try {
       if (draft.id === null) {
-        const created = await questionService.create(courseId, lesson.id, payload);
+        const created = await questionService.create(lesson.id, payload);
         onQuestionsChange(lesson.id, [...questions, created]);
         onAddFinished();
       } else {
-        const updated = await questionService.update(courseId, lesson.id, draft.id, payload);
+        const updated = await questionService.update(draft.id, payload);
         onQuestionsChange(
           lesson.id,
           questions.map((q) => (q.id === updated.id ? updated : q))
@@ -175,28 +167,26 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
       }
       setDraft(null);
     } catch (err) {
-      console.error('Không thể lưu câu hỏi:', err);
       setError(getApiErrorMessage(err, 'Không lưu được câu hỏi. Vui lòng thử lại.'));
     } finally {
       setSaving(false);
     }
-  }, [courseId, draft, lesson.id, questions, onQuestionsChange, onAddFinished]);
+  }, [draft, lesson.id, questions, onQuestionsChange, onAddFinished]);
 
   const handleDelete = useCallback(
     async (question: Question) => {
       setError(null);
       try {
-        await questionService.remove(courseId, lesson.id, question.id);
+        await questionService.remove(question.id);
         onQuestionsChange(
           lesson.id,
           questions.filter((q) => q.id !== question.id)
         );
       } catch (err) {
-        console.error('Không thể xóa câu hỏi:', err);
         setError(getApiErrorMessage(err, 'Không xóa được câu hỏi. Vui lòng thử lại.'));
       }
     },
-    [courseId, lesson.id, questions, onQuestionsChange]
+    [lesson.id, questions, onQuestionsChange]
   );
 
   const busy = disabled || saving;
@@ -285,7 +275,6 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
             {draft.answers.map((answer, index) => (
 
               <li className="question-draft-answer" key={answer.clientId}>
-                { }
                 <label className="question-draft-correct" title="Đánh dấu đáp án đúng">
                   <input
                     type="checkbox"

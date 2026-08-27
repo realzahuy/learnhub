@@ -110,7 +110,6 @@ const AdminUsersPage: React.FC = () => {
       );
       void queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers.all });
     } catch (err) {
-      console.error('Không thể khóa tài khoản:', err);
       showToast(getApiErrorMessage(err, 'Không thể khóa tài khoản. Vui lòng thử lại.'), 'error');
     }
   }, [lockMutation, locking, pendingLock, queryClient, showToast, userQueryKey]);
@@ -149,7 +148,6 @@ const AdminUsersPage: React.FC = () => {
       showToast(`Đã mở khóa tài khoản @${activeUser.username}.`, 'success');
       void queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers.all });
     } catch (err) {
-      console.error('Không thể mở khóa tài khoản:', err);
       showToast(
         getApiErrorMessage(err, 'Không thể mở khóa tài khoản. Vui lòng thử lại.'),
         'error'
@@ -171,7 +169,6 @@ const AdminUsersPage: React.FC = () => {
     <>
       <div className="admin-users">
         <div className="admin-toolbar">
-          { }
           <Dropdown
             className="admin-dropdown"
             value={userFilter}
@@ -317,7 +314,6 @@ const AdminUsersPage: React.FC = () => {
         </div>
       </div>
 
-      { }
       {detailUser && (
         <div
           className="modal show d-block admin-detail-modal"
@@ -382,9 +378,6 @@ const AdminUsersPage: React.FC = () => {
 
                 {detailUser.roles.includes('ROLE_INSTRUCTOR') && <div className="admin-detail-section">
                   <h6>Khóa học</h6>
-                  {
-
-}
                   <div className="admin-instructor-courses">
                     <div className="admin-instructor-headline-item">
                       <span className="admin-instructor-headline-value">

@@ -19,11 +19,14 @@ import java.util.List;
 public class CreatePaymentRequestDTO {
 
     public static final int MAX_COURSES_PER_CHECKOUT = 20;
-    
+
     @NotEmpty(message = "Danh sách mã khóa học không được để trống")
     @Size(max = MAX_COURSES_PER_CHECKOUT, message = "Mỗi lần chỉ được thanh toán tối đa 20 khóa học")
-    private List<@NotNull(message = "Mã khóa học không được để trống") @Positive(message = "Mã khóa học phải lớn hơn 0") Long> courseIds;
-    
+    private List<
+                    @NotNull(message = "Mã khóa học không được để trống")
+                    @Positive(message = "Mã khóa học phải lớn hơn 0") Long>
+            courseIds;
+
     @NotNull(message = "Phương thức thanh toán không được để trống")
     private PaymentMethod paymentMethod;
 }

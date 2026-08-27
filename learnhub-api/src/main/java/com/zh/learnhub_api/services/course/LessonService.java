@@ -1,8 +1,6 @@
 package com.zh.learnhub_api.services.course;
 
-import com.zh.learnhub_api.services.media.MediaCleanupService;
-
-import com.zh.learnhub_api.dtos.course.LessonReorderDTO;
+import com.zh.learnhub_api.dtos.common.PositionReorderRequestDTO;
 import com.zh.learnhub_api.dtos.course.LessonRequestDTO;
 import com.zh.learnhub_api.dtos.course.LessonResponseDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -10,6 +8,7 @@ import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Lesson;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
+import com.zh.learnhub_api.services.media.MediaCleanupService;
 import com.zh.learnhub_api.utils.PositionReorderer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,14 +29,13 @@ public class LessonService {
     private final CourseEditPolicy courseEditPolicy;
     private final PositionReorderer positionReorderer;
 
-    private static final String WHAT = "bài học";
-
     @Transactional
     public List<LessonResponseDTO> createLessons(Long courseId, List<LessonRequestDTO> requests, Long instructorId) {
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository
+                .findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
+        courseEditPolicy.requireOwnerAndEditable(course, instructorId);
 
         int maxPosition = lessonRepository.findMaxPositionByCourseId(courseId);
         int currentPosition = maxPosition;
@@ -45,9 +43,7 @@ public class LessonService {
         List<Lesson> lessons = new java.util.ArrayList<>();
         for (LessonRequestDTO request : requests) {
 
-            int position = request.getPosition() != null
-                ? request.getPosition()
-                : ++currentPosition;
+            int position = request.getPosition() != null ? request.getPosition() : ++currentPosition;
 
             Lesson lesson = new Lesson();
             lesson.setTitle(request.getTitle());
@@ -60,21 +56,21 @@ public class LessonService {
 
         List<Lesson> savedLessons = lessonRepository.saveAll(lessons);
 
-        return savedLessons.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        return savedLessons.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
     @Transactional
     public LessonResponseDTO updateLesson(Long courseId, Long lessonId, LessonRequestDTO request, Long instructorId) {
 
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository
+                .findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
+        courseEditPolicy.requireOwnerAndEditable(course, instructorId);
 
-        Lesson lesson = lessonRepository.findByIdAndCourseId_Id(lessonId, courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học"));
+        Lesson lesson = lessonRepository
+                .findByIdAndCourseId_Id(lessonId, courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài giảng"));
 
         lesson.setTitle(request.getTitle());
         lesson.setPreview(request.getIsPreview() != null ? request.getIsPreview() : false);
@@ -88,27 +84,31 @@ public class LessonService {
     }
 
     @Transactional
-    public List<LessonResponseDTO> reorderLessons(Long courseId, List<LessonReorderDTO> requests, Long instructorId) {
-        Course course = courseRepository.findById(courseId)
+    public List<LessonResponseDTO> reorderLessons(
+            Long courseId, List<PositionReorderRequestDTO> requests, Long instructorId) {
+        Course course = courseRepository
+                .findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
+        courseEditPolicy.requireOwnerAndEditable(course, instructorId);
 
-        long distinctPositions = requests.stream().map(LessonReorderDTO::getPosition).distinct().count();
+        long distinctPositions = requests.stream()
+                .map(PositionReorderRequestDTO::getPosition)
+                .distinct()
+                .count();
         if (distinctPositions != requests.size()) {
-            throw new IllegalArgumentException("Các bài học không được trùng vị trí");
+            throw new IllegalArgumentException("Các bài giảng không được trùng vị trí");
         }
 
         List<Lesson> lessons = lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId);
-        Map<Long, Lesson> byId = lessons.stream()
-                .collect(Collectors.toMap(Lesson::getId, l -> l));
+        Map<Long, Lesson> byId = lessons.stream().collect(Collectors.toMap(Lesson::getId, l -> l));
 
         if (requests.size() != lessons.size()) {
-            throw new IllegalArgumentException("Phải gửi đủ toàn bộ bài học của khóa học khi sắp xếp lại");
+            throw new IllegalArgumentException("Phải gửi đủ bài giảng");
         }
-        for (LessonReorderDTO request : requests) {
+        for (PositionReorderRequestDTO request : requests) {
             if (!byId.containsKey(request.getId())) {
-                throw new ResourceNotFoundException("Không tìm thấy bài học " + request.getId() + " trong khóa học");
+                throw new ResourceNotFoundException("Không tìm thấy bài giảng trong khóa học");
             }
         }
 
@@ -117,8 +117,7 @@ public class LessonService {
                 Lesson::getPosition,
                 Lesson::setPosition,
                 lessonRepository::saveAllAndFlush,
-                () -> requests.forEach(
-                        request -> byId.get(request.getId()).setPosition(request.getPosition())));
+                () -> requests.forEach(request -> byId.get(request.getId()).setPosition(request.getPosition())));
 
         return saved.stream()
                 .sorted(java.util.Comparator.comparingInt(Lesson::getPosition))
@@ -129,13 +128,15 @@ public class LessonService {
     @Transactional
     public void deleteLesson(Long courseId, Long lessonId, Long instructorId) {
 
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository
+                .findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
+        courseEditPolicy.requireOwnerAndEditable(course, instructorId);
 
-        Lesson lesson = lessonRepository.findByIdAndCourseId_Id(lessonId, courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học"));
+        Lesson lesson = lessonRepository
+                .findByIdAndCourseId_Id(lessonId, courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài giảng"));
 
         mediaCleanupService.scheduleLessonCleanup(courseId, lessonId);
 

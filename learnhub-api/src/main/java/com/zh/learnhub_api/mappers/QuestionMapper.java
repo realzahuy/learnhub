@@ -1,7 +1,7 @@
 package com.zh.learnhub_api.mappers;
 
-import com.zh.learnhub_api.dtos.course.QuestionResponseDTO.AnswerResponseDTO;
 import com.zh.learnhub_api.dtos.course.QuestionResponseDTO;
+import com.zh.learnhub_api.dtos.course.QuestionResponseDTO.AnswerResponseDTO;
 import com.zh.learnhub_api.pojo.Answer;
 import com.zh.learnhub_api.pojo.Question;
 import org.mapstruct.Mapper;

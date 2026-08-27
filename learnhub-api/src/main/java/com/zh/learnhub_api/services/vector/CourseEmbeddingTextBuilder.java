@@ -27,12 +27,21 @@ public class CourseEmbeddingTextBuilder {
 
     @Transactional(readOnly = true)
     public Optional<EmbeddingDocument> buildPublishedCourse(Long courseId) {
-        Course course = courseRepository.findById(courseId).orElse(null);
+        Course course = courseRepository.findByIdWithCategory(courseId).orElse(null);
         if (course == null || course.getStatus() != CourseStatus.PUBLISHED) {
             return Optional.empty();
         }
 
         return Optional.of(buildCourse(course));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<CourseVectorStore.Payload> buildPublishedPayload(Long courseId) {
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null || course.getStatus() != CourseStatus.PUBLISHED) {
+            return Optional.empty();
+        }
+        return Optional.of(buildPayload(course));
     }
 
     @Transactional(readOnly = true)
@@ -49,7 +58,7 @@ public class CourseEmbeddingTextBuilder {
         append(text, "Mô tả chi tiết", course.getDescription());
 
         if (!lessons.isEmpty()) {
-            text.append("Nội dung bài học:\n");
+            text.append("Nội dung bài giảng:\n");
             for (Lesson lesson : lessons) {
                 String title = normalize(lesson.getTitle());
                 if (!title.isEmpty()) {
@@ -63,8 +72,13 @@ public class CourseEmbeddingTextBuilder {
         if (document.length() > safeLimit) {
             document = document.substring(0, safeLimit);
         }
-        CourseVectorStore.Payload payload = new CourseVectorStore.Payload(course.getSlug(), course.getTitle(), course.getThumbnail(), course.getPrice());
+        CourseVectorStore.Payload payload = buildPayload(course);
         return new EmbeddingDocument(courseId, normalize(course.getTitle()), document, payload);
+    }
+
+    private CourseVectorStore.Payload buildPayload(Course course) {
+        return new CourseVectorStore.Payload(
+                course.getSlug(), course.getTitle(), course.getThumbnail(), course.getPrice());
     }
 
     private void append(StringBuilder target, String label, String value) {
@@ -78,7 +92,8 @@ public class CourseEmbeddingTextBuilder {
         if (value == null) {
             return "";
         }
-        String withoutTags = HTML_TAG.matcher(value).replaceAll(" ")
+        String withoutTags = HTML_TAG.matcher(value)
+                .replaceAll(" ")
                 .replace("&nbsp;", " ")
                 .replace("&amp;", "&")
                 .replace("&lt;", "<")
@@ -88,6 +103,5 @@ public class CourseEmbeddingTextBuilder {
         return WHITESPACE.matcher(withoutTags).replaceAll(" ").trim();
     }
 
-    record EmbeddingDocument(Long courseId, String title, String text, CourseVectorStore.Payload payload) {
-    }
+    record EmbeddingDocument(Long courseId, String title, String text, CourseVectorStore.Payload payload) {}
 }

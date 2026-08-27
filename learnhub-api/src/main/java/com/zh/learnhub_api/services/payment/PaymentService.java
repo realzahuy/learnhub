@@ -1,5 +1,6 @@
 package com.zh.learnhub_api.services.payment;
 
+import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.payment.CreatePaymentRequestDTO;
 import com.zh.learnhub_api.dtos.payment.PaymentResponseDTO;
 import com.zh.learnhub_api.enums.PaymentMethod;
@@ -45,27 +46,31 @@ public abstract class PaymentService {
     @Autowired
     protected PaymentExpirationService expirationService;
 
+    @Autowired
+    protected AppProperties.Payment paymentProperties;
+
     public abstract PaymentMethod getProvider();
 
     protected abstract String createPaymentUrl(Payment payment);
 
+    protected String getOrderInfo(Long paymentId) {
+        return "Thanh toan khoa hoc %s - %d".formatted(paymentProperties.brand(), paymentId);
+    }
+
     @Transactional(noRollbackFor = {PaymentGatewayException.class, RestClientException.class})
     public PaymentResponseDTO createPayment(CreatePaymentRequestDTO request, Long userId) {
-        List<Long> requestCourseIds = request.getCourseIds().stream()
-                .distinct()
-                .toList();
+        List<Long> requestCourseIds = request.getCourseIds().stream().distinct().toList();
         List<CheckoutCourseProjection> courses = courseRepository.findCheckoutCourses(requestCourseIds, userId);
         if (courses.isEmpty()) {
             throw new IllegalArgumentException("Không có khóa học nào cần thanh toán");
         }
 
-        List<Long> courseIds = courses.stream()
-                .map(CheckoutCourseProjection::getCourseId)
-                .toList();
-        BigDecimal totalPrice = courses.stream()
-                .map(CheckoutCourseProjection::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        User user = userRepository.findByIdForUpdate(userId)
+        List<Long> courseIds =
+                courses.stream().map(CheckoutCourseProjection::getCourseId).toList();
+        BigDecimal totalPrice =
+                courses.stream().map(CheckoutCourseProjection::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+        User user = userRepository
+                .findByIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
         LocalDateTime now = LocalDateTime.now();
 
@@ -104,13 +109,14 @@ public abstract class PaymentService {
                 .paymentMethod(getProvider())
                 .status(PaymentStatus.PENDING)
                 .paidCourseIds(courseIds)
-                .message("Tiếp tục thanh toán " + courseIds.size() + " khóa học.")
+                .message("Thanh toán %d khóa học".formatted(courseIds.size()))
                 .build();
     }
 
     @Transactional
     public PaymentResponseDTO getPaymentStatus(Long paymentId, Long userId) {
-        Payment payment = paymentRepository.findByIdAndUserId_Id(paymentId, userId)
+        Payment payment = paymentRepository
+                .findByIdAndUserId_Id(paymentId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn thanh toán"));
         payment = expirationService.expireIfOverdue(payment, userId);
         return toPaymentResponse(payment);
@@ -125,10 +131,10 @@ public abstract class PaymentService {
         if (items.isEmpty()) {
             return;
         }
-        List<Long> courseIds = items.stream()
-                .map(item -> item.getCourseId().getId())
-                .toList();
-        Set<Long> enrolledCourseIds = enrollmentRepository.findCourseIdsByUserAndCourseIds(payment.getUserId(), courseIds);
+        List<Long> courseIds =
+                items.stream().map(item -> item.getCourseId().getId()).toList();
+        Set<Long> enrolledCourseIds = enrollmentRepository.findCourseIdsByUserIdAndCourseIds(
+                payment.getUserId().getId(), courseIds);
         List<Enrollment> enrollments = items.stream()
                 .filter(item -> !enrolledCourseIds.contains(item.getCourseId().getId()))
                 .map(item -> {

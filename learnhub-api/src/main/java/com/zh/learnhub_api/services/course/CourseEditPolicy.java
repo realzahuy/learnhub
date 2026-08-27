@@ -10,25 +10,19 @@ public class CourseEditPolicy {
 
     public void requireOwner(Course course, Long instructorId) {
         if (!course.getInstructorId().getId().equals(instructorId)) {
-            throw new ForbiddenException("Bạn không có quyền thực hiện thao tác này");
+            throw new ForbiddenException("Không có quyền");
         }
     }
 
-    public void requireEditable(Course course, String what) {
+    public void requireEditable(Course course) {
         CourseStatus status = course.getStatus();
-
-        if (status == CourseStatus.PENDING) {
-            throw new IllegalArgumentException(
-                "Không thể thay đổi " + what + " khi khóa học đang chờ duyệt");
-        }
-        if (status == CourseStatus.PUBLISHED) {
-            throw new IllegalArgumentException(
-                "Không thể thay đổi " + what + " của khóa học đã xuất bản");
+        if (status == CourseStatus.PENDING || status == CourseStatus.PUBLISHED) {
+            throw new IllegalArgumentException("Không thể thay đổi");
         }
     }
 
-    public void requireOwnerAndEditable(Course course, Long instructorId, String what) {
+    public void requireOwnerAndEditable(Course course, Long instructorId) {
         requireOwner(course, instructorId);
-        requireEditable(course, what);
+        requireEditable(course);
     }
 }

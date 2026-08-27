@@ -54,7 +54,6 @@ const EmailVerificationPanel: React.FC<EmailVerificationPanelProps> = ({ onVerif
 
       window.setTimeout(() => codeInputRef.current?.focus(), 0);
     } catch (err) {
-      console.error('Không thể gửi mã xác thực:', err);
       const message = getApiErrorMessage(err, 'Không gửi được mã xác thực. Vui lòng thử lại.');
 
       setOpen(true);
@@ -79,7 +78,6 @@ const EmailVerificationPanel: React.FC<EmailVerificationPanelProps> = ({ onVerif
       close();
       onVerified();
     } catch (err) {
-      console.error('Không thể xác thực email:', err);
       setError(getApiErrorMessage(err, 'Mã xác thực không đúng. Vui lòng thử lại.'));
     } finally {
       setConfirming(false);
@@ -88,8 +86,6 @@ const EmailVerificationPanel: React.FC<EmailVerificationPanelProps> = ({ onVerif
 
   return (
     <>
-      {
-}
       <button
         type="button"
         className="profile-verify-btn"
@@ -122,19 +118,11 @@ const EmailVerificationPanel: React.FC<EmailVerificationPanelProps> = ({ onVerif
 
                 <p className="verify-modal-hint">
                   Nhập mã 6 chữ số vừa gửi tới <strong>{maskedEmail || 'email của bạn'}</strong>.
-                  {expiresIn > 0 ? (
-                    <> Mã còn hiệu lực {formatCountdown(expiresIn)}.</>
-                  ) : (
-
-                    <> Mã đã hết hạn, hãy bấm "Gửi lại mã".</>
-                  )}
+                  {expiresIn > 0 ? ` Mã còn hiệu lực ${formatCountdown(expiresIn)}.` : ' Mã đã hết hạn, hãy bấm "Gửi lại mã".'}
                 </p>
 
                 {error && <div className="verify-modal-error">{error}</div>}
 
-                {
-
-}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();

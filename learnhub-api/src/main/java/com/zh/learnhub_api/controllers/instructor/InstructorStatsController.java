@@ -2,8 +2,8 @@ package com.zh.learnhub_api.controllers.instructor;
 
 import com.zh.learnhub_api.dtos.instructor.InstructorOverviewDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorTimeSeriesDTO;
-import com.zh.learnhub_api.services.instructor.InstructorStatsService;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
+import com.zh.learnhub_api.services.instructor.InstructorStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;

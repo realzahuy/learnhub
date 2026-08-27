@@ -58,11 +58,9 @@ export const reviewService = {
   getInstructorCourses: async (
     instructorId: number,
     page = 0,
-    size?: number,
     signal?: AbortSignal
   ): Promise<PageResponse<Course>> => {
     const params = new URLSearchParams({ page: String(page) });
-    if (size !== undefined) params.set('size', String(size));
     const response = await apiClient.get<PageResponse<Course>>(
       `/instructors/${instructorId}/courses?${params.toString()}`,
       { signal }

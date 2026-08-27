@@ -6,24 +6,21 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notification", indexes = {
-    @Index(name = "idx_notification_recipient_created",
-           columnList = "recipient_id, created_at, id"),
-    @Index(name = "idx_notification_recipient_read", columnList = "recipient_id, read_at")
-})
+@Table(
+        name = "notification",
+        indexes = {
+            @Index(name = "idx_notification_recipient_created", columnList = "recipient_id, created_at, id"),
+            @Index(name = "idx_notification_recipient_read", columnList = "recipient_id, read_at")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Notification implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

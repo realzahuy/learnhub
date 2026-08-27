@@ -50,11 +50,9 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     <ToastContext.Provider value={contextValue}>
       {children}
 
-      { }
       <div className="toast-stack" aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast-item toast-${toast.type}`} role="status">
-            { }
             <span className="toast-message">{toast.message}</span>
             <button
               type="button"

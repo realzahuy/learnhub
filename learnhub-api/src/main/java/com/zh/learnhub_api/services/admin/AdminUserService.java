@@ -9,14 +9,14 @@ import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.projections.admin.AdminUserProjection;
+import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.account.UserSessionRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
-import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.security.SessionAuthenticationCache;
-import com.zh.learnhub_api.services.notification.email.AccountLockedEmailEvent;
-import com.zh.learnhub_api.services.notification.email.AccountUnlockedEmailEvent;
-import com.zh.learnhub_api.services.realtime.AccountLockedRealtimeEvent;
+import com.zh.learnhub_api.services.notification.email.AccountEmailEventListener.Locked;
+import com.zh.learnhub_api.services.notification.email.AccountEmailEventListener.Unlocked;
+import com.zh.learnhub_api.services.realtime.AccountRealtimeEventListener.AccountLocked;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -97,8 +97,8 @@ public class AdminUserService {
         target.setAccountStatus(AccountStatus.LOCKED);
         sessionRepository.deleteAllByUserId(target.getId());
         sessionAuthenticationCache.evictUserSessionsAfterCommit(target.getId());
-        eventPublisher.publishEvent(new AccountLockedRealtimeEvent(target.getId()));
-        eventPublisher.publishEvent(new AccountLockedEmailEvent(
+        eventPublisher.publishEvent(new AccountLocked(target.getId()));
+        eventPublisher.publishEvent(new Locked(
                 target.getEmail(), target.getFullName(), admin.getEmail()));
     }
 
@@ -115,7 +115,7 @@ public class AdminUserService {
         }
 
         target.setAccountStatus(AccountStatus.ACTIVE);
-        eventPublisher.publishEvent(new AccountUnlockedEmailEvent(
+        eventPublisher.publishEvent(new Unlocked(
                 target.getEmail(), target.getFullName()));
     }
 

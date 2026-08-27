@@ -36,7 +36,6 @@ const AdminCategoriesPage: React.FC = () => {
       })
       .catch((err) => {
         if (cancelled) return;
-        console.error('Không thể tải danh sách danh mục:', err);
         setError(getApiErrorMessage(err, 'Không tải được danh sách danh mục.'));
       })
       .finally(() => {
@@ -66,7 +65,6 @@ const AdminCategoriesPage: React.FC = () => {
         setNewName('');
         showToast(`Đã thêm danh mục "${created.name}"`, 'success');
       } catch (err) {
-        console.error('Không thể tạo danh mục:', err);
         showToast(getApiErrorMessage(err, 'Không thêm được danh mục.'), 'error');
       } finally {
         setCreating(false);
@@ -105,8 +103,6 @@ const AdminCategoriesPage: React.FC = () => {
       cancelEdit();
       showToast('Đã đổi tên danh mục', 'success');
     } catch (err) {
-      console.error('Không thể cập nhật danh mục:', err);
-
       showToast(getApiErrorMessage(err, 'Không đổi được tên danh mục.'), 'error');
     } finally {
       setSavingId(null);
@@ -123,8 +119,6 @@ const AdminCategoriesPage: React.FC = () => {
       showToast(`Đã xóa danh mục "${pendingDelete.name}"`, 'success');
       setPendingDelete(null);
     } catch (err) {
-      console.error('Không thể xóa danh mục:', err);
-
       showToast(getApiErrorMessage(err, 'Không xóa được danh mục.'), 'error');
       setPendingDelete(null);
     } finally {
@@ -245,8 +239,6 @@ const AdminCategoriesPage: React.FC = () => {
         )}
       </div>
 
-      {
-}
       <ConfirmDialog
         isOpen={pendingDelete !== null}
         title={`Xóa danh mục "${pendingDelete?.name}"?`}

@@ -6,25 +6,21 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
-@Table(name = "user", indexes = {
-    @Index(name = "idx_user_created", columnList = "created_at, id")
-})
+@Table(
+        name = "user",
+        indexes = {@Index(name = "idx_user_created", columnList = "created_at, id")})
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @org.hibernate.annotations.DynamicUpdate
-public class User implements Serializable {
+public class User {
 
-    private static final long serialVersionUID = 1L;
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -68,27 +64,17 @@ public class User implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(name = "account_status", nullable = false, length = 20)
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
-    
+
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
-    
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "user_role",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
+            name = "user_role",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roleSet;
-    
-    @OneToMany(mappedBy = "instructorId", fetch = FetchType.LAZY)
-    private Set<Course> courseSet;
-    
-    @OneToMany(mappedBy = "userId", fetch = FetchType.LAZY)
-    private Set<Payment> paymentSet;
-    
-    @OneToMany(mappedBy = "userId", fetch = FetchType.LAZY)
-    private Set<Enrollment> enrollmentSet;
 }

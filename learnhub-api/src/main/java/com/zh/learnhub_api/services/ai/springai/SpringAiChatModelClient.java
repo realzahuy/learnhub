@@ -19,23 +19,22 @@ public class SpringAiChatModelClient implements ChatModelClient {
 
     private final ChatClient chatClient;
     private final String systemInstruction;
-    private final int maxHistoryMessages;
 
-    public SpringAiChatModelClient(
-            ChatClient.Builder chatClientBuilder,
-            AppProperties.Ai properties) {
+    public SpringAiChatModelClient(ChatClient.Builder chatClientBuilder, AppProperties.Ai properties) {
         this.chatClient = chatClientBuilder.build();
         this.systemInstruction = properties.chatSystemPrompt();
-        this.maxHistoryMessages = properties.maxHistoryMessages();
     }
 
     @Override
     public ChatPlan generatePlan(ChatRequestDTO request) {
-        ChatPlan plan = chatClient.prompt()
+        ChatPlan plan = chatClient
+                .prompt()
                 .system(systemInstruction)
                 .messages(buildMessages(request))
                 .call()
-                .entity(ChatPlan.class, schema -> schema.useProviderStructuredOutput().validateSchema());
+                .entity(
+                        ChatPlan.class,
+                        schema -> schema.useProviderStructuredOutput().validateSchema());
 
         if (plan == null) {
             throw new IllegalStateException("Spring AI không trả về kế hoạch trò chuyện");
@@ -50,9 +49,7 @@ public class SpringAiChatModelClient implements ChatModelClient {
         List<Message> messages = new ArrayList<>();
         List<ChatMessageDTO> history = request.getHistory();
         if (history != null && !history.isEmpty()) {
-            int firstHistoryIndex = Math.max(0, history.size() - maxHistoryMessages);
-            for (int index = firstHistoryIndex; index < history.size(); index++) {
-                ChatMessageDTO message = history.get(index);
+            for (ChatMessageDTO message : history) {
                 if ("assistant".equalsIgnoreCase(message.getRole())) {
                     messages.add(new AssistantMessage(message.getContent()));
                 } else {

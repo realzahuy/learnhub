@@ -4,12 +4,12 @@ import com.zh.learnhub_api.dtos.course.CategoryRequestDTO;
 import com.zh.learnhub_api.dtos.course.CategoryResponseDTO;
 import com.zh.learnhub_api.services.course.CategoryService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor

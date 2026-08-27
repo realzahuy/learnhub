@@ -1,11 +1,10 @@
 package com.zh.learnhub_api.services.instructor;
 
-import com.zh.learnhub_api.services.course.CourseEditPolicy;
-
 import com.zh.learnhub_api.dtos.instructor.InstructorCourseContentDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorCourseContentDTO.InstructorLessonContentDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
+import com.zh.learnhub_api.mappers.QuestionMapper;
 import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Lesson;
 import com.zh.learnhub_api.pojo.Question;
@@ -14,8 +13,8 @@ import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
 import com.zh.learnhub_api.repositories.course.QuestionRepository;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
+import com.zh.learnhub_api.services.course.CourseEditPolicy;
 import com.zh.learnhub_api.services.media.VideoPlaybackUrls;
-import com.zh.learnhub_api.mappers.QuestionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,19 +37,19 @@ public class InstructorCourseContentService {
     private final QuestionMapper questionMapper;
 
     public InstructorCourseContentDTO getCourseContent(Long courseId, Long instructorId) {
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository
+                .findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
         courseEditPolicy.requireOwner(course, instructorId);
 
         List<Lesson> lessons = lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId);
 
-        Map<Long, List<Video>> videosByLesson = videoRepository.findInstructorByCourseId(courseId)
-                .stream()
+        Map<Long, List<Video>> videosByLesson = videoRepository.findInstructorByCourseId(courseId).stream()
                 .collect(Collectors.groupingBy(video -> video.getLesson().getId()));
 
-        Map<Long, List<Question>> questionsByLesson = questionRepository
-                .findByCourseIdWithAnswers(courseId).stream()
-                .collect(Collectors.groupingBy(question -> question.getLessonId().getId()));
+        Map<Long, List<Question>> questionsByLesson = questionRepository.findByCourseIdWithAnswers(courseId).stream()
+                .collect(
+                        Collectors.groupingBy(question -> question.getLessonId().getId()));
 
         List<InstructorLessonContentDTO> lessonDTOs = lessons.stream()
                 .map(lesson -> new InstructorLessonContentDTO(
@@ -64,11 +63,9 @@ public class InstructorCourseContentService {
                                 .toList(),
                         questionsByLesson.getOrDefault(lesson.getId(), List.of()).stream()
                                 .sorted(Comparator.comparing(
-                                                Question::getPosition,
-                                                Comparator.nullsLast(Comparator.naturalOrder()))
+                                                Question::getPosition, Comparator.nullsLast(Comparator.naturalOrder()))
                                         .thenComparing(Question::getId))
-                                .map(question -> questionMapper.toDTO(
-                                        question, question.getAnswerSet()))
+                                .map(question -> questionMapper.toDTO(question, question.getAnswerSet()))
                                 .toList()))
                 .toList();
 

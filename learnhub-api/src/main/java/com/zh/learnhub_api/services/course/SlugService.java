@@ -1,15 +1,14 @@
 package com.zh.learnhub_api.services.course;
 
+import com.github.slugify.Slugify;
 import com.zh.learnhub_api.exceptions.SlugAlreadyExistsException;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
-import com.github.slugify.Slugify;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,28 +20,18 @@ public class SlugService {
     public String processSlug(String requestSlug, String title, Long currentCourseId) {
         boolean isManualSlug = (requestSlug != null && !requestSlug.trim().isEmpty());
 
-        String slug;
-        if (isManualSlug) {
-
-            slug = requestSlug.trim().toLowerCase();
-            validateSlugFormat(slug);
-
-            ensureSlugUniqueOrThrow(slug, currentCourseId);
-        } else {
-
-            slug = slugify.slugify(title.replace('đ', 'd').replace('Đ', 'D'));
-            validateSlugFormat(slug);
-            ensureSlugUniqueOrThrow(slug, currentCourseId);
-        }
+        String slug = isManualSlug
+                ? requestSlug.trim().toLowerCase()
+                : slugify.slugify(title.replace('đ', 'd').replace('Đ', 'D'));
+        validateSlugFormat(slug);
+        ensureSlugUniqueOrThrow(slug, currentCourseId);
 
         return slug;
     }
 
     private void validateSlugFormat(String slug) {
         if (!slug.matches("^[a-z0-9-]+$")) {
-            throw new IllegalArgumentException(
-                "Slug chỉ được chứa chữ thường, số và dấu gạch ngang"
-            );
+            throw new IllegalArgumentException("Slug không hợp lệ");
         }
     }
 
@@ -53,7 +42,7 @@ public class SlugService {
 
             List<String> suggestions = generateSlugSuggestions(slug, excludeCourseId);
             throw new SlugAlreadyExistsException(
-                "Slug '" + slug + "' đã tồn tại",
+                "Slug đã tồn tại",
                 suggestions
             );
         }
@@ -89,7 +78,7 @@ public class SlugService {
             suggestions.add(suggestion3);
         }
 
-        return suggestions.stream().limit(3).collect(Collectors.toList());
+        return suggestions;
     }
 
     private boolean isSlugTaken(String slug, Long excludeCourseId) {

@@ -6,29 +6,24 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Entity
-@Table(name = "course",
-       uniqueConstraints = @UniqueConstraint(name = "uk_course_slug", columnNames = "slug"),
-       indexes = {
-           @Index(name = "idx_course_status_created", columnList = "status, created_at, id"),
-           @Index(name = "idx_course_instructor_status_created",
-                  columnList = "instructor_id, status, created_at")
-       })
+@Table(
+        name = "course",
+        uniqueConstraints = @UniqueConstraint(name = "uk_course_slug", columnNames = "slug"),
+        indexes = {
+            @Index(name = "idx_course_status_created", columnList = "status, created_at, id"),
+            @Index(name = "idx_course_instructor_status_created", columnList = "instructor_id, status, created_at")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Course implements Serializable {
+public class Course {
 
-    private static final long serialVersionUID = 1L;
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -81,10 +76,4 @@ public class Course implements Serializable {
 
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
-    
-    @OneToMany(mappedBy = "courseId", fetch = FetchType.LAZY)
-    private Set<Lesson> lessonSet;
-    
-    @OneToMany(mappedBy = "courseId", fetch = FetchType.LAZY)
-    private Set<Enrollment> enrollmentSet;
 }

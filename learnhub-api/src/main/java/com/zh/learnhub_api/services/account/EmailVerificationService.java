@@ -1,8 +1,6 @@
 package com.zh.learnhub_api.services.account;
 
 import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.services.notification.email.AccountEmailSender;
-
 import com.zh.learnhub_api.dtos.account.EmailVerificationStatusDTO;
 import com.zh.learnhub_api.enums.UserActionCodePurpose;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -11,6 +9,7 @@ import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.pojo.UserActionCode;
 import com.zh.learnhub_api.repositories.account.UserActionCodeRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
+import com.zh.learnhub_api.services.notification.email.AccountEmailSender;
 import com.zh.learnhub_api.utils.UserActionCodes;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,8 +64,7 @@ public class EmailVerificationService {
                         code, now, resendCooldownSeconds))
                 .orElse(0L);
         if (waitSeconds > 0) {
-            throw new TooManyRequestsException(
-                    "Vui lòng đợi " + waitSeconds + " giây nữa rồi hãy yêu cầu mã mới");
+            throw new TooManyRequestsException("Thử lại sau %d giây".formatted(waitSeconds));
         }
 
         codeRepository.expireActiveCodes(user.getId(), PURPOSE, now);
@@ -93,18 +91,16 @@ public class EmailVerificationService {
 
         UserActionCode latest = codeRepository
                 .findTopByUserId_IdAndPurposeOrderByIdDesc(user.getId(), PURPOSE)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Bạn chưa yêu cầu mã xác thực nào. Hãy bấm gửi mã trước."));
+                .orElseThrow(() -> new IllegalArgumentException("Chưa yêu cầu mã xác thực"));
 
         if (latest.isUsed()) {
             throw new IllegalArgumentException("Mã xác thực đã được sử dụng");
         }
         if (latest.isExpired()) {
-            throw new IllegalArgumentException("Mã xác thực đã hết hạn. Hãy yêu cầu mã mới.");
+            throw new IllegalArgumentException("Mã xác thực đã hết hạn");
         }
         if (latest.getAttempts() >= maxAttempts) {
-            throw new TooManyRequestsException(
-                    "Bạn đã nhập sai quá " + maxAttempts + " lần. Hãy yêu cầu mã mới.");
+            throw new TooManyRequestsException("Nhập sai quá nhiều lần");
         }
 
         if (!latest.getCode().equals(inputCode.trim())) {
@@ -112,8 +108,8 @@ public class EmailVerificationService {
 
             int remaining = maxAttempts - latest.getAttempts();
             throw new IllegalArgumentException(remaining > 0
-                    ? "Mã xác thực không đúng. Bạn còn " + remaining + " lần thử."
-                    : "Mã xác thực không đúng. Hãy yêu cầu mã mới.");
+                    ? "Sai mã, còn %d lần".formatted(remaining)
+                    : "Mã xác thực không hợp lệ");
         }
 
         latest.setUsedAt(LocalDateTime.now());

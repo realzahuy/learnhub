@@ -19,11 +19,9 @@ import java.util.Set;
 public class LearningRecommendationService {
 
     private final CourseVectorStore courseVectorStore;
-    private final AppProperties.VectorSearch vectorSearchProperties;
     private final AppProperties.Recommendation recommendationProperties;
 
-    public List<RecommendationCardDTO> getRecommendations(
-            Long currentCourseId, Set<Long> enrolledCourseIds) {
+    public List<RecommendationCardDTO> getRecommendations(Long currentCourseId, Set<Long> enrolledCourseIds) {
         if (!courseVectorStore.isEnabled()) {
             return List.of();
         }
@@ -34,26 +32,20 @@ public class LearningRecommendationService {
         }
     }
 
-    private List<RecommendationCardDTO> loadVectorRecommendations(
-            Long currentCourseId, Set<Long> enrolledCourseIds) {
+    private List<RecommendationCardDTO> loadVectorRecommendations(Long currentCourseId, Set<Long> enrolledCourseIds) {
         Set<Long> qdrantExcludedIds = new HashSet<>(enrolledCourseIds);
         qdrantExcludedIds.add(currentCourseId);
 
         int resultLimit = recommendationProperties.resultLimit();
-        int candidateLimit = Math.max(resultLimit, vectorSearchProperties.candidateLimit());
         List<Match> matches = courseVectorStore.findSimilar(
-                currentCourseId,
-                candidateLimit,
-                qdrantExcludedIds,
-                recommendationProperties.minimumVectorScore());
+                currentCourseId, resultLimit, qdrantExcludedIds, recommendationProperties.minimumVectorScore());
         if (matches.isEmpty()) {
             return List.of();
         }
 
         List<RecommendationCardDTO> recommendations = new ArrayList<>(resultLimit);
         for (Match match : matches) {
-            if (enrolledCourseIds.contains(match.courseId())
-                    || currentCourseId.equals(match.courseId())) {
+            if (enrolledCourseIds.contains(match.courseId()) || currentCourseId.equals(match.courseId())) {
                 continue;
             }
             recommendations.add(match.payload().toRecommendationCard());

@@ -9,6 +9,8 @@ import com.zh.learnhub_api.repositories.course.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -22,21 +24,20 @@ public class VideoProgressSseService {
 
     private final CourseRepository courseRepository;
     private final AppProperties.Sse sseProperties;
-    private final Map<Long, CopyOnWriteArrayList<SseEmitter>> emittersByCourse =
-            new ConcurrentHashMap<>();
-    private final Map<Long, Map<Long, VideoProgressEventDTO>> latestByCourse =
-            new ConcurrentHashMap<>();
+    private final Map<Long, CopyOnWriteArrayList<SseEmitter>> emittersByCourse = new ConcurrentHashMap<>();
+    private final Map<Long, Map<Long, VideoProgressEventDTO>> latestByCourse = new ConcurrentHashMap<>();
 
     public SseEmitter subscribe(Long courseId, Long instructorId) {
-        Long ownerId = courseRepository.findInstructorIdByCourseId(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy khóa học có ID: " + courseId));
+        Long ownerId = courseRepository
+                .findInstructorIdByCourseId(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
         if (!ownerId.equals(instructorId)) {
-            throw new ForbiddenException("Bạn không có quyền theo dõi tiến độ video của khóa học này");
+            throw new ForbiddenException("Không có quyền theo dõi video");
         }
 
         SseEmitter emitter = new SseEmitter(sseProperties.timeoutMs());
-        emittersByCourse.computeIfAbsent(courseId, ignored -> new CopyOnWriteArrayList<>())
+        emittersByCourse
+                .computeIfAbsent(courseId, ignored -> new CopyOnWriteArrayList<>())
                 .add(emitter);
 
         Runnable remove = () -> removeEmitter(courseId, emitter);
@@ -46,7 +47,8 @@ public class VideoProgressSseService {
 
         try {
             emitter.send(SseEmitter.event().name("connected").data(Map.of("courseId", courseId)));
-            for (VideoProgressEventDTO event : latestByCourse.getOrDefault(courseId, Map.of()).values()) {
+            for (VideoProgressEventDTO event :
+                    latestByCourse.getOrDefault(courseId, Map.of()).values()) {
                 send(emitter, event);
             }
         } catch (IOException | IllegalStateException ignored) {
@@ -58,18 +60,15 @@ public class VideoProgressSseService {
 
     public void publish(Long courseId, Long videoId, VideoStatus status, Integer incomingProgress) {
         int progress = Math.max(0, Math.min(100, incomingProgress == null ? 0 : incomingProgress));
-        Map<Long, VideoProgressEventDTO> courseProgress = latestByCourse.computeIfAbsent(
-                courseId, ignored -> new ConcurrentHashMap<>());
+        Map<Long, VideoProgressEventDTO> courseProgress =
+                latestByCourse.computeIfAbsent(courseId, ignored -> new ConcurrentHashMap<>());
 
         VideoProgressEventDTO event = courseProgress.compute(videoId, (ignored, previous) -> {
-            int monotonicProgress = previous == null
-                    ? progress
-                    : Math.max(previous.getProgress(), progress);
+            int monotonicProgress = previous == null ? progress : Math.max(previous.getProgress(), progress);
             return new VideoProgressEventDTO(videoId, status, monotonicProgress);
         });
 
-        for (SseEmitter emitter : emittersByCourse.getOrDefault(
-                courseId, new CopyOnWriteArrayList<>())) {
+        for (SseEmitter emitter : emittersByCourse.getOrDefault(courseId, new CopyOnWriteArrayList<>())) {
             try {
                 send(emitter, event);
             } catch (IOException | IllegalStateException ignored) {
@@ -81,6 +80,20 @@ public class VideoProgressSseService {
             courseProgress.remove(videoId);
             if (courseProgress.isEmpty()) latestByCourse.remove(courseId, courseProgress);
         }
+    }
+
+    public void publishAfterCommit(Long courseId, Long videoId, VideoStatus status, Integer progress) {
+        Runnable publish = () -> publish(courseId, videoId, status, progress);
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            publish.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                publish.run();
+            }
+        });
     }
 
     @Scheduled(fixedRateString = "${app.sse.heartbeat-ms}")
@@ -109,5 +122,4 @@ public class VideoProgressSseService {
         emitters.remove(emitter);
         if (emitters.isEmpty()) emittersByCourse.remove(courseId, emitters);
     }
-
 }

@@ -105,18 +105,15 @@ const InstructorCourseEditPage: React.FC = () => {
         setRejectReason(null);
 
         if (detail.status === 'REJECTED') {
-          try {
-            const reason = await instructorService.getRejectReason(courseId, controller.signal);
-            if (!controller.signal.aborted) setRejectReason(reason);
-          } catch {
-
-          }
+          const reason = await instructorService
+            .getRejectReason(courseId, controller.signal)
+            .catch(() => null);
+          if (!controller.signal.aborted) setRejectReason(reason);
         } else {
           setRejectReason(null);
         }
       } catch (err) {
         if (controller.signal.aborted) return;
-        console.error('Không thể tải chi tiết khóa học:', err);
         setLoadError('Không thể tải thông tin khóa học. Vui lòng thử lại sau.');
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -167,7 +164,6 @@ const InstructorCourseEditPage: React.FC = () => {
 
       navigate(destination, { replace: true });
     } catch (err) {
-      console.error('Không thể cập nhật khóa học:', err);
       setSaveError(getApiErrorMessage(err, 'Không thể lưu khóa học. Vui lòng thử lại sau.'));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
@@ -226,8 +222,6 @@ const InstructorCourseEditPage: React.FC = () => {
 
               {saveError && <div className="alert alert-danger">{saveError}</div>}
 
-              {
-}
               <CourseInfoForm
                 variant="edit"
                 form={form}
@@ -260,26 +254,13 @@ const InstructorCourseEditPage: React.FC = () => {
                 sideActions={
                   <div className="course-edit-actions">
                     {!isReadOnly && (
-                      <>
-                        <button
-                          type="submit"
-                          className="btn-course-edit-primary"
-                          disabled={saving}
-                        >
-                          {saving ? (
-                            <>
-                              <span
-                                className="spinner-border spinner-border-sm me-2"
-                                role="status"
-                                aria-hidden="true"
-                              />
-                              Đang lưu...
-                            </>
-                          ) : (
-                            'Lưu thay đổi'
-                          )}
-                        </button>
-                      </>
+                      <button
+                        type="submit"
+                        className="btn-course-edit-primary"
+                        disabled={saving}
+                      >
+                        {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                      </button>
                     )}
                     <button
                       type="button"

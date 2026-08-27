@@ -80,8 +80,6 @@ const RegisterPage = () => {
           password: form.password,
         });
       } catch (err) {
-        console.error('Lỗi đăng ký:', err);
-
         const fieldErrors = getApiFieldErrors(err);
         if (fieldErrors) {
           const mapped: RegisterFormErrors = {};
@@ -213,18 +211,7 @@ const RegisterPage = () => {
             </div>
 
             <button type="submit" className="btn btn-notion w-100 btn-lg" disabled={submitting}>
-              {submitting ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Đang đăng ký...
-                </>
-              ) : (
-                'Đăng ký'
-              )}
+              {submitting ? 'Đang đăng ký...' : 'Đăng ký'}
             </button>
           </form>
 

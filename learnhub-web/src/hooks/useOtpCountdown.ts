@@ -42,7 +42,5 @@ export function useOtpCountdown(active: boolean) {
     });
   }, []);
 
-  const resetCountdown = useCallback(() => setCountdown(EMPTY_COUNTDOWN), []);
-
-  return { ...countdown, startCountdown, resetCountdown };
+  return { ...countdown, startCountdown };
 }

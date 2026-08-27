@@ -83,7 +83,6 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
 
       document.querySelector('.quiz-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
-      console.error('Không thể nộp bài kiểm tra:', err);
       setSubmitError(getApiErrorMessage(err, 'Không nộp được bài. Thử lại nhé.'));
     } finally {
       setSubmitting(false);
@@ -129,7 +128,6 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
             <p className="quiz-result-score">
               {result.correctCount}/{result.totalQuestions} câu đúng · {result.scorePercent}%
             </p>
-            { }
             <p className="quiz-result-note">{result.passed ? 'Đạt' : 'Chưa đạt'}</p>
           </div>
         </div>
@@ -145,8 +143,6 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
               key={question.id}
               className={`quiz-question${graded ? (graded.correct ? ' is-correct' : ' is-wrong') : ''}`}
             >
-              {
-}
               <div className="quiz-question-head">
                 <span className="quiz-question-index">Câu {index + 1}</span>
                 {question.multipleCorrect && (

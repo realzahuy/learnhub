@@ -67,7 +67,7 @@ const InstructorCoursesPage: React.FC = () => {
     scheduleRefresh();
   }, [realtimeReconnectVersion, scheduleRefresh]);
 
-  const { categories } = useCategories(true);
+  const { categories } = useCategories();
 
   const categoryOptions = useMemo<DropdownOption[]>(
     () => [
@@ -122,7 +122,6 @@ const InstructorCoursesPage: React.FC = () => {
 
       <main className="instructor-main">
         <div className="container py-4">
-          { }
           <div className="instructor-toolbar mb-4">
             <button
               type="button"
@@ -133,8 +132,6 @@ const InstructorCoursesPage: React.FC = () => {
               Soạn khóa học
             </button>
 
-            {
-}
             <div className="instructor-toolbar-filters">
               <Dropdown
                 className="instructor-dropdown"

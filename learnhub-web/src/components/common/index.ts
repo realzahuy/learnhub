@@ -7,7 +7,6 @@ export { default as DatePicker } from './DatePicker';
 export { default as Pagination } from './Pagination';
 export { default as LoadingScreen } from './LoadingScreen';
 export { default as PageSkeleton } from './PageSkeleton';
-export type { PageSkeletonVariant } from './PageSkeleton';
 export { default as Stepper } from './Stepper';
 export { default as HlsPlayer } from './HlsPlayer';
 export { default as StarRating } from './StarRating';

@@ -48,7 +48,6 @@
   bottom: 66px;
   width: min(50vw, 680px, calc(100vw - 16px));
   height: min(90vh, 900px, calc(100vh - 16px));
-  min-height: min(500px, calc(100vh - 16px));
   max-width: calc(100vw - 16px);
   max-height: calc(100vh - 16px);
   display: flex;
@@ -184,22 +183,6 @@
 .chatbot-header-copy span i {
   color: #8ee6af;
   font-size: 0.5rem;
-}
-
-.chatbot-close {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  color: #667085;
-  font-size: 0.95rem;
-  transition: background-color 0.2s ease;
-}
-
-.chatbot-close:hover {
-  background: #cbd2da;
 }
 
 .chatbot-messages {

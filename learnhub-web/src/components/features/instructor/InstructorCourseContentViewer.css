@@ -173,10 +173,6 @@
     padding: 1rem;
   }
 
-  .instructor-content-summary {
-    grid-template-columns: minmax(0, 1fr) max-content;
-  }
-
   .instructor-content-items > li {
     align-items: flex-start;
     flex-direction: column;

@@ -1,17 +1,17 @@
 package com.zh.learnhub_api.services.learning;
 
 import com.zh.learnhub_api.configs.AppProperties;
+import com.zh.learnhub_api.dtos.course.RecommendationCardDTO;
 import com.zh.learnhub_api.dtos.learning.LearnCourseDTO;
 import com.zh.learnhub_api.dtos.learning.LearnCourseDTO.LearnLessonDTO;
-import com.zh.learnhub_api.dtos.course.RecommendationCardDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Lesson;
 import com.zh.learnhub_api.pojo.Video;
 import com.zh.learnhub_api.projections.course.LearningCourseProjection;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
-import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
 import com.zh.learnhub_api.repositories.course.QuestionRepository;
+import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -1,7 +1,6 @@
 package com.zh.learnhub_api.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Locale;
 
@@ -16,10 +15,5 @@ public enum PaymentMethod {
         }
 
         return valueOf(value.trim().toUpperCase(Locale.ROOT));
-    }
-
-    @JsonValue
-    public String value() {
-        return name();
     }
 }

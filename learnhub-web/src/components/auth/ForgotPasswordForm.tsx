@@ -80,7 +80,6 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
 
       window.setTimeout(() => codeInputRef.current?.focus(), 0);
     } catch (err) {
-      console.error('Gửi yêu cầu quên mật khẩu thất bại:', err);
       setError(getApiErrorMessage(err, 'Không gửi được mã. Vui lòng thử lại.'));
     } finally {
       setSubmitting(false);
@@ -119,7 +118,6 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
       showToast('Đặt lại mật khẩu thành công. Hãy đăng nhập lại.', 'success');
       navigate(loginTo, { replace: true });
     } catch (err) {
-      console.error('Đặt lại mật khẩu thất bại:', err);
       setError(getApiErrorMessage(err, 'Không đặt lại được mật khẩu. Vui lòng thử lại.'));
       setSubmitting(false);
     }
@@ -155,12 +153,8 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
 
         {step === 'email' ? (
           <>
-            {
-
-}
             {authLoading ? (
               <div className="forgot-password-loading" role="status">
-                <span className="spinner-border spinner-border-sm" aria-hidden="true"></span>
                 <span>Đang tải...</span>
               </div>
             ) : accountEmail ? (
@@ -169,8 +163,6 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
                   Chúng tôi sẽ gửi mã xác thực tới email của tài khoản bạn đang đăng nhập.
                 </p>
 
-                {
-}
                 <div className="mb-3 forgot-password-account">
                   <span className="forgot-password-account-label">Email</span>
                   <span className="forgot-password-account-value">{accountEmail}</span>
@@ -208,24 +200,11 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
               className="btn btn-notion w-100 btn-lg"
               disabled={submitting || authLoading}
             >
-              {submitting ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Đang gửi mã...
-                </>
-              ) : (
-                'Gửi mã xác thực'
-              )}
+              {submitting ? 'Đang gửi mã...' : 'Gửi mã xác thực'}
             </button>
           </>
         ) : (
           <>
-            {
-}
             <p className="forgot-password-lead">{sentMessage}</p>
 
             <div className="mb-3">
@@ -248,12 +227,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
                 autoComplete="one-time-code"
               />
               <span className="forgot-password-hint">
-                {expiresIn > 0 ? (
-                  <>Mã còn hiệu lực {formatCountdown(expiresIn)}.</>
-                ) : (
-
-                  <>Mã đã hết hạn, hãy bấm "Gửi lại mã".</>
-                )}
+                {expiresIn > 0 ? `Mã còn hiệu lực ${formatCountdown(expiresIn)}.` : 'Mã đã hết hạn, hãy bấm "Gửi lại mã".'}
               </span>
             </div>
 
@@ -291,18 +265,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
             </div>
 
             <button type="submit" className="btn btn-notion w-100 btn-lg" disabled={submitting}>
-              {submitting ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Đang đặt lại...
-                </>
-              ) : (
-                'Đặt lại mật khẩu'
-              )}
+              {submitting ? 'Đang đặt lại...' : 'Đặt lại mật khẩu'}
             </button>
 
             <div className="forgot-password-resend">
@@ -320,8 +283,6 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ backTo, loginTo
         )}
       </form>
 
-      {
-}
       <div className="forgot-password-back">
         <Link to={backTo}>Quay lại</Link>
       </div>

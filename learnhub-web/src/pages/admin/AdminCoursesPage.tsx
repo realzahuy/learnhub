@@ -43,7 +43,7 @@ const AdminCoursesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { categories } = useCategories(true);
+  const { categories } = useCategories();
 
   const categoryOptions = useMemo<DropdownOption[]>(
     () => [
@@ -97,7 +97,6 @@ const AdminCoursesPage: React.FC = () => {
         if (!controller.signal.aborted) setPageData(data);
       } catch (err) {
         if (controller.signal.aborted) return;
-        console.error('Không thể tải danh sách khóa học quản trị:', err);
         setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -126,7 +125,6 @@ const AdminCoursesPage: React.FC = () => {
 
         scheduleRefresh();
       } catch (err) {
-        console.error('Duyệt khóa học thất bại:', err);
         showToast(getApiErrorMessage(err, 'Không thể duyệt khóa học. Vui lòng thử lại.'), 'error');
       } finally {
         setProcessingId(null);
@@ -157,8 +155,6 @@ const AdminCoursesPage: React.FC = () => {
       setDetailCourse(null);
       scheduleRefresh();
     } catch (err) {
-      console.error('Từ chối khóa học thất bại:', err);
-
       setRejectError(getApiErrorMessage(err, 'Không thể từ chối khóa học. Vui lòng thử lại.'));
     } finally {
       setProcessingId(null);
@@ -170,7 +166,6 @@ const AdminCoursesPage: React.FC = () => {
   return (
     <>
       <div className="admin-courses">
-        { }
         <div className="admin-toolbar">
           <Dropdown
             className="admin-dropdown"

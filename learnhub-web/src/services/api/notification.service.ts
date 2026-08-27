@@ -1,5 +1,4 @@
 import { AppNotification } from '../../types/notification.types';
-import { uiConfig } from '../../config/uiConfig';
 import {
   AccountLockedEvent,
   CourseStatusChangedEvent,
@@ -32,8 +31,8 @@ export interface NotificationCursor {
 
 export const notificationService = {
   list: async (
-    cursor: NotificationCursor | null = null,
-    size: number = uiConfig.pagination.notificationServiceDefaultPageSize,
+    cursor: NotificationCursor | null,
+    size: number,
     signal?: AbortSignal
   ): Promise<NotificationPage> => {
     const response = await apiClient.get<NotificationPage>('/notifications', {

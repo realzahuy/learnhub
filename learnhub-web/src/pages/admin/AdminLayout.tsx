@@ -53,7 +53,6 @@ const AdminLayout: React.FC = () => {
 
   return (
     <div className="admin-shell">
-      { }
       <div className="admin-main">
         <nav
           id="admin-navigation"
@@ -94,8 +93,6 @@ const AdminLayout: React.FC = () => {
             ))}
           </div>
 
-          {
-}
           <div className="admin-nav-footer">
             {user && (
               <NavLink
@@ -132,7 +129,6 @@ const AdminLayout: React.FC = () => {
         </main>
       </div>
 
-      { }
       <Footer />
 
       <LogoutConfirmDialog

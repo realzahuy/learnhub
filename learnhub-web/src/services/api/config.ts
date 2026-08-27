@@ -101,7 +101,7 @@ export const refreshAuthSession = (): Promise<LoginResponse> => {
   return refreshPromise;
 };
 
-export const refreshAccessToken = async (): Promise<string> =>
+const refreshAccessToken = async (): Promise<string> =>
   (await refreshAuthSession()).accessToken;
 
 export const cancelPendingRefresh = (): void => {

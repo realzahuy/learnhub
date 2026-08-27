@@ -27,7 +27,6 @@ const Stepper: React.FC<StepperProps> = ({ steps, current, onStepClick }) => {
             className={`app-stepper-item ${state}`}
             aria-current={isActive ? 'step' : undefined}
           >
-            { }
             <button
               type="button"
               className="app-stepper-button"

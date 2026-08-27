@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
 import java.util.Set;
 
 @Entity
@@ -13,12 +12,9 @@ import java.util.Set;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Question implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Question {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

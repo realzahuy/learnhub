@@ -7,7 +7,7 @@ import {
   CoursePreviewModal,
   InstructorCard,
 } from '../../components/features/course';
-import { CourseReviewSection } from '../../components/features/review';
+import CourseReviewSection from '../../components/features/review/CourseReviewSection';
 import { LoadingScreen } from '../../components/common';
 import { courseService } from '../../services/api/course.service';
 import { CourseDetail, PublicLesson, PublicVideo } from '../../types/course.types';
@@ -16,7 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { enrollmentService } from '../../services/api/enrollment.service';
-import { getApiErrorMessage } from '../../utils';
+import { formatPrice, getApiErrorMessage } from '../../utils';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './CourseDetailPage.css';
 
@@ -80,10 +80,7 @@ const CourseDetailPage = () => {
       .then((enrolled) => {
         if (!controller.signal.aborted) setIsEnrolled(enrolled);
       })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        console.error('Không thể kiểm tra trạng thái ghi danh:', err);
-      });
+      .catch(() => {});
 
     return () => controller.abort();
   }, [isAuthenticated, course]);
@@ -106,7 +103,6 @@ const CourseDetailPage = () => {
       showToast(enrollment.message || 'Đã thêm khóa học vào tài khoản.', 'success');
       navigate(ROUTE_PATHS.myCourses);
     } catch (err) {
-      console.error('Không thể đăng ký khóa học miễn phí:', err);
       showToast(getApiErrorMessage(err, 'Không đăng ký được khóa học. Vui lòng thử lại.'), 'error');
       setIsEnrolling(false);
     }
@@ -157,7 +153,6 @@ const CourseDetailPage = () => {
     <div className="course-detail-page">
 
       <main className="course-detail-main motion-content-enter">
-      { }
       <CourseHero
         course={course}
         averageRating={averageRating}
@@ -171,17 +166,14 @@ const CourseDetailPage = () => {
         onThumbnailError={() => setThumbnailFailed(true)}
       />
 
-      { }
       <div className="container my-5">
         <div className="row">
-          { }
           <div className="col-lg-8">
             <div className="course-content-card mb-4">
               <h2 className="h4 fw-bold mb-3">Mô tả khóa học</h2>
               <div className="course-description">{course.description}</div>
             </div>
 
-            { }
             <CourseCurriculum lessons={course.lessons} onOpenPreview={openPreview} />
 
             <InstructorCard course={course} />
@@ -196,17 +188,14 @@ const CourseDetailPage = () => {
             </div>
           </div>
 
-          { }
           <div className="col-lg-4">
             <div className="price-card sticky-top">
               <div className="price-header text-center mb-4">
                 <h3 className="display-4 fw-bold text-notion mb-0">
-                  {course.price === 0 ? 'Miễn phí' : `${course.price.toLocaleString()}đ`}
+                  {course.price === 0 ? 'Miễn phí' : formatPrice(course.price)}
                 </h3>
               </div>
 
-              {
-}
               {isEnrolled ? (
                 <>
                   <p className="course-owned-note">
@@ -226,18 +215,7 @@ const CourseDetailPage = () => {
                   onClick={handleEnroll}
                   disabled={isEnrolling}
                 >
-                  {isEnrolling ? (
-                    <>
-                      <span
-                        className="spinner-border spinner-border-sm me-2"
-                        role="status"
-                        aria-hidden="true"
-                      ></span>
-                      Đang xử lý...
-                    </>
-                  ) : (
-                    'Mua ngay'
-                  )}
+                  {isEnrolling ? 'Đang xử lý...' : 'Mua ngay'}
                 </button>
               ) : (
                 <>

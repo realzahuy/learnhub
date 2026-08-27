@@ -13,7 +13,6 @@ const HomePage = () => {
 
   return (
     <div className="home-page">
-      { }
 
       <main className="hero-section">
         <div className="container">
@@ -46,7 +45,6 @@ const HomePage = () => {
             <div className="col-lg-6 text-center">
               <div className="hero-illustration">
                 <svg viewBox="0 0 500 400" className="w-100">
-                  { }
                   <circle cx="250" cy="200" r="150" fill="#E8F2FF" />
                   <rect x="150" y="120" width="200" height="160" rx="10" fill="#2383E2" />
                   <rect x="170" y="140" width="160" height="100" rx="5" fill="white" />

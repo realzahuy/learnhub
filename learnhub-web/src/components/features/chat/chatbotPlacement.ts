@@ -1,4 +1,4 @@
-export type PanelPlacement = 'top' | 'bottom' | 'left' | 'right';
+type PanelPlacement = 'top' | 'bottom' | 'left' | 'right';
 
 interface ChatbotPanelLayoutInput {
   buttonLeft: number;

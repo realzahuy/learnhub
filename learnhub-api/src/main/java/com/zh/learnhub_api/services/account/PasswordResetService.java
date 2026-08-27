@@ -1,8 +1,6 @@
 package com.zh.learnhub_api.services.account;
 
 import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.services.notification.email.AccountEmailSender;
-
 import com.zh.learnhub_api.dtos.account.PasswordResetStatusDTO;
 import com.zh.learnhub_api.enums.UserActionCodePurpose;
 import com.zh.learnhub_api.exceptions.TooManyRequestsException;
@@ -12,6 +10,7 @@ import com.zh.learnhub_api.repositories.account.UserActionCodeRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.account.UserSessionRepository;
 import com.zh.learnhub_api.security.SessionAuthenticationCache;
+import com.zh.learnhub_api.services.notification.email.AccountEmailSender;
 import com.zh.learnhub_api.utils.UserActionCodes;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,10 +25,10 @@ public class PasswordResetService {
     private static final UserActionCodePurpose PURPOSE = UserActionCodePurpose.PASSWORD_RESET;
 
     private static final String SENT_MESSAGE =
-            "Nếu email này đã đăng ký tài khoản, mã đặt lại mật khẩu vừa được gửi tới hòm thư của bạn.";
+            "Mã đặt lại mật khẩu đã được gửi nếu email tồn tại.";
 
     private static final String INVALID_CODE_MESSAGE =
-            "Mã không đúng hoặc đã hết hạn. Vui lòng yêu cầu mã mới.";
+            "Mã không hợp lệ";
 
     private final UserRepository userRepository;
     private final UserSessionRepository sessionRepository;
@@ -112,8 +111,7 @@ public class PasswordResetService {
             throw new IllegalArgumentException(INVALID_CODE_MESSAGE);
         }
         if (latest.getAttempts() >= maxAttempts) {
-            throw new TooManyRequestsException(
-                    "Bạn đã nhập sai quá " + maxAttempts + " lần. Hãy yêu cầu mã mới.");
+            throw new TooManyRequestsException("Nhập sai quá nhiều lần");
         }
 
         if (!latest.getCode().equals(inputCode.trim())) {
@@ -121,7 +119,7 @@ public class PasswordResetService {
 
             int remaining = maxAttempts - latest.getAttempts();
             throw new IllegalArgumentException(remaining > 0
-                    ? "Mã không đúng. Bạn còn " + remaining + " lần thử."
+                    ? "Sai mã, còn %d lần".formatted(remaining)
                     : INVALID_CODE_MESSAGE);
         }
 

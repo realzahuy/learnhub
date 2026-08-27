@@ -8,5 +8,4 @@ public record FreeEnrollmentResponseDTO(
         String courseTitle,
         String courseSlug,
         LocalDateTime enrolledAt,
-        String message) {
-}
+        String message) {}

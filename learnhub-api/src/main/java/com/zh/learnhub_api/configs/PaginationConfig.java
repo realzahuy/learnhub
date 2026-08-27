@@ -9,8 +9,7 @@ import org.springframework.data.web.config.PageableHandlerMethodArgumentResolver
 public class PaginationConfig {
 
     @Bean
-    public PageableHandlerMethodArgumentResolverCustomizer pageableCustomizer(
-            AppProperties.Pagination properties) {
+    public PageableHandlerMethodArgumentResolverCustomizer pageableCustomizer(AppProperties.Pagination properties) {
         return resolver -> {
             resolver.setFallbackPageable(PageRequest.of(0, properties.defaultPageSize()));
             resolver.setMaxPageSize(properties.maxPageSize());

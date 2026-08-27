@@ -1,6 +1,6 @@
 import apiClient from './config';
 
-export interface PasswordResetStatus {
+interface PasswordResetStatus {
 
   message: string;
 

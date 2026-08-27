@@ -1,13 +1,13 @@
 package com.zh.learnhub_api.controllers.admin;
 
 import com.zh.learnhub_api.dtos.admin.AdminCourseContentDTO;
-import com.zh.learnhub_api.dtos.course.CourseRejectRequestDTO;
+import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseModerationResponseDTO;
+import com.zh.learnhub_api.dtos.course.CourseRejectRequestDTO;
 import com.zh.learnhub_api.dtos.course.CourseResponseDTO;
 import com.zh.learnhub_api.enums.CourseStatus;
-import com.zh.learnhub_api.dtos.common.PageResponseDTO;
-import com.zh.learnhub_api.services.admin.AdminCourseService;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
+import com.zh.learnhub_api.services.admin.AdminCourseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

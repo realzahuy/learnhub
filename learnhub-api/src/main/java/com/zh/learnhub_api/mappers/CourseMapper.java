@@ -3,6 +3,7 @@ package com.zh.learnhub_api.mappers;
 import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
 import com.zh.learnhub_api.dtos.course.CourseResponseDTO;
 import com.zh.learnhub_api.dtos.course.PublicCourseDetailDTO;
+import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.projections.course.CourseDetailProjection;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
 import com.zh.learnhub_api.projections.course.PublicCourseDetailProjection;
@@ -16,6 +17,12 @@ import java.util.Map;
 
 @Mapper
 public interface CourseMapper {
+
+    @Mapping(target = "instructorId", source = "instructorId.id")
+    @Mapping(target = "instructorName", source = "instructorId.fullName")
+    @Mapping(target = "categoryId", source = "categoryId.id")
+    @Mapping(target = "categoryName", source = "categoryId.name")
+    CourseResponseDTO mapEntityToDTO(Course course);
 
     @Mapping(target = "id", source = "courseId")
     CourseResponseDTO mapDetailProjectionToDTO(CourseDetailProjection projection);
@@ -44,7 +51,5 @@ public interface CourseMapper {
     @Mapping(target = "id", source = "courseId")
     @Mapping(target = "lessons", ignore = true)
     @Mapping(target = "ratingSummary", ignore = true)
-    @Mapping(target = "instructorAverageRating", constant = "0")
-    @Mapping(target = "instructorReviewCount", constant = "0L")
     PublicCourseDetailDTO mapPublicDetailProjectionToDTO(PublicCourseDetailProjection projection);
 }

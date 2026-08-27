@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { DropdownOption, PageSkeleton } from '../../components/common';
 import {
   StatsBarChart,
@@ -38,6 +38,8 @@ const METRIC_OPTIONS: DropdownOption[] = (['students', 'revenue'] as StatsMetric
 
 const formatPointValue = (metric: StatsMetric, point: StatsPoint): string =>
   metric === 'revenue' ? formatMoney(point.revenue) : formatCount(point.students);
+const selectStudents = (point: StatsPoint) => point.students;
+const selectRevenue = (point: StatsPoint) => point.revenue;
 
 const InstructorStatsPage: React.FC = () => {
   const {
@@ -51,11 +53,7 @@ const InstructorStatsPage: React.FC = () => {
   } = useStatsDashboard<InstructorOverview, InstructorTimeSeries, StatsMetric>({
     dataSource: instructorStatsService,
     queryScope: 'instructor',
-    logLabel: 'giảng viên',
   });
-
-  const selectStudents = useCallback((point: StatsPoint) => point.students, []);
-  const selectRevenue = useCallback((point: StatsPoint) => point.revenue, []);
 
   const periodLabel = overview ? `${overview.periodDays} ngày qua` : '';
 
@@ -69,7 +67,6 @@ const InstructorStatsPage: React.FC = () => {
         <div className="container py-4">
           {error && <div className="alert alert-danger">{error}</div>}
 
-          { }
           {loadingOverview && !overview && !error && (
             <PageSkeleton variant="stats" />
           )}
@@ -134,8 +131,6 @@ const InstructorStatsPage: React.FC = () => {
                 loading={loadingSeries}
               />
 
-              {
-}
               <div className={`stats-result${loadingSeries ? ' is-refetching' : ''}`}>
                 {activeMetric === '' || !series ? (
 

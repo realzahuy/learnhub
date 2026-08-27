@@ -5,20 +5,15 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
-
 @Entity
 @Table(name = "answer")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Answer implements Serializable {
+public class Answer {
 
-    private static final long serialVersionUID = 1L;
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -35,7 +30,7 @@ public class Answer implements Serializable {
     @NotNull
     @Column(name = "is_correct")
     private boolean isCorrect;
-    
+
     @JoinColumn(name = "question_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Question questionId;

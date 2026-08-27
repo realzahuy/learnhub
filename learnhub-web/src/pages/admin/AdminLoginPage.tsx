@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import PasswordInput from '../../components/auth/PasswordInput';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_ADMIN } from '../../types/auth.types';
 import { getApiErrorMessage } from '../../utils';
@@ -38,7 +39,6 @@ const AdminLoginPage: React.FC = () => {
 
       navigate(ROUTE_PATHS.adminCourses, { replace: true });
     } catch (err) {
-      console.error('Đăng nhập quản trị thất bại:', err);
       setError(getApiErrorMessage(err, 'Đăng nhập thất bại. Vui lòng thử lại.'));
     } finally {
       setSubmitting(false);
@@ -61,8 +61,6 @@ const AdminLoginPage: React.FC = () => {
 
         {error && <div className="alert alert-danger py-2">{error}</div>}
 
-        {
-}
         <form onSubmit={handleSubmit} noValidate>
           <div className="mb-3">
             <input
@@ -80,37 +78,20 @@ const AdminLoginPage: React.FC = () => {
           </div>
 
           <div className="mb-4">
-            <input
-              id="admin-password"
-              type="password"
-              className="form-control"
+            <PasswordInput
               placeholder="Mật khẩu"
-              aria-label="Mật khẩu"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               disabled={submitting}
               autoComplete="current-password"
             />
           </div>
 
           <button type="submit" className="btn-admin-login" disabled={submitting}>
-            {submitting ? (
-              <>
-                <span
-                  className="spinner-border spinner-border-sm me-2"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
-                Đang đăng nhập...
-              </>
-            ) : (
-              'Đăng nhập'
-            )}
+            {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
 
-        {
-}
         <Link to={ROUTE_PATHS.adminForgotPassword} className="admin-login-forgot">
           Quên mật khẩu?
         </Link>

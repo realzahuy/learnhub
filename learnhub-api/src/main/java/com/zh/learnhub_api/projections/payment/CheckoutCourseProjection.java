@@ -4,5 +4,6 @@ import java.math.BigDecimal;
 
 public interface CheckoutCourseProjection {
     Long getCourseId();
+
     BigDecimal getPrice();
 }

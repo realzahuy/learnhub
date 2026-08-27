@@ -1,10 +1,6 @@
 package com.zh.learnhub_api.services.payment.momo;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.service.annotation.HttpExchange;
@@ -34,7 +30,6 @@ public interface MoMoHttpClient {
         private final String requestType;
         private final String signature;
         private final String lang;
-        private final Integer orderExpireTime;
     }
 
     @Getter

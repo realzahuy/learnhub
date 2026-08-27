@@ -1,7 +1,7 @@
 package com.zh.learnhub_api.dtos.admin;
 
-import com.zh.learnhub_api.dtos.media.PlayableVideoDTO;
 import com.zh.learnhub_api.dtos.course.QuestionResponseDTO;
+import com.zh.learnhub_api.dtos.media.PlayableVideoDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

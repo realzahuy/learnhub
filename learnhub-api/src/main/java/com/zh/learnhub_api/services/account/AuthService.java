@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
 public class AuthService {
 
     private static final String ACCOUNT_LOCKED_MESSAGE =
-            "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.";
+            "Tài khoản đã bị khóa";
 
     private final UserRepository userRepository;
     private final UserSessionRepository sessionRepository;
@@ -40,12 +40,12 @@ public class AuthService {
     public AuthTokens login(LoginRequestDTO request, String currentRefreshToken) {
         UserAuthProjection userAuth = findUserAuthByLoginIdentifier(request.getLogin());
         if (!passwordEncoder.matches(request.getPassword(), userAuth.getPassword())) {
-            throw new InvalidCredentialsException("Tên đăng nhập hoặc mật khẩu không đúng");
+            throw new InvalidCredentialsException("Sai thông tin đăng nhập");
         }
 
-        User lockedUser = userRepository.findByIdForUpdate(userAuth.getId())
-                .orElseThrow(() -> new InvalidCredentialsException(
-                        "Tên đăng nhập hoặc mật khẩu không đúng"));
+        User lockedUser = userRepository
+                .findByIdForUpdate(userAuth.getId())
+                .orElseThrow(() -> new InvalidCredentialsException("Sai thông tin đăng nhập"));
         if (lockedUser.getAccountStatus() == AccountStatus.LOCKED) {
             throw new AccountLockedException(ACCOUNT_LOCKED_MESSAGE);
         }
@@ -61,8 +61,7 @@ public class AuthService {
         userRepository.updateLastLogin(userAuth.getId(), now);
         String accessToken = jwtUtil.generateAccessToken(
                 userAuth.getId(), userAuth.getUsername(), userAuth.getRoles(), session.getId());
-        sessionAuthenticationCache.putActiveAfterCommit(
-                session.getId(), lockedUser.getId(), expiresAt);
+        sessionAuthenticationCache.putActiveAfterCommit(session.getId(), lockedUser.getId(), expiresAt);
 
         return new AuthTokens(
                 accessToken,
@@ -77,10 +76,12 @@ public class AuthService {
     }
 
     public AuthTokens refresh(String refreshToken, String previousAccessToken) {
-        RefreshTokenCodec.ParsedRefreshToken parsed = refreshTokenCodec.parse(refreshToken)
-                .orElseThrow(() -> new InvalidCredentialsException("Mã làm mới phiên đăng nhập không hợp lệ"));
+        RefreshTokenCodec.ParsedRefreshToken parsed = refreshTokenCodec
+                .parse(refreshToken)
+                .orElseThrow(() -> new InvalidCredentialsException("Phiên đăng nhập không hợp lệ"));
 
-        SessionRefreshProjection session = sessionRepository.findRefreshSessionById(parsed.sessionId())
+        SessionRefreshProjection session = sessionRepository
+                .findRefreshSessionById(parsed.sessionId())
                 .orElseThrow(() -> invalidRefreshToken(parsed.sessionId(), previousAccessToken));
 
         LocalDateTime now = LocalDateTime.now();
@@ -90,7 +91,7 @@ public class AuthService {
             throw new InvalidCredentialsException("Phiên đăng nhập đã hết hạn");
         }
         if (!refreshTokenCodec.matches(parsed.secret(), session.getRefreshTokenHash())) {
-            throw new InvalidCredentialsException("Mã làm mới phiên đăng nhập không hợp lệ");
+            throw new InvalidCredentialsException("Phiên đăng nhập không hợp lệ");
         }
 
         if (session.getAccountStatus() == AccountStatus.LOCKED) {
@@ -99,10 +100,10 @@ public class AuthService {
 
         String nextSecret = refreshTokenCodec.newSecret();
         String nextHash = refreshTokenCodec.hash(nextSecret);
-        int updated = sessionRepository.rotateRefreshToken(
-                session.getSessionId(), session.getRefreshTokenHash(), nextHash);
+        int updated =
+                sessionRepository.rotateRefreshToken(session.getSessionId(), session.getRefreshTokenHash(), nextHash);
         if (updated != 1) {
-            throw new InvalidCredentialsException("Mã làm mới phiên đăng nhập đã được sử dụng");
+            throw new InvalidCredentialsException("Phiên đăng nhập đã được làm mới");
         }
 
         String accessToken = jwtUtil.generateAccessToken(
@@ -121,11 +122,9 @@ public class AuthService {
     private RuntimeException invalidRefreshToken(Long refreshSessionId, String accessToken) {
         return jwtUtil.getAccessTokenIdentityAllowExpired(accessToken)
                 .filter(identity -> refreshSessionId.equals(identity.sessionId()))
-                .filter(identity -> userRepository.existsByIdAndAccountStatus(
-                        identity.userId(), AccountStatus.LOCKED))
-                .<RuntimeException>map(identity ->
-                        new AccountLockedException(ACCOUNT_LOCKED_MESSAGE))
-                .orElseGet(() -> new InvalidCredentialsException("Mã làm mới phiên đăng nhập không hợp lệ"));
+                .filter(identity -> userRepository.existsByIdAndAccountStatus(identity.userId(), AccountStatus.LOCKED))
+                .<RuntimeException>map(identity -> new AccountLockedException(ACCOUNT_LOCKED_MESSAGE))
+                .orElseGet(() -> new InvalidCredentialsException("Phiên đăng nhập không hợp lệ"));
     }
 
     public void logout(String refreshToken) {
@@ -140,8 +139,7 @@ public class AuthService {
 
     public void logout(String refreshToken, Long authenticatedUserId, Long authenticatedSessionId) {
         if (authenticatedUserId != null && authenticatedSessionId != null) {
-            int deleted = sessionRepository.deleteCurrentSession(
-                    authenticatedSessionId, authenticatedUserId);
+            int deleted = sessionRepository.deleteCurrentSession(authenticatedSessionId, authenticatedUserId);
             if (deleted == 1) {
                 sessionAuthenticationCache.evictSessionAfterCommit(authenticatedSessionId);
             }
@@ -152,7 +150,7 @@ public class AuthService {
 
     public int logoutOtherDevices(Long userId, Long currentSessionId) {
         if (!sessionRepository.existsByIdAndUser_Id(currentSessionId, userId)) {
-            throw new InvalidCredentialsException("Phiên đăng nhập hiện tại không còn hiệu lực");
+            throw new InvalidCredentialsException("Phiên đăng nhập không còn hiệu lực");
         }
         int deleted = sessionRepository.deleteOtherSessions(userId, currentSessionId);
         if (deleted > 0) {
@@ -162,16 +160,11 @@ public class AuthService {
     }
 
     private UserAuthProjection findUserAuthByLoginIdentifier(String login) {
-        return userRepository.findAuthInfoByLogin(login)
-                .orElseThrow(() -> new InvalidCredentialsException(
-                        "Tên đăng nhập hoặc mật khẩu không đúng"));
+        return userRepository
+                .findAuthInfoByLogin(login)
+                .orElseThrow(() -> new InvalidCredentialsException("Sai thông tin đăng nhập"));
     }
 
     public record AuthTokens(
-            String accessToken,
-            String refreshToken,
-            LocalDateTime refreshExpiresAt,
-            String fullName,
-            String avatar) {
-    }
+            String accessToken, String refreshToken, LocalDateTime refreshExpiresAt, String fullName, String avatar) {}
 }

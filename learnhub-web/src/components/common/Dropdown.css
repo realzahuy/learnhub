@@ -72,6 +72,7 @@
   bottom: calc(100% + 0.35rem);
   box-shadow: 0 -8px 24px rgba(16, 24, 40, 0.12);
   transform-origin: bottom center;
+  animation-name: app-dropdown-enter-up;
 }
 
 @keyframes app-dropdown-enter {
@@ -83,10 +84,6 @@
     opacity: 1;
     transform: translateY(0) scaleY(1);
   }
-}
-
-.app-dropdown-menu.is-drop-up {
-  animation-name: app-dropdown-enter-up;
 }
 
 @keyframes app-dropdown-enter-up {

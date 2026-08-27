@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { StatsFilterValue } from '../components/features/stats';
 import { StatsGranularity } from '../types/stats.types';
@@ -17,8 +17,6 @@ interface StatsDataSource<Overview, TimeSeries> {
 interface UseStatsDashboardOptions<Overview, TimeSeries> {
   dataSource: StatsDataSource<Overview, TimeSeries>;
   queryScope: string;
-  logLabel: string;
-  errorMessage?: string;
 }
 
 export const useStatsDashboard = <
@@ -28,8 +26,6 @@ export const useStatsDashboard = <
 >({
   dataSource,
   queryScope,
-  logLabel,
-  errorMessage = 'Không tải được số liệu thống kê.',
 }: UseStatsDashboardOptions<Overview, TimeSeries>) => {
   const [applied, setApplied] = useState<StatsFilterValue<Metric> | null>(null);
   const hasAppliedFilter = Boolean(applied && applied.metric !== '');
@@ -48,25 +44,14 @@ export const useStatsDashboard = <
     queryFn: ({ signal }) => dataSource.getTimeSeries(groupBy, from, to, signal),
   });
 
-  useEffect(() => {
-    if (!overviewQuery.error) return;
-    console.error(`Không thể tải tổng quan ${logLabel}:`, overviewQuery.error);
-  }, [logLabel, overviewQuery.error]);
-
-  useEffect(() => {
-    if (!seriesQuery.error) return;
-    console.error(
-      `Không thể tải thống kê ${logLabel} theo thời gian:`,
-      seriesQuery.error
-    );
-  }, [logLabel, seriesQuery.error]);
-
   const overview = overviewQuery.data ?? null;
   const series = hasAppliedFilter ? seriesQuery.data ?? null : null;
   const loadingOverview = overviewQuery.isPending;
   const loadingSeries = hasAppliedFilter && seriesQuery.isFetching;
   const queryError = overviewQuery.error ?? seriesQuery.error;
-  const error = queryError ? getApiErrorMessage(queryError, errorMessage) : null;
+  const error = queryError
+    ? getApiErrorMessage(queryError, 'Không tải được số liệu thống kê.')
+    : null;
 
   return {
     overview,

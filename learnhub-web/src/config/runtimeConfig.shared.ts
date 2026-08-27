@@ -1,4 +1,4 @@
-export interface RuntimeConfig {
+interface RuntimeConfig {
   apiBaseUrl: string;
   hlsBaseUrl: string;
 }

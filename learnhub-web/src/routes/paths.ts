@@ -48,10 +48,7 @@ export const ROUTE_MATCH_PATTERNS = {
   coursesArea: `${ROUTE_PATHS.courses}/*`,
   learningArea: `${ROUTE_PATHS.learning}/*`,
   instructorArea: `${ROUTE_PATHS.instructorRoot}/*`,
-  adminArea: `${ROUTE_PATHS.adminRoot}/*`,
 } as const;
-
-const asPathParam = (value: number | string): string => String(value);
 
 export const routeTo = {
   courseDetail: (slug: string) =>
@@ -61,17 +58,17 @@ export const routeTo = {
   learningLecture: (slug: string, videoId: number | string) =>
     generatePath(ROUTE_PATHS.learningLecture, {
       slug,
-      videoId: asPathParam(videoId),
+      videoId: String(videoId),
     }),
   learningQuiz: (slug: string, quizLessonId: number | string) =>
     generatePath(ROUTE_PATHS.learningQuiz, {
       slug,
-      quizLessonId: asPathParam(quizLessonId),
+      quizLessonId: String(quizLessonId),
     }),
   profileInstructor: (id: number | string) =>
-    generatePath(ROUTE_PATHS.profileInstructor, { id: asPathParam(id) }),
+    generatePath(ROUTE_PATHS.profileInstructor, { id: String(id) }),
   instructorCourseBuild: (id: number | string) =>
-    generatePath(ROUTE_PATHS.instructorCourseBuild, { id: asPathParam(id) }),
+    generatePath(ROUTE_PATHS.instructorCourseBuild, { id: String(id) }),
   instructorCourseEdit: (id: number | string) =>
-    generatePath(ROUTE_PATHS.instructorCourseEdit, { id: asPathParam(id) }),
+    generatePath(ROUTE_PATHS.instructorCourseEdit, { id: String(id) }),
 } as const;

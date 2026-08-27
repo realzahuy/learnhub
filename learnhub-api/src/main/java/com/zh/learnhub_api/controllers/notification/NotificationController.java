@@ -27,29 +27,24 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<NotificationPageDTO> getMine(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            java.time.LocalDateTime cursorCreatedAt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    java.time.LocalDateTime cursorCreatedAt,
             @RequestParam(required = false) Long cursorId,
             Pageable pageable) {
-        return ResponseEntity.ok(notificationService.getMine(
-                principal.getUserId(), principal.getUsername(),
-                cursorCreatedAt, cursorId, pageable.getPageSize()));
+        return ResponseEntity.ok(
+                notificationService.getMine(principal.getUserId(), cursorCreatedAt, cursorId, pageable.getPageSize()));
     }
 
     @PutMapping("/{id}/read")
     public ResponseEntity<NotificationResponseDTO> markAsRead(
-            @PathVariable Long id,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return ResponseEntity.ok(notificationService.markAsRead(
-                principal.getUserId(), principal.getUsername(), id));
+            @PathVariable Long id, @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
+        return ResponseEntity.ok(notificationService.markAsRead(principal.getUserId(), id));
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        boolean isAdmin = principal.getAuthorities().stream()
-                .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
-        return notificationSseService.subscribe(
-                principal.getUserId(), principal.getUsername(), isAdmin);
+        boolean isAdmin =
+                principal.getAuthorities().stream().anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
+        return notificationSseService.subscribe(principal.getUserId(), isAdmin);
     }
 }

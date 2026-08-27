@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { uiConfig } from '../config/uiConfig';
 import { useDebouncedCallback } from './useDebouncedCallback';
 
 interface SetParamOptions {
@@ -8,30 +7,20 @@ interface SetParamOptions {
   replace?: boolean;
 }
 
-interface UsePagedSearchParamsOptions {
-  debounceMs?: number;
-  pageParam?: string;
-  searchParam?: string;
-}
-
 const parsePage = (value: string | null) => {
   const parsed = Number.parseInt(value ?? '0', 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 };
 
-export const usePagedSearchParams = ({
-  debounceMs = uiConfig.timing.searchDebounceMs,
-  pageParam = 'page',
-  searchParam = 'search',
-}: UsePagedSearchParamsOptions = {}) => {
+export const usePagedSearchParams = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const search = searchParams.get(searchParam) ?? '';
-  const page = parsePage(searchParams.get(pageParam));
+  const search = searchParams.get('search') ?? '';
+  const page = parsePage(searchParams.get('page'));
   const [searchInput, setSearchInput] = useState(search);
 
   const setParam = useCallback(
     (key: string, value: string, options: SetParamOptions = {}) => {
-      const { resetPage = key !== pageParam, replace = false } = options;
+      const { resetPage = key !== 'page', replace = false } = options;
 
       setSearchParams(
         (current) => {
@@ -39,19 +28,17 @@ export const usePagedSearchParams = ({
           if (value) next.set(key, value);
           else next.delete(key);
 
-          if (resetPage) next.set(pageParam, '0');
+          if (resetPage) next.set('page', '0');
           return next;
         },
         { replace }
       );
     },
-    [pageParam, setSearchParams]
+    [setSearchParams]
   );
 
-  const [commitSearch, cancelPendingSearch] = useDebouncedCallback(
-    (value: string) => setParam(searchParam, value.trim(), { replace: true }),
-    debounceMs
-  );
+  const [commitSearch, cancelPendingSearch] =
+    useDebouncedCallback((value: string) => setParam('search', value.trim(), { replace: true }));
 
   const setSearch = useCallback(
     (value: string) => {
@@ -64,12 +51,12 @@ export const usePagedSearchParams = ({
   const setPage = useCallback(
     (nextPage: number) => {
       cancelPendingSearch();
-      setParam(pageParam, Math.max(0, nextPage).toString(), {
+      setParam('page', Math.max(0, nextPage).toString(), {
         resetPage: false,
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [cancelPendingSearch, pageParam, setParam]
+    [cancelPendingSearch, setParam]
   );
 
   useEffect(() => {

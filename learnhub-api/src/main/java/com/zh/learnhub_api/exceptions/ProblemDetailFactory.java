@@ -1,9 +1,9 @@
 package com.zh.learnhub_api.exceptions;
 
-import java.net.URI;
-
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+
+import java.net.URI;
 
 public final class ProblemDetailFactory {
 

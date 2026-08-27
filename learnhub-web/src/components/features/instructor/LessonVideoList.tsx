@@ -4,7 +4,6 @@ import { videoService } from '../../../services/api/video.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
 import VideoPreviewModal from './VideoPreviewModal';
 import LessonVideoItem from './LessonVideoItem';
-import { uiConfig } from '../../../config/uiConfig';
 import { useDeferredSave } from '../../../hooks/useDeferredSave';
 import { useLessonVideoUpload } from '../../../hooks/useLessonVideoUpload';
 import { useToast } from '../../../context/ToastContext';
@@ -64,7 +63,6 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
         const shown = new Set(order.map((video) => video.id));
         onVideosChange(lesson.id, () => saved.filter((video) => shown.has(video.id)));
       } catch (err) {
-        console.error('Không thể đổi thứ tự video:', err);
         const rollback = rollbackRef.current;
         rollbackRef.current = null;
         if (rollback) onVideosChange(lesson.id, () => rollback);
@@ -74,10 +72,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
     [lesson.id, onVideosChange, setError]
   );
 
-  const [scheduleSaveOrder] = useDeferredSave(
-    saveOrder,
-    uiConfig.timing.reorderSaveDelayMs
-  );
+  const scheduleSaveOrder = useDeferredSave(saveOrder);
 
   const applyOrder = useCallback(
     (next: Video[]) => {
@@ -101,7 +96,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
       setDeletingVideoIds((previous) => new Set(previous).add(video.id));
       setError(null);
       try {
-        await videoService.remove(lesson.id, video.id);
+        await videoService.remove(video.id);
         onVideosChange(lesson.id, (prev) => prev.filter((v) => v.id !== video.id));
         showToast(`Đã xóa video "${video.title}"`, 'success');
       } catch (err) {
@@ -110,7 +105,6 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
           onVideosChange(lesson.id, (prev) => prev.filter((v) => v.id !== video.id));
           showToast(`Đã xóa video "${video.title}"`, 'success');
         } else {
-          console.error('Không thể xóa video:', err);
           setError(getApiErrorMessage(err, 'Không xóa được video. Vui lòng thử lại.'));
         }
       } finally {
@@ -128,7 +122,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
   const handleRename = useCallback(async (video: Video, title: string): Promise<boolean> => {
     setError(null);
     try {
-      const updated = await videoService.updateTitle(lesson.id, video.id, title);
+      const updated = await videoService.updateTitle(video.id, title);
       onVideosChange(lesson.id, (previous) => previous.map((item) => item.id === updated.id ? updated : item));
       return true;
     } catch (err) {
@@ -174,8 +168,6 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
             />
           ))}
 
-          {
-}
           {pending.map((item) => (
             <li className="lesson-media-item" key={`pending-${item.key}`}>
               <span className="lesson-media-handle-space" aria-hidden="true"></span>
@@ -200,8 +192,6 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
 
       {error && <span className="lesson-media-error">{error}</span>}
 
-      {
-}
       {isAdding && (
         <div className="lesson-media-add-form">
           <div className="lesson-media-add">

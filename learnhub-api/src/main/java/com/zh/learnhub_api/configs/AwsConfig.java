@@ -14,6 +14,7 @@ import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.regions.providers.AwsRegionProvider;
+import software.amazon.awssdk.services.mediaconvert.MediaConvertClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
 @Configuration
@@ -21,8 +22,7 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 public class AwsConfig {
 
     @Bean
-    public AwsCredentialsProvider awsCredentialsProvider(
-            AppProperties.AwsS3 properties) {
+    public AwsCredentialsProvider awsCredentialsProvider(AppProperties.AwsS3 properties) {
         return StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(properties.accessKey(), properties.secretKey()));
     }
@@ -34,27 +34,41 @@ public class AwsConfig {
     }
 
     @Bean
+    public MediaConvertClient mediaConvertClient(
+            AwsCredentialsProvider credentialsProvider,
+            AwsRegionProvider regionProvider,
+            AppProperties.AwsClient clientProperties) {
+        return MediaConvertClient.builder()
+                .region(regionProvider.getRegion())
+                .credentialsProvider(credentialsProvider)
+                .httpClientBuilder(Apache5HttpClient.builder().connectionTimeout(clientProperties.connectionTimeout()))
+                .overrideConfiguration(
+                        override -> override.apiCallAttemptTimeout(clientProperties.apiCallAttemptTimeout())
+                                .apiCallTimeout(clientProperties.apiCallTimeout())
+                                .retryStrategy(retry -> retry.maxAttempts(clientProperties.maxAttempts())))
+                .build();
+    }
+
+    @Bean
     public S3ClientCustomizer s3ClientCustomizer(AppProperties.AwsClient properties) {
         return builder -> {
-            builder.httpClientBuilder(Apache5HttpClient.builder()
-                    .connectionTimeout(properties.connectionTimeout()));
-            builder.overrideConfiguration(builder.overrideConfiguration().copy(override -> override
-                    .apiCallAttemptTimeout(properties.apiCallAttemptTimeout())
-                    .apiCallTimeout(properties.apiCallTimeout())
-                    .retryStrategy(retry -> retry.maxAttempts(properties.maxAttempts()))));
+            builder.httpClientBuilder(Apache5HttpClient.builder().connectionTimeout(properties.connectionTimeout()));
+            builder.overrideConfiguration(builder.overrideConfiguration()
+                    .copy(override -> override.apiCallAttemptTimeout(properties.apiCallAttemptTimeout())
+                            .apiCallTimeout(properties.apiCallTimeout())
+                            .retryStrategy(retry -> retry.maxAttempts(properties.maxAttempts()))));
         };
     }
 
     @Bean
-    public SqsAsyncClientCustomizer sqsAsyncClientCustomizer(
-            AppProperties.AwsClient properties) {
+    public SqsAsyncClientCustomizer sqsAsyncClientCustomizer(AppProperties.AwsClient properties) {
         return builder -> {
-            builder.httpClientBuilder(NettyNioAsyncHttpClient.builder()
-                    .connectionTimeout(properties.connectionTimeout()));
-            builder.overrideConfiguration(builder.overrideConfiguration().copy(override -> override
-                    .apiCallAttemptTimeout(properties.apiCallAttemptTimeout())
-                    .apiCallTimeout(properties.apiCallTimeout())
-                    .retryStrategy(retry -> retry.maxAttempts(properties.maxAttempts()))));
+            builder.httpClientBuilder(
+                    NettyNioAsyncHttpClient.builder().connectionTimeout(properties.connectionTimeout()));
+            builder.overrideConfiguration(builder.overrideConfiguration()
+                    .copy(override -> override.apiCallAttemptTimeout(properties.apiCallAttemptTimeout())
+                            .apiCallTimeout(properties.apiCallTimeout())
+                            .retryStrategy(retry -> retry.maxAttempts(properties.maxAttempts()))));
         };
     }
 
@@ -63,16 +77,12 @@ public class AwsConfig {
             SqsAsyncClient sqsAsyncClient,
             AppProperties.AwsSqsListener listenerProperties,
             AppProperties.AwsClient clientProperties) {
-        if (clientProperties.apiCallAttemptTimeout()
-                .compareTo(listenerProperties.pollTimeout()) <= 0) {
-            throw new IllegalStateException(
-                    "aws.client.api-call-attempt-timeout phải lớn hơn "
-                            + "spring.cloud.aws.sqs.listener.poll-timeout");
+        if (clientProperties.apiCallAttemptTimeout().compareTo(listenerProperties.pollTimeout()) <= 0) {
+            throw new IllegalStateException("Thời gian chờ AWS không hợp lệ");
         }
         return SqsMessageListenerContainerFactory.builder()
                 .sqsAsyncClient(sqsAsyncClient)
-                .configure(options -> options
-                        .autoStartup(listenerProperties.autoStartup())
+                .configure(options -> options.autoStartup(listenerProperties.autoStartup())
                         .maxConcurrentMessages(listenerProperties.maxConcurrentMessages())
                         .maxMessagesPerPoll(listenerProperties.maxMessagesPerPoll())
                         .pollTimeout(listenerProperties.pollTimeout())

@@ -240,17 +240,10 @@
   top: 50%;
   transform: translateY(-50%);
   border: none;
-  background: transparent;
   z-index: 10;
-  color: #6c757d;
   transition: all 0.3s ease;
   padding: 0.5rem;
   border-radius: 6px;
-}
-
-.btn-search:hover {
-  color: var(--notion-blue);
-  background: var(--notion-blue-light);
 }
 
 .search-icon {

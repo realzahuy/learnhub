@@ -77,7 +77,6 @@ const AppRoutes = () => {
         </Route>
       </Route>
 
-      { }
       <Route element={<RequireRole role={ROLE_INSTRUCTOR} redirectTo={ROUTE_PATHS.home} />}>
         <Route element={<InstructorLayout />}>
           <Route path={ROUTE_PATHS.instructorCourses} element={<InstructorCoursesPage />} />
@@ -97,7 +96,6 @@ const AppRoutes = () => {
         </Route>
       </Route>
 
-      { }
       <Route path={ROUTE_PATHS.adminLogin} element={<AdminLoginPage />} />
       <Route element={<AdminLayout />}>
         <Route element={<RequireRole role={ROLE_ADMIN} redirectTo={ROUTE_PATHS.adminLogin} />}>

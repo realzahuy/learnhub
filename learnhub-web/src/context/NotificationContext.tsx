@@ -128,11 +128,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         additions.forEach((item) => knownIds.current.add(item.id));
         return [...current, ...additions];
       });
-    } catch (error) {
-      if (!signal.aborted) {
-        console.error('Không thể tải thêm thông báo:', error);
-      }
-    } finally {
+    } catch {} finally {
       loadingMore.current = false;
       if (notificationHistoryEnabled.current && !signal.aborted) {
         setIsLoadingMore(false);
@@ -160,11 +156,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     const controller = new AbortController();
     historyController.current = controller;
-    void refreshHistory(controller.signal).catch((error) => {
-      if (!controller.signal.aborted) {
-        console.error('Không thể tải lịch sử thông báo:', error);
-      }
-    });
+    void refreshHistory(controller.signal).catch(() => {});
 
     return () => {
       controller.abort();
@@ -206,9 +198,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             controller.signal
           );
           retryDelay = uiConfig.notification.sseReconnectInitialMs;
-        } catch (error) {
+        } catch {
           if (controller.signal.aborted || disposed) break;
-          console.error('Kết nối thông báo realtime bị gián đoạn:', error);
         }
 
         if (!disposed && !controller.signal.aborted) {
@@ -216,11 +207,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           if (notificationHistoryEnabled.current) {
             try {
               await refreshHistory(controller.signal);
-            } catch (error) {
-              if (!controller.signal.aborted) {
-                console.error('Không thể đồng bộ lại thông báo:', error);
-              }
-            }
+            } catch {}
           }
           await waitBeforeReconnect(retryDelay);
           retryDelay = Math.min(

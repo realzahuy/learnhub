@@ -1,35 +1,25 @@
-
 package com.zh.learnhub_api.validations;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import jakarta.validation.ReportAsSingleViolation;
+import jakarta.validation.constraints.Pattern;
+
+import java.lang.annotation.*;
 
 @Documented
-@Constraint(validatedBy = StrongPasswordValidator.class)
+@Constraint(validatedBy = {})
+@Pattern(
+        regexp =
+                "(?s)^(?:\\p{javaWhitespace}*|(?=.{8,128}$)(?=.*\\p{javaUpperCase})(?=.*\\p{javaLowerCase})(?=.*\\p{javaDigit})(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*)$")
+@ReportAsSingleViolation
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface StrongPassword {
 
-    String message() default "Mật khẩu không đủ mạnh";
+    String message() default "Mật khẩu phải ít nhất 8 ký tự, chữ hoa, chữ thường, số và ký tự đặc biệt";
 
     Class<?>[] groups() default {};
 
     Class<? extends Payload>[] payload() default {};
-
-    int minLength() default 8;
-
-    int maxLength() default 128;
-
-    boolean requireUppercase() default true;
-
-    boolean requireLowercase() default true;
-
-    boolean requireDigit() default true;
-
-    boolean requireSpecialChar() default true;
 }

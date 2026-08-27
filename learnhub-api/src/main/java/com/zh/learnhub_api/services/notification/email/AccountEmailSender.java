@@ -1,7 +1,7 @@
 package com.zh.learnhub_api.services.notification.email;
 
 import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.exceptions.EmailSendException;
+import com.zh.learnhub_api.exceptions.ExternalServiceException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -18,35 +18,51 @@ public class AccountEmailSender {
     private final String fromAddress;
     private final String fromName;
 
-    public AccountEmailSender(JavaMailSender mailSender,
-                        AppProperties.SpringMail springMailProperties,
-                        AppProperties.Mail mailProperties) {
+    public AccountEmailSender(
+            JavaMailSender mailSender,
+            AppProperties.SpringMail springMailProperties,
+            AppProperties.Mail mailProperties) {
         this.mailSender = mailSender;
         this.fromAddress = springMailProperties.username();
         this.fromName = mailProperties.fromName();
     }
 
     public void sendVerificationCode(String toEmail, String code, int expireMinutes) {
-        sendCodeEmail(toEmail, "Mã xác thực email learnhub: " + code, buildVerificationHtml(code, expireMinutes), "Không gửi được email xác thực. Vui lòng thử lại sau.");
+        sendCodeEmail(
+                toEmail,
+                "Mã xác thực email learnhub: " + code,
+                buildVerificationHtml(code, expireMinutes),
+                "Không gửi được email xác thực. Vui lòng thử lại sau.");
     }
 
     public void sendPasswordResetCode(String toEmail, String code, int expireMinutes) {
-        sendCodeEmail(toEmail, "Mã đặt lại mật khẩu learnhub: " + code, buildPasswordResetHtml(code, expireMinutes), "Không gửi được email đặt lại mật khẩu. Vui lòng thử lại sau.");
+        sendCodeEmail(
+                toEmail,
+                "Mã đặt lại mật khẩu learnhub: " + code,
+                buildPasswordResetHtml(code, expireMinutes),
+                "Không gửi được email đặt lại mật khẩu. Vui lòng thử lại sau.");
     }
 
     public void sendAccountLocked(String toEmail, String fullName, String adminEmail) {
-        sendCodeEmail(toEmail, "Tài khoản learnhub của bạn đã bị khóa", buildAccountLockedHtml(fullName, adminEmail), "Không gửi được email thông báo khóa tài khoản. Vui lòng thử lại sau.");
+        sendCodeEmail(
+                toEmail,
+                "Tài khoản learnhub của bạn đã bị khóa",
+                buildAccountLockedHtml(fullName, adminEmail),
+                "Không gửi được email thông báo khóa tài khoản. Vui lòng thử lại sau.");
     }
 
     public void sendAccountUnlocked(String toEmail, String fullName) {
-        sendCodeEmail(toEmail, "Tài khoản learnhub của bạn đã được mở khóa", buildAccountUnlockedHtml(fullName), "Không gửi được email thông báo mở khóa tài khoản. Vui lòng thử lại sau.");
+        sendCodeEmail(
+                toEmail,
+                "Tài khoản learnhub của bạn đã được mở khóa",
+                buildAccountUnlockedHtml(fullName),
+                "Không gửi được email thông báo mở khóa tài khoản. Vui lòng thử lại sau.");
     }
 
     private void sendCodeEmail(String toEmail, String subject, String html, String failureMessage) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper =
-                new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
 
             helper.setFrom(fromAddress, fromName);
             helper.setTo(toEmail);
@@ -54,9 +70,10 @@ public class AccountEmailSender {
             helper.setText(html, true);
 
             mailSender.send(message);
-        } catch (UnsupportedEncodingException | jakarta.mail.MessagingException
-                 | org.springframework.mail.MailException ex) {
-            throw new EmailSendException(failureMessage, ex);
+        } catch (UnsupportedEncodingException
+                | jakarta.mail.MessagingException
+                | org.springframework.mail.MailException ex) {
+            throw new ExternalServiceException(failureMessage, ex);
         }
     }
 
@@ -111,8 +128,7 @@ public class AccountEmailSender {
     }
 
     static String buildAccountLockedHtml(String fullName, String adminEmail) {
-        String safeName = HtmlUtils.htmlEscape(
-                fullName == null || fullName.isBlank() ? "bạn" : fullName);
+        String safeName = HtmlUtils.htmlEscape(fullName == null || fullName.isBlank() ? "bạn" : fullName);
         String safeAdminEmail = HtmlUtils.htmlEscape(adminEmail);
         return """
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#101828">
@@ -128,8 +144,7 @@ public class AccountEmailSender {
     }
 
     static String buildAccountUnlockedHtml(String fullName) {
-        String safeName = HtmlUtils.htmlEscape(
-                fullName == null || fullName.isBlank() ? "bạn" : fullName);
+        String safeName = HtmlUtils.htmlEscape(fullName == null || fullName.isBlank() ? "bạn" : fullName);
         return """
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#101828">
               <h2 style="margin:0 0 8px">Tài khoản đã được mở khóa</h2>

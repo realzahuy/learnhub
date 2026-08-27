@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,12 +14,9 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Video implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Video {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

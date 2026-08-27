@@ -38,8 +38,22 @@ public class CourseVectorIndexer {
         vectorStore.upsert(courseId, embeddingClient.embedDocument(value.text(), value.title()), value.payload());
     }
 
-    public record SyncEvent(Long courseId) {
+    public void syncPayloadIfPublished(Long courseId) {
+        if (!vectorStore.isEnabled()) {
+            return;
+        }
+
+        Optional<CourseVectorStore.Payload> payload = textBuilder.buildPublishedPayload(courseId);
+        if (payload.isEmpty()) {
+            vectorStore.delete(courseId);
+            return;
+        }
+        vectorStore.updatePayload(courseId, payload.get());
     }
+
+    public record SyncEvent(Long courseId) {}
+
+    public record PayloadSyncEvent(Long courseId) {}
 }
 
 @Component
@@ -52,6 +66,12 @@ class CourseVectorEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onCourseVectorSync(CourseVectorIndexer.SyncEvent event) {
         indexer.indexIfPublished(event.courseId());
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onCoursePayloadSync(CourseVectorIndexer.PayloadSyncEvent event) {
+        indexer.syncPayloadIfPublished(event.courseId());
     }
 }
 

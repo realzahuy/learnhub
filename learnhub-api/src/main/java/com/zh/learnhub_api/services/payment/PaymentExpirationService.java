@@ -17,9 +17,7 @@ public class PaymentExpirationService {
     private final PaymentRepository paymentRepository;
     private final int expireMinutes;
 
-    public PaymentExpirationService(
-            PaymentRepository paymentRepository,
-            AppProperties.Payment properties) {
+    public PaymentExpirationService(PaymentRepository paymentRepository, AppProperties.Payment properties) {
         this.paymentRepository = paymentRepository;
         this.expireMinutes = properties.expireMinutes();
     }
@@ -37,11 +35,10 @@ public class PaymentExpirationService {
         if (payment.getStatus() == PaymentStatus.PENDING
                 && payment.getCreatedAt() != null
                 && !payment.getCreatedAt().isAfter(now.minusMinutes(expireMinutes))) {
-            paymentRepository.expireOverdueByIdAndUserId(
-                    payment.getId(), userId, now.minusMinutes(expireMinutes), now);
-            return paymentRepository.findByIdAndUserId_Id(payment.getId(), userId)
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Không tìm thấy đơn thanh toán"));
+            paymentRepository.expireOverdueByIdAndUserId(payment.getId(), userId, now.minusMinutes(expireMinutes), now);
+            return paymentRepository
+                    .findByIdAndUserId_Id(payment.getId(), userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn thanh toán"));
         }
         return payment;
     }

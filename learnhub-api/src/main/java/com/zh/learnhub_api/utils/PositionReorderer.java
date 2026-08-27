@@ -10,11 +10,12 @@ import java.util.function.UnaryOperator;
 @Component
 public class PositionReorderer {
 
-    public <T> List<T> reorder(List<T> rows,
-                               ToIntFunction<T> readPosition,
-                               ObjIntConsumer<T> writePosition,
-                               UnaryOperator<List<T>> saveAndFlush,
-                               Runnable assignFinal) {
+    public <T> List<T> reorder(
+            List<T> rows,
+            ToIntFunction<T> readPosition,
+            ObjIntConsumer<T> writePosition,
+            UnaryOperator<List<T>> saveAndFlush,
+            Runnable assignFinal) {
         if (rows.isEmpty()) {
             return rows;
         }

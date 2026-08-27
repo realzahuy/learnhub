@@ -1,25 +1,15 @@
 package com.zh.learnhub_api.controllers.learning;
 
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
-import com.zh.learnhub_api.dtos.learning.EnrollmentResponseDTO;
-import com.zh.learnhub_api.dtos.learning.EnrollmentBatchCheckRequestDTO;
-import com.zh.learnhub_api.dtos.learning.EnrollmentBatchStatusDTO;
-import com.zh.learnhub_api.dtos.learning.EnrollmentStatusDTO;
-import com.zh.learnhub_api.dtos.learning.FreeEnrollmentResponseDTO;
+import com.zh.learnhub_api.dtos.learning.*;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.learning.EnrollmentService;
-import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/enrollments")

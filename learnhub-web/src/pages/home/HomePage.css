@@ -43,7 +43,6 @@
 @media (max-width: 991px) {
   .hero-section {
     min-height: auto;
-    padding: 1rem 0;
   }
 
   .hero-illustration {

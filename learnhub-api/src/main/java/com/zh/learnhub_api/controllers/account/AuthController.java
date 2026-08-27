@@ -1,14 +1,7 @@
 package com.zh.learnhub_api.controllers.account;
 
 import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.dtos.account.AuthenticatedUserDTO;
-import com.zh.learnhub_api.dtos.account.ForgotPasswordRequestDTO;
-import com.zh.learnhub_api.dtos.account.LoginRequestDTO;
-import com.zh.learnhub_api.dtos.account.ResetPasswordRequestDTO;
-import com.zh.learnhub_api.dtos.account.LoginResponseDTO;
-import com.zh.learnhub_api.dtos.account.PasswordResetStatusDTO;
-import com.zh.learnhub_api.dtos.account.RegisterRequestDTO;
-import com.zh.learnhub_api.dtos.account.UserResponseDTO;
+import com.zh.learnhub_api.dtos.account.*;
 import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.account.AuthService;
@@ -21,12 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;

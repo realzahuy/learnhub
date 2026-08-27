@@ -18,10 +18,7 @@ public final class AuthenticatedUserPrincipal implements UserDetails {
     private final List<GrantedAuthority> authorities;
 
     public AuthenticatedUserPrincipal(
-            Long userId,
-            Long sessionId,
-            String username,
-            Collection<? extends GrantedAuthority> authorities) {
+            Long userId, Long sessionId, String username, Collection<? extends GrantedAuthority> authorities) {
         this.userId = userId;
         this.sessionId = sessionId;
         this.username = username;

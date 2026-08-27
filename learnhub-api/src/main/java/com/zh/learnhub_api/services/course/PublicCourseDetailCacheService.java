@@ -1,6 +1,6 @@
 package com.zh.learnhub_api.services.course;
 
-import com.zh.learnhub_api.configs.CacheNames;
+import com.zh.learnhub_api.configs.CacheConfiguration;
 import com.zh.learnhub_api.dtos.course.PublicCourseDetailDTO;
 import com.zh.learnhub_api.dtos.course.PublicLessonDTO;
 import com.zh.learnhub_api.dtos.course.PublicLessonDTO.PublicVideoDTO;
@@ -34,12 +34,10 @@ public class PublicCourseDetailCacheService {
     private final QuestionRepository questionRepository;
     private final CourseMapper courseMapper;
 
-    @Cacheable(
-            cacheNames = CacheNames.PUBLIC_COURSE_DETAILS,
-            key = "#slug",
-            sync = true)
+    @Cacheable(cacheNames = CacheConfiguration.PUBLIC_COURSE_DETAILS, key = "#slug", sync = true)
     public PublicCourseDetailDTO getStaticDetail(String slug) {
-        PublicCourseDetailProjection projection = courseRepository.findPublishedBySlugForPublic(slug)
+        PublicCourseDetailProjection projection = courseRepository
+                .findPublishedBySlugForPublic(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
         PublicCourseDetailDTO detail = courseMapper.mapPublicDetailProjectionToDTO(projection);
@@ -50,15 +48,11 @@ public class PublicCourseDetailCacheService {
     private List<PublicLessonDTO> getPublicLessons(Long courseId) {
         Map<Long, List<Video>> videosByLesson = videoRepository.findPublicByCourseId(courseId).stream()
                 .collect(Collectors.groupingBy(
-                        video -> video.getLesson().getId(),
-                        LinkedHashMap::new,
-                        Collectors.toList()));
+                        video -> video.getLesson().getId(), LinkedHashMap::new, Collectors.toList()));
 
-        Map<Long, Integer> questionCountByLesson = questionRepository
-                .countByCourseGroupedByLesson(courseId).stream()
+        Map<Long, Integer> questionCountByLesson = questionRepository.countByCourseGroupedByLesson(courseId).stream()
                 .collect(Collectors.toMap(
-                        row -> row.getLessonId(),
-                        row -> row.getQuestionCount().intValue()));
+                        row -> row.getLessonId(), row -> row.getQuestionCount().intValue()));
 
         return lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId).stream()
                 .map(lesson -> new PublicLessonDTO(
@@ -75,7 +69,6 @@ public class PublicCourseDetailCacheService {
 
     private PublicVideoDTO toPublicVideo(Video video, boolean lessonIsPreview) {
         String previewUrl = lessonIsPreview ? VideoPlaybackUrls.preview(video) : null;
-        return new PublicVideoDTO(
-                video.getId(), video.getTitle(), video.getDurationSeconds(), previewUrl);
+        return new PublicVideoDTO(video.getId(), video.getTitle(), video.getDurationSeconds(), previewUrl);
     }
 }

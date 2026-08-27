@@ -1,6 +1,6 @@
 
 export type AdminUserFilter = 'ALL' | 'INSTRUCTOR' | 'LOCKED';
-export type AccountStatus = 'ACTIVE' | 'LOCKED';
+type AccountStatus = 'ACTIVE' | 'LOCKED';
 
 export interface AdminUser {
   id: number;

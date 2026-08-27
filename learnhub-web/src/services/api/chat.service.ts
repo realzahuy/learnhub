@@ -1,12 +1,12 @@
 import apiClient from './config';
 import { RecommendationCard } from '../../types/course.types';
 
-export type ChatHistoryMessage = {
+type ChatHistoryMessage = {
   role: 'assistant' | 'user';
   content: string;
 };
 
-export type ChatResponse = {
+type ChatResponse = {
   reply: string;
   courses: RecommendationCard[];
 };

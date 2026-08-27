@@ -1,41 +1,36 @@
 package com.zh.learnhub_api.services.admin;
 
 import com.zh.learnhub_api.dtos.admin.AdminCourseContentDTO;
-import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.admin.AdminCourseContentDTO.AdminLessonContentDTO;
+import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseRejectRequestDTO;
 import com.zh.learnhub_api.dtos.course.CourseResponseDTO;
-import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.enums.NotificationType;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
-import com.zh.learnhub_api.pojo.Course;
-import com.zh.learnhub_api.pojo.CourseReject;
-import com.zh.learnhub_api.pojo.Lesson;
-import com.zh.learnhub_api.pojo.Question;
-import com.zh.learnhub_api.pojo.Video;
+import com.zh.learnhub_api.mappers.CourseMapper;
+import com.zh.learnhub_api.mappers.QuestionMapper;
+import com.zh.learnhub_api.pojo.*;
+import com.zh.learnhub_api.projections.course.CourseDetailProjection;
+import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.course.CourseRejectRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
 import com.zh.learnhub_api.repositories.course.QuestionRepository;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
-import com.zh.learnhub_api.repositories.account.UserRepository;
+import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import com.zh.learnhub_api.services.learning.VideoPlaybackService;
 import com.zh.learnhub_api.services.notification.NotificationService;
-import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
-import com.zh.learnhub_api.services.realtime.CourseRealtimeAudience;
-import com.zh.learnhub_api.services.realtime.CourseStatusChangedEvent;
+import com.zh.learnhub_api.services.realtime.CourseRealtimeEventListener.Audience;
+import com.zh.learnhub_api.services.realtime.CourseRealtimeEventListener.StatusChanged;
 import com.zh.learnhub_api.services.vector.CourseVectorIndexer.SyncEvent;
-import com.zh.learnhub_api.mappers.CourseMapper;
-import com.zh.learnhub_api.mappers.QuestionMapper;
-import com.zh.learnhub_api.projections.course.CourseDetailProjection;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -131,39 +126,31 @@ public class AdminCourseService {
 
         if (updated == 0) {
 
-            Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
+            courseRepository.findById(courseId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-            CourseStatus currentStatus = course.getStatus();
-            throw new IllegalStateException(
-                "Chỉ có thể duyệt khóa học ở trạng thái PENDING. " +
-                "Trạng thái hiện tại: " + currentStatus
-            );
+            throw new IllegalStateException("Không thể duyệt khóa học");
         }
 
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository.findByIdWithCategory(courseId)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
         notificationService.createCourseDecision(
             course,
             userRepository.getReferenceById(adminId),
             NotificationType.COURSE_APPROVED,
             "Khóa học đã được duyệt",
-            "Khóa học \"" + course.getTitle() + "\" đã được duyệt và xuất bản."
+            "Khóa học \"%s\" đã được duyệt.".formatted(course.getTitle())
         );
-        eventPublisher.publishEvent(new CourseStatusChangedEvent(
+        eventPublisher.publishEvent(new StatusChanged(
             courseId,
             course.getInstructorId().getId(),
             CourseStatus.PUBLISHED,
             course.getTitle(),
             course.getCategoryId().getName(),
-            CourseRealtimeAudience.INSTRUCTOR
+            Audience.INSTRUCTOR
         ));
 
         eventPublisher.publishEvent(new SyncEvent(courseId));
-        cacheInvalidator.evictAfterCommit(
-                CacheNames.PUBLIC_INSTRUCTOR_PROFILES,
-                course.getInstructorId().getId());
-
     }
 
     @Transactional
@@ -177,17 +164,13 @@ public class AdminCourseService {
         );
 
         if (updated == 0) {
-            Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
+            courseRepository.findById(courseId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-            CourseStatus currentStatus = course.getStatus();
-            throw new IllegalStateException(
-                "Chỉ có thể từ chối khóa học ở trạng thái PENDING. " +
-                "Trạng thái hiện tại: " + currentStatus
-            );
+            throw new IllegalStateException("Không thể từ chối khóa học");
         }
 
-        Course course = courseRepository.findById(courseId).orElseThrow();
+        Course course = courseRepository.findByIdWithCategory(courseId).orElseThrow();
         CourseReject reject = new CourseReject();
         reject.setCourseId(course);
         reject.setComment(request.getComment());
@@ -199,15 +182,15 @@ public class AdminCourseService {
             userRepository.getReferenceById(adminId),
             NotificationType.COURSE_REJECTED,
             "Khóa học chưa được duyệt",
-            "Khóa học \"" + course.getTitle() + "\" đã bị từ chối."
+            "Khóa học \"%s\" đã bị từ chối.".formatted(course.getTitle())
         );
-        eventPublisher.publishEvent(new CourseStatusChangedEvent(
+        eventPublisher.publishEvent(new StatusChanged(
             courseId,
             course.getInstructorId().getId(),
             CourseStatus.REJECTED,
             course.getTitle(),
             course.getCategoryId().getName(),
-            CourseRealtimeAudience.INSTRUCTOR
+            Audience.INSTRUCTOR
         ));
     }
 

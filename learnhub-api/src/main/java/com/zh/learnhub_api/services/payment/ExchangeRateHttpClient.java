@@ -12,14 +12,7 @@ import java.time.LocalDate;
 public interface ExchangeRateHttpClient {
 
     @GetExchange("/v2/rate/{base}/{quote}")
-    RateResponse getRate(
-            @PathVariable("base") String base,
-            @PathVariable("quote") String quote);
+    RateResponse getRate(@PathVariable("base") String base, @PathVariable("quote") String quote);
 
-    record RateResponse(
-            LocalDate date,
-            String base,
-            String quote,
-            BigDecimal rate) {
-    }
+    record RateResponse(LocalDate date, String base, String quote, BigDecimal rate) {}
 }

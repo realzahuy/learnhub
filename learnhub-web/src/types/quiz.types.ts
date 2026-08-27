@@ -1,10 +1,10 @@
 
-export interface QuizOption {
+interface QuizOption {
   id: number;
   answer: string;
 }
 
-export interface QuizQuestion {
+interface QuizQuestion {
   id: number;
   question: string;
   position: number;
@@ -20,7 +20,7 @@ export interface Quiz {
   questions: QuizQuestion[];
 }
 
-export interface QuizQuestionResult {
+interface QuizQuestionResult {
   questionId: number;
   correct: boolean;
   correctAnswerIds: number[];

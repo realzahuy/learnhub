@@ -21,12 +21,10 @@ public class ChatCourseRecommendationService {
     private final EmbeddingClient embeddingClient;
     private final CourseVectorStore vectorStore;
     private final EnrollmentRepository enrollmentRepository;
-    private final AppProperties.VectorSearch vectorSearchProperties;
-    private final AppProperties.Chat chatProperties;
+    private final AppProperties.Recommendation recommendationProperties;
 
     @Transactional(readOnly = true)
-    public List<RecommendationCardDTO> recommend(
-            List<String> searchKeywords, String username) {
+    public List<RecommendationCardDTO> recommend(List<String> searchKeywords, String username) {
         if (!vectorStore.isEnabled() || searchKeywords.isEmpty()) {
             return List.of();
         }
@@ -36,15 +34,15 @@ public class ChatCourseRecommendationService {
                     ? Set.of()
                     : enrollmentRepository.findCourseIdsByUsername(username);
             List<Match> matches = vectorStore.findSimilar(
-                    embeddingClient.embedQuery(buildVectorQuery(searchKeywords)),
-                    vectorSearchProperties.candidateLimit(),
+                    embeddingClient.embedQuery(String.join(" ", searchKeywords)),
+                    recommendationProperties.resultLimit(),
                     enrolledIds,
-                    chatProperties.minimumVectorScore());
+                    recommendationProperties.minimumVectorScore());
             if (matches.isEmpty()) {
                 return List.of();
             }
 
-            int courseLimit = Math.min(chatProperties.courseLimit(), 8);
+            int courseLimit = recommendationProperties.resultLimit();
             List<RecommendationCardDTO> courses = new ArrayList<>(courseLimit);
             for (Match match : matches) {
                 if (enrolledIds.contains(match.courseId())) {
@@ -61,12 +59,4 @@ public class ChatCourseRecommendationService {
             return List.of();
         }
     }
-
-    private String buildVectorQuery(List<String> keywords) {
-        // The planner guarantees that the first item is the canonical topic.
-        // Embedding subtopics together can dilute that topic and make equivalent
-        // requests produce different Qdrant scores.
-        return keywords.get(0);
-    }
-
 }

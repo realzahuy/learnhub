@@ -27,6 +27,25 @@ const SORT_OPTIONS: DropdownOption[] = [
   { value: 'rating_desc', label: 'Xếp hạng cao nhất' },
 ];
 
+const CATEGORY_COLORS = [
+  { bg: '#E3F2FD', text: '#1565C0' },
+  { bg: '#F3E5F5', text: '#6A1B9A' },
+  { bg: '#E8F5E9', text: '#2E7D32' },
+  { bg: '#FFF3E0', text: '#E65100' },
+  { bg: '#FCE4EC', text: '#C2185B' },
+  { bg: '#E0F2F1', text: '#00695C' },
+  { bg: '#FFF9C4', text: '#F57F17' },
+  { bg: '#FFEBEE', text: '#C62828' },
+];
+
+const getCategoryColor = (categoryName: string) => {
+  let hash = 0;
+  for (let i = 0; i < categoryName.length; i++) {
+    hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return CATEGORY_COLORS[Math.abs(hash) % CATEGORY_COLORS.length];
+};
+
 const CoursesPage = () => {
   const navigate = useNavigate();
   const {
@@ -89,26 +108,6 @@ const CoursesPage = () => {
     ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
     : null;
 
-  const getCategoryColor = (categoryName: string) => {
-    const colors = [
-      { bg: '#E3F2FD', text: '#1565C0' },
-      { bg: '#F3E5F5', text: '#6A1B9A' },
-      { bg: '#E8F5E9', text: '#2E7D32' },
-      { bg: '#FFF3E0', text: '#E65100' },
-      { bg: '#FCE4EC', text: '#C2185B' },
-      { bg: '#E0F2F1', text: '#00695C' },
-      { bg: '#FFF9C4', text: '#F57F17' },
-      { bg: '#FFEBEE', text: '#C62828' },
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < categoryName.length; i++) {
-      hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
-  };
-
   return (
     <div className="courses-page">
       <main className="courses-main">
@@ -156,15 +155,18 @@ const CoursesPage = () => {
           ) : (
             <>
               <div className="row g-4 motion-stagger">
-                {courses.map((course) => (
-                  <div key={course.id} className="col-12 col-sm-6 col-md-4 col-lg-3">
+                {courses.map((course) => {
+                  const categoryColor = getCategoryColor(course.categoryName);
+                  return <div key={course.id} className="col-12 col-sm-6 col-md-4 col-lg-3">
                     <div
                       className="course-card h-100"
                       onClick={() => handleCourseClick(course.slug)}
                       role="button"
                       tabIndex={0}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') handleCourseClick(course.slug);
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        handleCourseClick(course.slug);
                       }}
                     >
                       <div className="course-thumbnail">
@@ -180,8 +182,6 @@ const CoursesPage = () => {
                           {course.instructorName}
                         </p>
 
-                        {
-}
                         <div className="course-rating-slot mb-2">
                           {course.reviewCount > 0 && (
                             <StarRating
@@ -197,8 +197,8 @@ const CoursesPage = () => {
                           <span
                             className="badge category-badge"
                             style={{
-                              backgroundColor: getCategoryColor(course.categoryName).bg,
-                              color: getCategoryColor(course.categoryName).text
+                              backgroundColor: categoryColor.bg,
+                              color: categoryColor.text,
                             }}
                           >
                             <i className="bi bi-tag me-1"></i>
@@ -210,8 +210,8 @@ const CoursesPage = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  </div>;
+                })}
               </div>
 
               {pageData && (

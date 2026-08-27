@@ -1,6 +1,6 @@
 package com.zh.learnhub_api.services.media;
 
-import com.zh.learnhub_api.configs.CacheNames;
+import com.zh.learnhub_api.configs.CacheConfiguration;
 import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.pojo.Course;
@@ -10,8 +10,6 @@ import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 
@@ -21,16 +19,13 @@ public class VideoTranscodeCallbackService {
 
     private final VideoRepository videoRepository;
     private final VideoStorageService videoStorageService;
+    private final MediaCleanupService mediaCleanupService;
     private final VideoLifecycle videoLifecycle;
     private final VideoProgressSseService videoProgressSseService;
     private final ApplicationCacheInvalidator cacheInvalidator;
 
     @Transactional
-    public void handleJobStateChange(
-            String jobId,
-            String status,
-            Integer durationSeconds,
-            Integer progress) {
+    public void handleJobStateChange(String jobId, String status, Integer durationSeconds, Integer progress) {
         Video video = videoRepository.findByMediaconvertJobId(jobId).orElse(null);
         if (video == null) {
             return;
@@ -43,8 +38,7 @@ public class VideoTranscodeCallbackService {
         Long courseId = video.getLesson().getCourseId().getId();
         if ("STATUS_UPDATE".equals(status)) {
             if (progress != null) {
-                videoProgressSseService.publish(
-                        courseId, video.getId(), VideoStatus.PROCESSING, progress);
+                videoProgressSseService.publish(courseId, video.getId(), VideoStatus.PROCESSING, progress);
             }
             return;
         }
@@ -58,7 +52,7 @@ public class VideoTranscodeCallbackService {
             videoLifecycle.markFailed(video, LocalDateTime.now());
             videoRepository.save(video);
             evictPublishedCourseDetail(video);
-            publishProgressAfterCommit(courseId, video.getId(), VideoStatus.FAILED, progress);
+            videoProgressSseService.publishAfterCommit(courseId, video.getId(), VideoStatus.FAILED, progress);
             return;
         }
     }
@@ -73,42 +67,15 @@ public class VideoTranscodeCallbackService {
         videoRepository.save(video);
         evictPublishedCourseDetail(video);
 
-        publishProgressAfterCommit(courseId, video.getId(), VideoStatus.READY, 100);
+        videoProgressSseService.publishAfterCommit(courseId, video.getId(), VideoStatus.READY, 100);
 
-        try {
-            videoStorageService.deleteVideo(rawObjectKey);
-        } catch (Exception e) {
-        }
-    }
-
-    private void publishProgressAfterCommit(
-            Long courseId,
-            Long videoId,
-            VideoStatus status,
-            Integer progress) {
-        Runnable publish = () -> videoProgressSseService.publish(
-                courseId, videoId, status, progress);
-
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            publish.run();
-            return;
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        publish.run();
-                    }
-                });
+        mediaCleanupService.scheduleRawVideoCleanup(rawObjectKey);
     }
 
     private void evictPublishedCourseDetail(Video video) {
         Course course = video.getLesson().getCourseId();
         if (course.getStatus() == CourseStatus.PUBLISHED) {
-            cacheInvalidator.evictAfterCommit(
-                    CacheNames.PUBLIC_COURSE_DETAILS,
-                    course.getSlug());
+            cacheInvalidator.evictAfterCommit(CacheConfiguration.PUBLIC_COURSE_DETAILS, course.getSlug());
         }
     }
 }

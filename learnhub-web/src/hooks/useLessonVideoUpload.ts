@@ -8,7 +8,7 @@ import {
   validateVideoFile,
 } from '../utils';
 
-export interface PendingVideoUpload {
+interface PendingVideoUpload {
   key: number;
   title: string;
   uploadPercent: number;
@@ -105,19 +105,16 @@ export const useLessonVideoUpload = (
         updateUploadProgress
       );
       updateUploadProgress(100);
-      const uploaded = await videoService.getVideo(lesson.id, session.videoId);
+      const uploaded = await videoService.getVideo(session.videoId);
       onVideosChange(lesson.id, (previous) => [...previous, uploaded]);
       return true;
     } catch (cause) {
-      console.error('Không thể tải video lên:', cause);
       setError(getApiErrorMessage(cause, 'Không tải được video lên. Vui lòng thử lại.'));
       if (videoId !== null) {
         try {
-          const orphan = await videoService.getVideo(lesson.id, videoId);
+          const orphan = await videoService.getVideo(videoId);
           onVideosChange(lesson.id, (previous) => [...previous, orphan]);
-        } catch (fetchError) {
-          console.error('Không thể tải thông tin video bị lỗi:', fetchError);
-        }
+        } catch {}
       }
       return false;
     } finally {

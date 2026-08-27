@@ -10,8 +10,7 @@ public final class UserActionCodes {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private UserActionCodes() {
-    }
+    private UserActionCodes() {}
 
     public static String generateNumericCode(int length) {
         if (length < 1 || length > 10) {
@@ -25,8 +24,7 @@ public final class UserActionCodes {
         return code.toString();
     }
 
-    public static long secondsUntilResend(UserActionCode code, LocalDateTime now,
-                                          int cooldownSeconds) {
+    public static long secondsUntilResend(UserActionCode code, LocalDateTime now, int cooldownSeconds) {
         long elapsed = Duration.between(code.getCreatedAt(), now).toSeconds();
         return Math.max(0, cooldownSeconds - elapsed);
     }

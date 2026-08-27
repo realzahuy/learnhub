@@ -1,27 +1,27 @@
 import type { AdminUserFilter } from '../types/admin.types';
 import type { CourseSort } from '../types/course.types';
 
-export interface PublishedCourseFilters {
+interface PublishedCourseFilters {
   page: number;
   search?: string;
   category?: string;
   sort: CourseSort;
 }
 
-export interface EnrollmentFilters {
+interface EnrollmentFilters {
   page: number;
   category?: string;
   search?: string;
 }
 
-export interface InstructorCourseFilters {
+interface InstructorCourseFilters {
   page: number;
   status?: string;
   category?: string;
   search?: string;
 }
 
-export interface AdminUserFilters {
+interface AdminUserFilters {
   page: number;
   filter: AdminUserFilter;
   search?: string;
@@ -49,4 +49,3 @@ export const queryKeys = {
       [...queryKeys.adminUsers.all, filters] as const,
   },
 };
-

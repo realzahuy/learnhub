@@ -115,14 +115,12 @@
   width: 100%;
 }
 
-.course-edit-page .form-control:focus,
-.course-edit-page .form-select:focus {
+.course-edit-page .form-control:focus {
   border-color: var(--notion-blue);
   box-shadow: 0 0 0 0.2rem rgba(35, 131, 226, 0.15);
 }
 
-.course-edit-page .form-control:disabled,
-.course-edit-page .form-select:disabled {
+.course-edit-page .form-control:disabled {
   background-color: #f2f4f7;
   color: #667085;
 }

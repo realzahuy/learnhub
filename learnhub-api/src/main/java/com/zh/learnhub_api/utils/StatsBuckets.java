@@ -10,11 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 @Getter
 public final class StatsBuckets {
@@ -51,10 +47,10 @@ public final class StatsBuckets {
         boolean hasTo = toDate != null;
 
         if (hasFrom != hasTo) {
-            throw new IllegalArgumentException("Phải chọn đủ ngày bắt đầu và ngày kết thúc");
+            throw new IllegalArgumentException("Thiếu khoảng ngày");
         }
         if (hasFrom && fromDate.isAfter(toDate)) {
-            throw new IllegalArgumentException("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc");
+            throw new IllegalArgumentException("Khoảng ngày không hợp lệ");
         }
 
         LocalDate today = LocalDate.now();
@@ -88,8 +84,7 @@ public final class StatsBuckets {
         String value = groupBy == null ? "day" : groupBy.trim().toLowerCase(Locale.ROOT);
         return switch (value) {
             case "day", "month", "quarter" -> value;
-            default -> throw new IllegalArgumentException(
-                    "groupBy chỉ nhận một trong các giá trị: day, month, quarter");
+            default -> throw new IllegalArgumentException("groupBy không hợp lệ");
         };
     }
 
@@ -118,8 +113,7 @@ public final class StatsBuckets {
                 case "quarter" -> maximum + " quý";
                 default -> maximum + " ngày";
             };
-            throw new IllegalArgumentException("Khoảng thống kê theo " + granularity
-                    + " không được vượt quá " + unit);
+            throw new IllegalArgumentException("Tối đa %s".formatted(unit));
         }
     }
 

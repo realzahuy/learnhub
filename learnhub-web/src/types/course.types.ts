@@ -55,9 +55,6 @@ export interface CourseDetail {
   lessons: PublicLesson[];
 
   ratingSummary: RatingSummary;
-
-  instructorAverageRating: number;
-  instructorReviewCount: number;
 }
 
 export interface Category {

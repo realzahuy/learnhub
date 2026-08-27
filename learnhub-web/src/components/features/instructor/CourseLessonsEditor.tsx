@@ -5,7 +5,6 @@ import { Lesson, Video } from '../../../types/lesson.types';
 import { Question } from '../../../types/question.types';
 import { lessonService } from '../../../services/api/lesson.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
-import { uiConfig } from '../../../config/uiConfig';
 import { useDeferredSave } from '../../../hooks/useDeferredSave';
 import { getApiErrorMessage } from '../../../utils';
 import './CourseLessonsEditor.css';
@@ -60,7 +59,6 @@ const NewLessonForm = React.memo(({
       setNewTitle('');
       setNewIsPreview(false);
     } catch (err) {
-      console.error('Không thể tạo bài giảng:', err);
       onError(getApiErrorMessage(err, 'Không thêm được bài giảng. Vui lòng thử lại.'));
     } finally {
       setAdding(false);
@@ -153,7 +151,6 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
         onLessonUpdate(updated);
         return true;
       } catch (err) {
-        console.error('Không thể đổi tên bài giảng:', err);
         setError(getApiErrorMessage(err, 'Không đổi được tên bài giảng. Vui lòng thử lại.'));
         return false;
       }
@@ -173,7 +170,6 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
         onLessonUpdate(updated);
         return true;
       } catch (err) {
-        console.error('Không thể thay đổi chế độ xem thử bài giảng:', err);
         setError(getApiErrorMessage(err, 'Không đổi được chế độ xem thử. Vui lòng thử lại.'));
         return false;
       }
@@ -193,7 +189,6 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
         rollbackRef.current = null;
         onLessonsReorder(saved);
       } catch (err) {
-        console.error('Không thể đổi thứ tự bài giảng:', err);
         if (rollbackRef.current) onLessonsReorder(rollbackRef.current);
         rollbackRef.current = null;
         setError(getApiErrorMessage(err, 'Không đổi được thứ tự bài giảng. Vui lòng thử lại.'));
@@ -202,10 +197,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
     [courseId, onLessonsReorder]
   );
 
-  const [scheduleSaveOrder] = useDeferredSave(
-    saveOrder,
-    uiConfig.timing.reorderSaveDelayMs
-  );
+  const scheduleSaveOrder = useDeferredSave(saveOrder);
 
   const applyOrder = useCallback(
     (next: Lesson[]) => {
@@ -231,7 +223,6 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
       onLessonRemove(pendingDelete.id);
       setPendingDelete(null);
     } catch (err) {
-      console.error('Không thể xóa bài giảng:', err);
       setError(getApiErrorMessage(err, 'Không xóa được bài giảng. Vui lòng thử lại.'));
     } finally {
       setDeleting(false);
@@ -243,8 +234,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
       <div className="lessons-editor-heading">
         <h2 className="lessons-editor-title">Bài giảng của khóa học</h2>
         <p className="lessons-editor-hint">
-          Thêm từng bài giảng rồi soạn video và câu hỏi cho nó. Video được đẩy thẳng lên kho lưu trữ
-          và cần vài phút xử lý - bạn không phải chờ ở lại trang.
+          Thêm từng bài giảng rồi soạn video và câu hỏi.
         </p>
       </div>
 

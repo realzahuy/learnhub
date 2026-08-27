@@ -120,9 +120,6 @@ const LessonRow: React.FC<LessonRowProps> = ({
       {...dragItemProps}
       draggable={dragItemProps.draggable && !disabled}
     >
-      {
-
-}
       <div
         className="lesson-row-head"
         onClick={(e) => {
@@ -180,9 +177,6 @@ const LessonRow: React.FC<LessonRowProps> = ({
           </span>
         </div>
 
-        {
-
-}
         <button
           type="button"
           className={`lesson-row-preview${lesson.isPreview ? ' is-on' : ''}`}
@@ -210,8 +204,6 @@ const LessonRow: React.FC<LessonRowProps> = ({
           Xóa
         </button>
 
-        {
-}
         <button
           type="button"
           className={`lesson-row-toggle${expanded ? '' : ' is-collapsed'}`}
@@ -259,7 +251,6 @@ const LessonRow: React.FC<LessonRowProps> = ({
           <section className="lesson-content-section">
             <h3 className="lesson-content-title">Câu hỏi trắc nghiệm</h3>
             <LessonQuestionList
-              courseId={courseId}
               lesson={lesson}
               questions={questions}
               disabled={disabled}

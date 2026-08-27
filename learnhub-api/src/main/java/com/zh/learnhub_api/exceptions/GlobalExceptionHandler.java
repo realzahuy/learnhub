@@ -2,11 +2,7 @@ package com.zh.learnhub_api.exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
@@ -38,7 +34,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return response(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
-    @ExceptionHandler({EmailNotVerifiedException.class, ForbiddenException.class})
+    @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ProblemDetail> handleForbidden(
             RuntimeException ex, HttpServletRequest request) {
         return response(HttpStatus.FORBIDDEN, ex.getMessage(), request);
@@ -127,12 +123,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 request);
     }
 
-    @ExceptionHandler({
-            ImageUploadException.class,
-            VideoProcessingException.class,
-            EmailSendException.class,
-            PaymentGatewayException.class
-    })
+    @ExceptionHandler({ExternalServiceException.class, PaymentGatewayException.class})
     public ResponseEntity<ProblemDetail> handleExternalServiceFailure(
             RuntimeException ex, HttpServletRequest request) {
         return response(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);

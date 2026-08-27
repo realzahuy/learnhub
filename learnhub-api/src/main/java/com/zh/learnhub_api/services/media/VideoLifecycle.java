@@ -12,16 +12,14 @@ import java.util.Set;
 @Component
 public class VideoLifecycle {
 
-    private static final Set<VideoStatus> FAILED_SOURCES =
-            EnumSet.of(VideoStatus.UPLOADING, VideoStatus.PROCESSING);
+    private static final Set<VideoStatus> FAILED_SOURCES = EnumSet.of(VideoStatus.UPLOADING, VideoStatus.PROCESSING);
     private static final Set<VideoStatus> DELETABLE_STATUSES =
             EnumSet.of(VideoStatus.UPLOADING, VideoStatus.FAILED, VideoStatus.READY);
 
     public void initializeUploading(Video video, LocalDateTime now) {
         Objects.requireNonNull(video, "video không được để trống");
         if (video.getStatus() != null) {
-            throw new IllegalStateException(
-                    "Không thể khởi tạo video đã có trạng thái " + video.getStatus());
+            throw new IllegalStateException("Video đã được khởi tạo");
         }
 
         video.setStatus(VideoStatus.UPLOADING);
@@ -29,7 +27,7 @@ public class VideoLifecycle {
     }
 
     public void requireUploading(Video video) {
-        requireStatus(video, VideoStatus.UPLOADING, "tiếp tục tải lên");
+        requireStatus(video, VideoStatus.UPLOADING);
     }
 
     public boolean isProcessing(Video video) {
@@ -43,9 +41,7 @@ public class VideoLifecycle {
     public void requireDeletable(Video video) {
         VideoStatus current = currentStatus(video);
         if (!DELETABLE_STATUSES.contains(current)) {
-            throw new IllegalStateException(
-                    "Không thể xóa video ở trạng thái " + current
-                            + ". Chỉ video UPLOADING, FAILED hoặc READY mới được xóa");
+            throw new IllegalStateException("Không thể xóa video");
         }
     }
 
@@ -65,21 +61,17 @@ public class VideoLifecycle {
         transition(video, FAILED_SOURCES, VideoStatus.FAILED, now);
     }
 
-    private void requireStatus(Video video, VideoStatus expected, String operation) {
+    private void requireStatus(Video video, VideoStatus expected) {
         VideoStatus current = currentStatus(video);
         if (current != expected) {
-            throw new IllegalStateException(
-                    "Không thể " + operation + " khi video ở trạng thái " + current
-                            + "; trạng thái yêu cầu là " + expected);
+            throw new IllegalStateException("Trạng thái video không hợp lệ");
         }
     }
 
-    private void transition(Video video, Set<VideoStatus> allowedSources,
-                            VideoStatus target, LocalDateTime now) {
+    private void transition(Video video, Set<VideoStatus> allowedSources, VideoStatus target, LocalDateTime now) {
         VideoStatus current = currentStatus(video);
         if (!allowedSources.contains(current)) {
-            throw new IllegalStateException(
-                    "Không thể chuyển video từ " + current + " sang " + target);
+            throw new IllegalStateException("Không thể chuyển trạng thái video");
         }
 
         video.setStatus(target);

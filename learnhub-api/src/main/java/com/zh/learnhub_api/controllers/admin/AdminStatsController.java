@@ -28,10 +28,8 @@ public class AdminStatsController {
     @GetMapping("/timeseries")
     public ResponseEntity<AdminTimeSeriesDTO> getTimeSeries(
             @RequestParam(defaultValue = "day") String groupBy,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
         return ResponseEntity.ok(adminStatsService.getTimeSeries(groupBy, from, to));
     }

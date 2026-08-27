@@ -7,7 +7,7 @@ import {
   VideoUploadPayload,
   VideoUploadSession,
 } from '../../types/lesson.types';
-import { consumeJsonSseStream } from './sse';
+import { consumeJsonSseEvents } from './sse';
 
 export interface VideoProgressEvent {
   videoId: number;
@@ -48,10 +48,8 @@ export const videoService = {
     });
   },
 
-  getVideo: async (lessonId: number, videoId: number): Promise<Video> => {
-    const response = await apiClient.get<Video>(
-      `/instructor/lessons/${lessonId}/videos/${videoId}`
-    );
+  getVideo: async (videoId: number): Promise<Video> => {
+    const response = await apiClient.get<Video>(`/instructor/videos/${videoId}`);
     return response.data;
   },
 
@@ -81,7 +79,9 @@ export const videoService = {
         signal,
       }
     );
-    await consumeJsonSseStream(response, 'video-progress', onProgress);
+    await consumeJsonSseEvents(response, {
+      'video-progress': (data) => onProgress(data as VideoProgressEvent),
+    });
   },
 
   reorder: async (lessonId: number, payloads: VideoReorderPayload[]): Promise<Video[]> => {
@@ -92,12 +92,12 @@ export const videoService = {
     return response.data;
   },
 
-  updateTitle: async (lessonId: number, videoId: number, title: string): Promise<Video> => {
-    const response = await apiClient.put<Video>(`/instructor/lessons/${lessonId}/videos/${videoId}`, { title });
+  updateTitle: async (videoId: number, title: string): Promise<Video> => {
+    const response = await apiClient.put<Video>(`/instructor/videos/${videoId}`, { title });
     return response.data;
   },
 
-  remove: async (lessonId: number, videoId: number): Promise<void> => {
-    await apiClient.delete(`/instructor/lessons/${lessonId}/videos/${videoId}`);
+  remove: async (videoId: number): Promise<void> => {
+    await apiClient.delete(`/instructor/videos/${videoId}`);
   },
 };

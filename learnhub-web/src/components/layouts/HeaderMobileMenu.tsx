@@ -78,7 +78,7 @@ const HeaderMobileMenu = ({
       )}
 
       {isAuthenticated && (isInstructorMode ? (
-        <NavLink to={ROUTE_PATHS.home} end className="mobile-menu-item" onClick={onClose}>Học viên</NavLink>
+        <NavLink to={ROUTE_PATHS.courses} className="mobile-menu-item" onClick={onClose}>Học viên</NavLink>
       ) : (
         <>
           {isInstructor && (

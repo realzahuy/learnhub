@@ -1,16 +1,14 @@
 package com.zh.learnhub_api.services.course;
 
-import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.configs.CacheNames;
+import com.zh.learnhub_api.configs.CacheConfiguration;
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
 import com.zh.learnhub_api.dtos.course.PublicCourseDetailDTO;
+import com.zh.learnhub_api.mappers.CourseMapper;
 import com.zh.learnhub_api.projections.course.CourseListProjection;
 import com.zh.learnhub_api.projections.course.RatedCourseListProjection;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
-import com.zh.learnhub_api.services.learning.RatingStats;
 import com.zh.learnhub_api.services.learning.ReviewService;
-import com.zh.learnhub_api.mappers.CourseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -32,10 +30,9 @@ public class CourseCatalogService {
     private final CourseMapper courseMapper;
     private final ReviewService reviewService;
     private final PublicCourseDetailCacheService publicCourseDetailCacheService;
-    private final AppProperties.Recommendation recommendationProperties;
 
     @Cacheable(
-            cacheNames = CacheNames.PUBLIC_COURSE_CATALOG,
+            cacheNames = CacheConfiguration.PUBLIC_COURSE_CATALOG,
             key = "#requestedPage.pageSize",
             condition = "#requestedPage.pageNumber == 0 "
                     + "&& (#keyword == null || #keyword.isBlank()) "
@@ -50,41 +47,37 @@ public class CourseCatalogService {
         String normalizedSort = sort == null ? "newest" : sort.trim().toLowerCase();
 
         if ("rating_desc".equals(normalizedSort)) {
-            Pageable pageable = PageRequest.of(
-                    requestedPage.getPageNumber(), requestedPage.getPageSize());
-            Page<RatedCourseListProjection> coursePage =
-                    courseRepository.findPublishedCoursesOrderByRating(
-                            normalizedCategory,
-                            normalizedKeyword,
-                            recommendationProperties.ratingPrior(),
-                            recommendationProperties.ratingPriorCount(),
-                            pageable);
+            Pageable pageable = PageRequest.of(requestedPage.getPageNumber(), requestedPage.getPageSize());
+            Page<RatedCourseListProjection> coursePage = courseRepository.findPublishedCoursesOrderByRating(
+                    normalizedCategory,
+                    normalizedKeyword,
+                    pageable);
             List<CourseListItemDTO> content = coursePage.getContent().stream()
                     .map(courseMapper::mapRatedListProjectionToDTO)
                     .collect(Collectors.toList());
             return PageResponseDTO.from(coursePage, content);
         }
 
-        Sort pageSort = switch (normalizedSort) {
-            case "oldest" -> Sort.by(Sort.Direction.ASC, "createdAt")
-                    .and(Sort.by(Sort.Direction.ASC, "id"));
-            case "price_asc" -> Sort.by(Sort.Direction.ASC, "price")
-                    .and(Sort.by(Sort.Direction.DESC, "createdAt"));
-            case "price_desc" -> Sort.by(Sort.Direction.DESC, "price")
-                    .and(Sort.by(Sort.Direction.DESC, "createdAt"));
-            default -> Sort.by(Sort.Direction.DESC, "createdAt")
-                    .and(Sort.by(Sort.Direction.DESC, "id"));
-        };
-        Pageable pageable = PageRequest.of(
-                requestedPage.getPageNumber(), requestedPage.getPageSize(), pageSort);
-        Page<CourseListProjection> coursePage = courseRepository.findPublishedCourses(
-                normalizedCategory, normalizedKeyword, pageable);
+        Sort pageSort =
+                switch (normalizedSort) {
+                    case "oldest" -> Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by(Sort.Direction.ASC, "id"));
+                    case "price_asc" ->
+                        Sort.by(Sort.Direction.ASC, "price").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+                    case "price_desc" ->
+                        Sort.by(Sort.Direction.DESC, "price").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+                    default -> Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+                };
+        Pageable pageable = PageRequest.of(requestedPage.getPageNumber(), requestedPage.getPageSize(), pageSort);
+        Page<CourseListProjection> coursePage =
+                courseRepository.findPublishedCourses(normalizedCategory, normalizedKeyword, pageable);
 
         List<CourseListItemDTO> content = coursePage.getContent().stream()
                 .map(courseMapper::mapListProjectionToDTO)
                 .collect(Collectors.toList());
-        courseMapper.applyRatings(content, reviewService.getRatingStatsByCourses(
-                content.stream().map(CourseListItemDTO::getId).collect(Collectors.toList())));
+        courseMapper.applyRatings(
+                content,
+                reviewService.getRatingStatsByCourses(
+                        content.stream().map(CourseListItemDTO::getId).collect(Collectors.toList())));
 
         return PageResponseDTO.from(coursePage, content);
     }
@@ -95,8 +88,6 @@ public class CourseCatalogService {
 
     public PublicCourseDetailDTO getPublishedCourseBySlug(String slug) {
         PublicCourseDetailDTO cached = publicCourseDetailCacheService.getStaticDetail(slug);
-        RatingStats instructorRating = reviewService.getInstructorRatingStats(
-                cached.getInstructorId());
 
         return new PublicCourseDetailDTO(
                 cached.getId(),
@@ -111,8 +102,6 @@ public class CourseCatalogService {
                 cached.getInstructorAvatar(),
                 cached.getCategoryName(),
                 cached.getLessons(),
-                reviewService.buildSummary(cached.getId()),
-                instructorRating.average(),
-                instructorRating.reviewCount());
+                reviewService.buildSummary(cached.getId()));
     }
 }

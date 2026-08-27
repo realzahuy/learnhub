@@ -82,9 +82,8 @@ const LearnPage = () => {
       .then((data) => {
         if (!controller.signal.aborted) setRecommendations(data);
       })
-      .catch((err) => {
+      .catch(() => {
         if (controller.signal.aborted) return;
-        console.error('Không thể tải đề xuất khóa học:', err);
         setRecommendations([]);
       })
       .finally(() => {
@@ -152,7 +151,6 @@ const LearnPage = () => {
       ) : (
         course && (
           <main className="learn-main motion-content-enter">
-            { }
             <section className="learn-stage">
               {viewing?.kind === 'quiz' ? (
                 <QuizPanel
@@ -181,7 +179,6 @@ const LearnPage = () => {
               <LearnCourseTabs
                 course={course}
                 slug={slug}
-                viewing={viewing}
                 activeTab={activeTab}
                 recommendations={recommendations}
                 recommendationsLoading={recommendationsLoading}
@@ -190,7 +187,6 @@ const LearnPage = () => {
               />
             </section>
 
-            { }
             <LearnCourseSidebar
               course={course}
               viewing={viewing}

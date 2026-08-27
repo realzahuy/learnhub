@@ -2,7 +2,6 @@ package com.zh.learnhub_api.services.instructor;
 
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.instructor.InstructorOverviewDTO;
-import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.instructor.InstructorTimeSeriesDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorTimeSeriesDTO.InstructorStatsPointDTO;
 import com.zh.learnhub_api.enums.CourseStatus;
@@ -11,7 +10,6 @@ import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.payment.PaymentItemRepository;
 import com.zh.learnhub_api.utils.StatsBuckets;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +31,6 @@ public class InstructorStatsService {
     private final CourseRepository courseRepository;
     private final AppProperties.Stats statsProperties;
 
-    @Cacheable(cacheNames = CacheNames.INSTRUCTOR_OVERVIEW, key = "#instructorId", sync = true)
     public InstructorOverviewDTO getOverview(Long instructorId) {
 
         LocalDateTime now = LocalDateTime.now();
@@ -53,21 +50,17 @@ public class InstructorStatsService {
                 .pendingCourses(byStatus.getOrDefault(CourseStatus.PENDING, 0L))
                 .draftCourses(byStatus.getOrDefault(CourseStatus.DRAFT, 0L))
                 .rejectedCourses(byStatus.getOrDefault(CourseStatus.REJECTED, 0L))
-                .enrollmentsCurrentPeriod(
-                        enrollmentRepository.countEnrollmentsBetween(instructorId, currentFrom, now))
+                .enrollmentsCurrentPeriod(enrollmentRepository.countEnrollmentsBetween(instructorId, currentFrom, now))
                 .enrollmentsPreviousPeriod(
                         enrollmentRepository.countEnrollmentsBetween(instructorId, previousFrom, currentFrom))
-                .revenueCurrentPeriod(
-                        paymentItemRepository.sumRevenueBetween(instructorId, currentFrom, now))
-                .revenuePreviousPeriod(
-                        paymentItemRepository.sumRevenueBetween(instructorId, previousFrom, currentFrom))
+                .revenueCurrentPeriod(paymentItemRepository.sumRevenueBetween(instructorId, currentFrom, now))
+                .revenuePreviousPeriod(paymentItemRepository.sumRevenueBetween(instructorId, previousFrom, currentFrom))
                 .periodDays(periodDays)
                 .build();
     }
 
-    @Cacheable(cacheNames = CacheNames.INSTRUCTOR_TIME_SERIES)
-    public InstructorTimeSeriesDTO getTimeSeries(Long instructorId, String groupBy,
-                                                 LocalDate fromDate, LocalDate toDate) {
+    public InstructorTimeSeriesDTO getTimeSeries(
+            Long instructorId, String groupBy, LocalDate fromDate, LocalDate toDate) {
         StatsBuckets buckets = StatsBuckets.plan(groupBy, fromDate, toDate, statsProperties);
 
         LocalDateTime from = buckets.getFrom();
@@ -81,7 +74,8 @@ public class InstructorStatsService {
         Map<String, BigDecimal> revenue = StatsBuckets.toDecimalMap(
                 paymentItemRepository.sumRevenueByBucket(instructorId, from, to, granularity));
 
-        List<InstructorStatsPointDTO> points = new ArrayList<>(buckets.getLabels().size());
+        List<InstructorStatsPointDTO> points =
+                new ArrayList<>(buckets.getLabels().size());
         for (String label : buckets.getLabels()) {
             points.add(new InstructorStatsPointDTO(
                     label,
@@ -93,5 +87,4 @@ public class InstructorStatsService {
         return new InstructorTimeSeriesDTO(
                 buckets.getGranularity(), buckets.getStartDate(), buckets.getEndDate(), points);
     }
-
 }

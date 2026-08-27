@@ -8,7 +8,7 @@ import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Notification;
 import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.repositories.notification.NotificationRepository;
-import com.zh.learnhub_api.repositories.account.UserRepository;
+import com.zh.learnhub_api.services.notification.NotificationSseService.Created;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -23,16 +23,10 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public void createCourseDecision(
-            Course course,
-            User admin,
-            NotificationType type,
-            String title,
-            String content) {
+    public void createCourseDecision(Course course, User admin, NotificationType type, String title, String content) {
         Notification notification = new Notification();
         notification.setRecipientId(course.getInstructorId());
         notification.setSenderId(admin);
@@ -43,41 +37,26 @@ public class NotificationService {
 
         Notification saved = notificationRepository.save(notification);
         NotificationResponseDTO response = toResponse(saved);
-        eventPublisher.publishEvent(new NotificationCreatedEvent(
-                saved.getRecipientId().getId(), response));
+        eventPublisher.publishEvent(new Created(saved.getRecipientId().getId(), response));
     }
 
-    public NotificationPageDTO getMine(
-            Long userId,
-            String username,
-            LocalDateTime cursorCreatedAt,
-            Long cursorId,
-            int pageSize) {
-        Long resolvedUserId = resolveUserId(userId, username);
-
+    public NotificationPageDTO getMine(Long userId, LocalDateTime cursorCreatedAt, Long cursorId, int pageSize) {
         if ((cursorCreatedAt == null) != (cursorId == null)) {
-            throw new IllegalArgumentException(
-                    "cursorCreatedAt và cursorId phải được gửi cùng nhau");
+            throw new IllegalArgumentException("Cursor không hợp lệ");
         }
 
         List<NotificationRepository.NotificationPageRow> rows = cursorCreatedAt == null
-                ? notificationRepository.findFirstNotificationPage(resolvedUserId, pageSize + 1)
-                : notificationRepository.findNotificationPageAfter(
-                        resolvedUserId, cursorCreatedAt, cursorId, pageSize + 1);
+                ? notificationRepository.findFirstNotificationPage(userId, pageSize + 1)
+                : notificationRepository.findNotificationPageAfter(userId, cursorCreatedAt, cursorId, pageSize + 1);
         long unreadCount = rows.isEmpty() ? 0 : rows.getFirst().getUnreadCount();
-        List<NotificationRepository.NotificationPageRow> notificationRows = rows.stream()
-                .filter(row -> row.getId() != null)
-                .toList();
+        List<NotificationRepository.NotificationPageRow> notificationRows =
+                rows.stream().filter(row -> row.getId() != null).toList();
         boolean last = notificationRows.size() <= pageSize;
 
-        List<NotificationResponseDTO> content = notificationRows.stream()
-                .limit(pageSize)
-                .map(this::toResponse)
-                .toList();
+        List<NotificationResponseDTO> content =
+                notificationRows.stream().limit(pageSize).map(this::toResponse).toList();
 
-        NotificationResponseDTO nextCursor = !last && !content.isEmpty()
-                ? content.getLast()
-                : null;
+        NotificationResponseDTO nextCursor = !last && !content.isEmpty() ? content.getLast() : null;
 
         return new NotificationPageDTO(
                 content,
@@ -88,11 +67,9 @@ public class NotificationService {
     }
 
     @Transactional
-    public NotificationResponseDTO markAsRead(
-            Long userId, String username, Long notificationId) {
-        Long resolvedUserId = resolveUserId(userId, username);
+    public NotificationResponseDTO markAsRead(Long userId, Long notificationId) {
         Notification notification = notificationRepository
-                .findByIdAndRecipientId_Id(notificationId, resolvedUserId)
+                .findByIdAndRecipientId_Id(notificationId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông báo"));
 
         if (notification.getReadAt() == null) {
@@ -101,28 +78,20 @@ public class NotificationService {
         return toResponse(notification);
     }
 
-    private Long resolveUserId(Long userId, String username) {
-        if (userId != null) {
-            return userId;
-        }
-        return userRepository.findByUsernameWithoutRoles(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"))
-                .getId();
-    }
-
     private NotificationResponseDTO toResponse(Notification notification) {
         return new NotificationResponseDTO(
                 notification.getId(),
                 notification.getType(),
                 notification.getTitle(),
                 notification.getContent(),
-                notification.getCourseId() == null ? null : notification.getCourseId().getId(),
+                notification.getCourseId() == null
+                        ? null
+                        : notification.getCourseId().getId(),
                 notification.getReadAt(),
                 notification.getCreatedAt());
     }
 
-    private NotificationResponseDTO toResponse(
-            NotificationRepository.NotificationPageRow row) {
+    private NotificationResponseDTO toResponse(NotificationRepository.NotificationPageRow row) {
         return new NotificationResponseDTO(
                 row.getId(),
                 row.getType(),

@@ -230,58 +230,6 @@
   font-weight: 700;
 }
 
-.accordion-item {
-  border: 1px solid #e5e7eb;
-  margin-bottom: 0.5rem;
-  border-radius: 8px !important;
-  overflow: hidden;
-}
-
-.accordion-button {
-  background: white;
-  color: #1a1a1a;
-  font-weight: 600;
-  padding: 1rem 1.5rem;
-}
-
-.accordion-button:not(.collapsed) {
-  background: #f3f4f6;
-  color: #2383E2;
-  box-shadow: none;
-}
-
-.accordion-button:focus {
-  box-shadow: none;
-  border-color: #e5e7eb;
-}
-
-.accordion-button::after {
-  background-size: 1.25rem;
-}
-
-.accordion-body {
-  padding: 0;
-}
-
-.lesson-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  color: #4b5563;
-  transition: background 0.2s ease;
-}
-
-.lesson-item:hover {
-  background: #f9fafb;
-  cursor: pointer;
-}
-
-.lesson-item i {
-  color: #2383E2;
-  font-size: 1.2rem;
-}
-
 .instructor-avatar {
   flex-shrink: 0;
 }
@@ -345,21 +293,6 @@
 .price-header {
   border-bottom: 1px solid #e5e7eb;
   padding-bottom: 1.5rem;
-}
-
-.included-features {
-  border-top: 1px solid #e5e7eb;
-  padding-top: 1.5rem;
-}
-
-.included-features h6 {
-  color: #1a1a1a;
-  font-size: 1rem;
-}
-
-.included-features ul li {
-  color: #4b5563;
-  font-size: 0.95rem;
 }
 
 @media (max-width: 991px) {

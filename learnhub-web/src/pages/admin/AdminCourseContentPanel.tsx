@@ -125,7 +125,6 @@ const AdminCourseContentPanel: React.FC<AdminCourseContentPanelProps> = ({ cours
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
-        console.error('Không thể tải nội dung khóa học:', err);
         setError(getApiErrorMessage(err, 'Không tải được nội dung khóa học.'));
       })
       .finally(() => {
@@ -143,18 +142,10 @@ const AdminCourseContentPanel: React.FC<AdminCourseContentPanelProps> = ({ cours
     return <div className="alert alert-warning py-2 mb-0">{error}</div>;
   }
 
-  if (!content || content.lessons.length === 0) {
-    return (
-      <p className="admin-content-empty">
-        Khóa học này chưa có bài giảng nào. Cân nhắc kỹ trước khi duyệt.
-      </p>
-    );
-  }
+  if (!content) return null;
 
   return (
     <div className="admin-content-panel">
-      {
-}
       <p className="admin-content-summary">{content.lessons.length} bài giảng</p>
 
       <ul className="admin-content-lessons">

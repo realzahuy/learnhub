@@ -46,8 +46,7 @@ const HlsPlayer = ({ playbackUrl, className, onEnded }: HlsPlayerProps) => {
     let url: string;
     try {
       url = resolveHlsUrl(playbackUrl);
-    } catch (urlError) {
-      console.error('URL phát video không hợp lệ:', urlError);
+    } catch {
       setError('Không phát được video do cấu hình URL không hợp lệ.');
       return;
     }
@@ -100,15 +99,13 @@ const HlsPlayer = ({ playbackUrl, className, onEnded }: HlsPlayerProps) => {
 
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (cancelled || !data.fatal) return;
-          console.error('Lỗi HLS:', data);
           setError('Không phát được video. Vui lòng tải lại trang.');
         });
 
         hls.loadSource(url);
         hls.attachMedia(video);
-      } catch (loadError) {
+      } catch {
         if (cancelled) return;
-        console.error('Không thể tải trình phát HLS:', loadError);
         setError('Không phát được video. Vui lòng tải lại trang.');
       }
     };
@@ -164,7 +161,6 @@ const HlsPlayer = ({ playbackUrl, className, onEnded }: HlsPlayerProps) => {
     <div className="hls-player">
       <video ref={videoRef} className={className} controls playsInline onEnded={onEnded} />
 
-      { }
       {levels.length > 1 && (
 
         <div className="hls-quality" onClick={(event) => event.stopPropagation()}>

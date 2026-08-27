@@ -1,6 +1,6 @@
 package com.zh.learnhub_api.services.account;
 
-import com.zh.learnhub_api.configs.CacheNames;
+import com.zh.learnhub_api.configs.CacheConfiguration;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
@@ -18,18 +18,12 @@ public class UserProfileUpdateService {
 
     @Transactional
     public void updateProfile(
-            Long userId,
-            String fullName,
-            String bio,
-            String avatarUrl,
-            boolean publicIdentityChanged) {
+            Long userId, String fullName, String bio, String avatarUrl, boolean publicIdentityChanged) {
         userRepository.updateProfile(userId, fullName, bio, avatarUrl);
 
-        cacheInvalidator.evictAfterCommit(
-                CacheNames.PUBLIC_INSTRUCTOR_PROFILES, userId);
         if (publicIdentityChanged) {
             for (String slug : courseRepository.findPublishedSlugsByInstructorId(userId)) {
-                cacheInvalidator.evictAfterCommit(CacheNames.PUBLIC_COURSE_DETAILS, slug);
+                cacheInvalidator.evictAfterCommit(CacheConfiguration.PUBLIC_COURSE_DETAILS, slug);
             }
         }
     }

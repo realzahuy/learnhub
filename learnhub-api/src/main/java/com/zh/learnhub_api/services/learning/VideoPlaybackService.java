@@ -21,22 +21,21 @@ public class VideoPlaybackService {
     private final VideoRepository videoRepository;
     private final VideoStorageService videoStorageService;
     private final PublishedVideoPlaybackCacheService publishedVideoPlaybackCacheService;
-    private final CoursePlaybackAccessCacheService coursePlaybackAccessCacheService;
+    private final LearningAccessService learningAccessService;
 
-    public VideoStorageService.StoredObject openVideoFile(
-            Long videoId, String fileName, Long userId, boolean admin) {
+    public VideoStorageService.StoredObject openVideoFile(Long videoId, String fileName, Long userId, boolean admin) {
         if (admin) {
-            VideoPlaybackProjection video = videoRepository.findPlaybackById(videoId)
+            VideoPlaybackProjection video = videoRepository
+                    .findPlaybackById(videoId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
             return openReadyVideoFile(video, fileName);
         }
 
         var video = publishedVideoPlaybackCacheService.getReadyPublishedVideo(videoId);
         if (!video.lessonPreview()) {
-            coursePlaybackAccessCacheService.requireEnrollment(userId, video.courseId());
+            learningAccessService.requireEnrollment(userId, video.courseId());
         }
-        return videoStorageService.openHlsObject(
-                resolveHlsKey(video.storageKey(), fileName));
+        return videoStorageService.openHlsObject(resolveHlsKey(video.storageKey(), fileName));
     }
 
     public VideoStorageService.StoredObject openPreviewVideoFile(Long videoId, String fileName) {
@@ -44,12 +43,10 @@ public class VideoPlaybackService {
         if (!video.lessonPreview()) {
             throw new ForbiddenException("Bài giảng này không khả dụng để xem thử");
         }
-        return videoStorageService.openHlsObject(
-                resolveHlsKey(video.storageKey(), fileName));
+        return videoStorageService.openHlsObject(resolveHlsKey(video.storageKey(), fileName));
     }
 
-    public VideoStorageService.StoredObject openInstructorVideoFile(
-            Long videoId, String fileName, Long instructorId) {
+    public VideoStorageService.StoredObject openInstructorVideoFile(Long videoId, String fileName, Long instructorId) {
         VideoPlaybackProjection video = videoRepository
                 .findPlaybackForInstructorById(videoId, instructorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
@@ -65,8 +62,7 @@ public class VideoPlaybackService {
                 video.getStatus());
     }
 
-    private VideoStorageService.StoredObject openReadyVideoFile(
-            VideoPlaybackProjection video, String fileName) {
+    private VideoStorageService.StoredObject openReadyVideoFile(VideoPlaybackProjection video, String fileName) {
         if (video.getStorageKey() == null || video.getStatus() != VideoStatus.READY) {
             throw new ResourceNotFoundException("Video chưa sẵn sàng để phát");
         }
@@ -74,12 +70,14 @@ public class VideoPlaybackService {
     }
 
     private String resolveHlsKey(String masterKey, String fileName) {
-        if (fileName == null || fileName.isBlank()
-                || fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
+        if (fileName == null
+                || fileName.isBlank()
+                || fileName.contains("/")
+                || fileName.contains("\\")
+                || fileName.contains("..")) {
             throw new ForbiddenException("Tên tệp không hợp lệ");
         }
         String folder = masterKey.substring(0, masterKey.lastIndexOf('/') + 1);
         return folder + fileName;
     }
-
 }

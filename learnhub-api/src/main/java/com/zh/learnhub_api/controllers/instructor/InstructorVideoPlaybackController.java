@@ -28,8 +28,8 @@ public class InstructorVideoPlaybackController {
             @PathVariable Long videoId,
             @PathVariable String fileName,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        VideoStorageService.StoredObject object = videoPlaybackService
-                .openInstructorVideoFile(videoId, fileName, principal.getUserId());
+        VideoStorageService.StoredObject object =
+                videoPlaybackService.openInstructorVideoFile(videoId, fileName, principal.getUserId());
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(object.contentType()))

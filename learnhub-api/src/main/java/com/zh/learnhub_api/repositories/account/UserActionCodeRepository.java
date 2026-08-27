@@ -12,14 +12,14 @@ import java.util.Optional;
 
 public interface UserActionCodeRepository extends JpaRepository<UserActionCode, Long> {
 
-    Optional<UserActionCode> findTopByUserId_IdAndPurposeOrderByIdDesc(
-            Long userId, UserActionCodePurpose purpose);
+    Optional<UserActionCode> findTopByUserId_IdAndPurposeOrderByIdDesc(Long userId, UserActionCodePurpose purpose);
 
     @Modifying
     @Query("UPDATE UserActionCode c SET c.expiresAt = :now "
-         + "WHERE c.userId.id = :userId AND c.purpose = :purpose "
-         + "AND c.usedAt IS NULL AND c.expiresAt > :now")
-    int expireActiveCodes(@Param("userId") Long userId,
-                          @Param("purpose") UserActionCodePurpose purpose,
-                          @Param("now") LocalDateTime now);
+            + "WHERE c.userId.id = :userId AND c.purpose = :purpose "
+            + "AND c.usedAt IS NULL AND c.expiresAt > :now")
+    int expireActiveCodes(
+            @Param("userId") Long userId,
+            @Param("purpose") UserActionCodePurpose purpose,
+            @Param("now") LocalDateTime now);
 }

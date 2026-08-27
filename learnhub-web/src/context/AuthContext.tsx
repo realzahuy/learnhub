@@ -105,9 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       await authService.logout();
-    } catch (error) {
-      console.error('Lỗi đăng xuất:', error);
-    } finally {
+    } catch {} finally {
       authService.clearAuth();
       queryClient.clear();
       setUser(null);

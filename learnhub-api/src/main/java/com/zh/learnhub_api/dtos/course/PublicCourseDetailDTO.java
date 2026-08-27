@@ -1,11 +1,12 @@
 package com.zh.learnhub_api.dtos.course;
 
 import com.zh.learnhub_api.dtos.learning.RatingSummaryDTO;
-import java.math.BigDecimal;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +25,4 @@ public class PublicCourseDetailDTO {
     private String categoryName;
     private List<PublicLessonDTO> lessons;
     private RatingSummaryDTO ratingSummary;
-    private double instructorAverageRating;
-    private long instructorReviewCount;
 }

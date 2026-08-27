@@ -2,7 +2,7 @@ import apiClient from './config';
 import { Enrollment } from '../../types/enrollment.types';
 import { PageResponse } from '../../types/pagination.types';
 
-export interface FreeEnrollmentResponse {
+interface FreeEnrollmentResponse {
   enrollmentId: number;
   courseId: number;
   courseTitle: string;

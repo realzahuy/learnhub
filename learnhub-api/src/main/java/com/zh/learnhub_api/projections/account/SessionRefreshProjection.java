@@ -7,13 +7,21 @@ import java.util.List;
 
 public interface SessionRefreshProjection {
     Long getSessionId();
+
     String getRefreshTokenHash();
+
     LocalDateTime getExpiresAt();
+
     Long getUserId();
+
     String getUsername();
+
     String getFullName();
+
     String getAvatar();
+
     AccountStatus getAccountStatus();
+
     String getRoleNames();
 
     default List<String> getRoles() {
@@ -21,8 +29,6 @@ public interface SessionRefreshProjection {
         if (roleNames == null || roleNames.isBlank()) {
             return List.of();
         }
-        return Arrays.stream(roleNames.split(","))
-                .map(String::trim)
-                .toList();
+        return Arrays.stream(roleNames.split(",")).map(String::trim).toList();
     }
 }

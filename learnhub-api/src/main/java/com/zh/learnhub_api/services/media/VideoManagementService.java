@@ -1,7 +1,7 @@
 package com.zh.learnhub_api.services.media;
 
 import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.dtos.media.VideoReorderRequestDTO;
+import com.zh.learnhub_api.dtos.common.PositionReorderRequestDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Course;
@@ -15,19 +15,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class VideoManagementService {
-
-    private static final String WHAT = "video";
 
     private final VideoRepository videoRepository;
     private final LessonRepository lessonRepository;
@@ -39,9 +32,8 @@ public class VideoManagementService {
 
     @Transactional(readOnly = true)
     public VideoResponseDTO getVideo(Long videoId, Long instructorId) {
-        Video video = videoRepository.findById(videoId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy video có ID: " + videoId));
+        Video video = videoRepository.findByIdWithLessonAndCourse(videoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
         courseEditPolicy.requireOwner(video.getLesson().getCourseId(), instructorId);
         return toResponse(video);
     }
@@ -56,8 +48,7 @@ public class VideoManagementService {
         List<Long> distinctIds = new LinkedHashSet<>(videoIds).stream().toList();
         int statusBatchLimit = videoManagementProperties.statusBatchLimit();
         if (distinctIds.size() > statusBatchLimit) {
-            throw new IllegalArgumentException(
-                    "Chỉ được kiểm tra tối đa " + statusBatchLimit + " video mỗi lần");
+            throw new IllegalArgumentException("Vượt quá giới hạn video");
         }
 
         List<Video> videos = videoRepository.findByCourseIdAndIds(courseId, distinctIds);
@@ -71,15 +62,14 @@ public class VideoManagementService {
 
     @Transactional
     public List<VideoResponseDTO> reorderVideos(
-            Long lessonId, List<VideoReorderRequestDTO> requests, Long instructorId) {
-        Lesson lesson = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy bài học có ID: " + lessonId));
+            Long lessonId, List<PositionReorderRequestDTO> requests, Long instructorId) {
+        Lesson lesson = lessonRepository.findByIdWithCourse(lessonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài giảng"));
         Course course = lesson.getCourseId();
-        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
+        courseEditPolicy.requireOwnerAndEditable(course, instructorId);
 
         long distinctPositions = requests.stream()
-                .map(VideoReorderRequestDTO::getPosition)
+                .map(PositionReorderRequestDTO::getPosition)
                 .distinct()
                 .count();
         if (distinctPositions != requests.size()) {
@@ -89,10 +79,9 @@ public class VideoManagementService {
         List<Video> videos = videoRepository.findByLesson_IdOrderByPositionAsc(lessonId);
         Map<Long, Video> byId = videos.stream()
                 .collect(Collectors.toMap(Video::getId, video -> video));
-        for (VideoReorderRequestDTO request : requests) {
+        for (PositionReorderRequestDTO request : requests) {
             if (!byId.containsKey(request.getId())) {
-                throw new ResourceNotFoundException(
-                        "Không tìm thấy video " + request.getId() + " trong bài học");
+                throw new ResourceNotFoundException("Không tìm thấy video trong bài giảng");
             }
         }
 
@@ -111,21 +100,20 @@ public class VideoManagementService {
 
     @Transactional
     public VideoResponseDTO updateTitle(Long videoId, String title, Long instructorId) {
-        Video video = videoRepository.findById(videoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video có ID: " + videoId));
-        courseEditPolicy.requireOwnerAndEditable(video.getLesson().getCourseId(), instructorId, WHAT);
+        Video video = videoRepository.findByIdWithLessonAndCourse(videoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
+        courseEditPolicy.requireOwnerAndEditable(video.getLesson().getCourseId(), instructorId);
         video.setTitle(title.trim());
         return toResponse(video);
     }
 
     @Transactional
     public void deleteVideo(Long videoId, Long instructorId) {
-        Video video = videoRepository.findById(videoId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy video có ID: " + videoId));
+        Video video = videoRepository.findByIdWithLessonAndCourse(videoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
 
         Course course = video.getLesson().getCourseId();
-        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
+        courseEditPolicy.requireOwnerAndEditable(course, instructorId);
         videoLifecycle.requireDeletable(video);
 
         mediaCleanupService.scheduleVideoCleanup(video.getStorageKey());
@@ -146,10 +134,10 @@ public class VideoManagementService {
     private void assignRequestedPositions(
             List<Video> videos,
             Map<Long, Video> byId,
-            List<VideoReorderRequestDTO> requests) {
+            List<PositionReorderRequestDTO> requests) {
         Set<Long> mentioned = new HashSet<>();
         int maxRequested = 0;
-        for (VideoReorderRequestDTO request : requests) {
+        for (PositionReorderRequestDTO request : requests) {
             byId.get(request.getId()).setPosition(request.getPosition());
             mentioned.add(request.getId());
             maxRequested = Math.max(maxRequested, request.getPosition());

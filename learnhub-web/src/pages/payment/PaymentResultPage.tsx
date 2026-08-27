@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { uiConfig } from '../../config/uiConfig';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { paymentService } from '../../services/api/payment.service';
@@ -8,7 +9,7 @@ import {
   PaymentResponse,
   PaymentStatus,
 } from '../../types/payment.types';
-import { formatPrice, getApiErrorMessage } from '../../utils';
+import { formatPrice } from '../../utils';
 import { ROUTE_PATHS } from '../../routes/paths';
 import './PaymentResultPage.css';
 
@@ -17,9 +18,6 @@ const parsePaymentId = (rawValue: string | null): number | null => {
   const parsed = Number(rawValue);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
-
-const MOMO_POLL_INTERVAL_MS = 2_000;
-const MOMO_MAX_POLL_ATTEMPTS = 12;
 
 const PaymentResultPageContent = () => {
   const [searchParams] = useSearchParams();
@@ -46,7 +44,7 @@ const PaymentResultPageContent = () => {
     isPayPal ? 'PAYPAL' : null
   );
   const [totalPrice, setTotalPrice] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
   const clearedPaymentsRef = useRef(new Set<number>());
@@ -81,12 +79,11 @@ const PaymentResultPageContent = () => {
     if (!isAuthenticated || paymentId === null) return;
 
     setIsChecking(true);
-    setError(null);
+    setHasError(false);
     try {
       applyPayment(await paymentService.getStatus(paymentId));
-    } catch (err) {
-      console.error('Không thể tải trạng thái thanh toán:', err);
-      setError(getApiErrorMessage(err, 'Không đọc được trạng thái đơn thanh toán.'));
+    } catch {
+      setHasError(true);
     } finally {
       setIsChecking(false);
     }
@@ -95,22 +92,17 @@ const PaymentResultPageContent = () => {
   const processPayPalReturn = useCallback(async () => {
     if (!isAuthenticated || paymentId === null) return;
     if (paypalCancelled) {
-      setPaymentMethod('PAYPAL');
       setStatus('CANCELLED');
       return;
     }
     if (!paypalOrderId) return;
 
     setIsChecking(true);
-    setError(null);
+    setHasError(false);
     try {
       applyPayment(await paymentService.capturePayPal(paymentId, paypalOrderId));
-    } catch (err) {
-      console.error('Không thể hoàn tất thanh toán PayPal:', err);
-      setError(getApiErrorMessage(
-        err,
-        'Chưa thể hoàn tất giao dịch PayPal. Vui lòng thử xác nhận lại.'
-      ));
+    } catch {
+      setHasError(true);
     } finally {
       setIsChecking(false);
     }
@@ -160,10 +152,10 @@ const PaymentResultPageContent = () => {
         if (cancelled) return;
         attempts += 1;
         await checkPaymentStatus();
-        if (!cancelled && attempts < MOMO_MAX_POLL_ATTEMPTS) {
+        if (!cancelled && attempts < uiConfig.payment.momoMaxPollAttempts) {
           poll();
         }
-      }, MOMO_POLL_INTERVAL_MS);
+      }, uiConfig.payment.momoPollMs);
     };
 
     poll();
@@ -179,7 +171,7 @@ const PaymentResultPageContent = () => {
   const providerLabel = paymentMethod === 'PAYPAL' || isPayPal ? 'PayPal' : 'MoMo';
   const renderBody = () => {
     if (isAuthLoading) {
-      return <div className="spinner-border text-notion" role="status" aria-label="Đang tải" />;
+      return <p className="payment-result-text">Đang tải...</p>;
     }
 
     if (!isAuthenticated) {
@@ -253,7 +245,7 @@ const PaymentResultPageContent = () => {
       );
     }
 
-    if (error && !isChecking) {
+    if (hasError && !isChecking) {
       return (
         <>
           <i className="bi bi-exclamation-circle payment-result-icon payment-result-icon-warning"></i>
@@ -276,7 +268,6 @@ const PaymentResultPageContent = () => {
     if (status === 'PENDING') {
       return (
         <>
-          <i className="bi bi-hourglass-split payment-result-icon payment-result-icon-warning"></i>
           <h1 className="payment-result-title">Đơn vẫn đang chờ xác nhận</h1>
           <p className="payment-result-text">
             {providerLabel} chưa xác nhận giao dịch hoàn tất. Nếu bạn vừa thanh toán,
@@ -301,7 +292,6 @@ const PaymentResultPageContent = () => {
 
     return (
       <>
-        <div className="spinner-border text-notion mb-3" role="status" aria-hidden="true" />
         <h1 className="payment-result-title">Đang xác nhận thanh toán...</h1>
         <p className="payment-result-text">
           Vui lòng đợi trong giây lát, đừng đóng trang này.

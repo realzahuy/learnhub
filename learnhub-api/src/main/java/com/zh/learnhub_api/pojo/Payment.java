@@ -7,27 +7,23 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Entity
-@Table(name = "payment", indexes = {
-    @Index(name = "idx_payment_user_status_created",
-           columnList = "user_id, status, created_at"),
-    @Index(name = "idx_payment_status_created", columnList = "status, created_at")
-})
+@Table(
+        name = "payment",
+        indexes = {
+            @Index(name = "idx_payment_user_status_created", columnList = "user_id, status, created_at"),
+            @Index(name = "idx_payment_status_created", columnList = "status, created_at")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Payment implements Serializable {
+public class Payment {
 
-    private static final long serialVersionUID = 1L;
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -61,10 +57,7 @@ public class Payment implements Serializable {
     @NotNull
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-    
-    @OneToMany(mappedBy = "paymentId", fetch = FetchType.LAZY)
-    private Set<PaymentItem> paymentItemSet;
-    
+
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private User userId;

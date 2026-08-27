@@ -29,12 +29,6 @@ footer {
   flex-shrink: 0;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 a,
 a:hover,
 a:focus,
@@ -72,16 +66,12 @@ a:hover,
   --bs-btn-disabled-color: #fff;
   --bs-btn-disabled-bg: var(--notion-blue);
   --bs-btn-disabled-border-color: var(--notion-blue);
-  background-color: var(--notion-blue);
   border: none;
-  color: #fff;
   font-weight: 600;
   transition: all 0.3s ease;
 }
 
 .btn-notion:hover {
-  background-color: var(--notion-blue-hover);
-  color: #fff;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(35, 131, 226, 0.3);
 }
@@ -101,16 +91,11 @@ a:hover,
   --bs-btn-disabled-bg: #fff;
   --bs-btn-disabled-border-color: #c9ced6;
   border: 2px solid #c9ced6;
-  background: #fff;
-  color: var(--notion-blue);
   font-weight: 600;
   transition: all 0.3s ease;
 }
 
 .btn-outline-notion:hover,
 .btn-outline-notion:focus-visible {
-  background-color: #fff;
-  border-color: var(--notion-blue);
-  color: var(--notion-blue);
   transform: translateY(-2px);
 }

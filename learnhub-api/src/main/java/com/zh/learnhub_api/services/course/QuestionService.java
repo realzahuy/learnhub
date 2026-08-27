@@ -1,19 +1,17 @@
 package com.zh.learnhub_api.services.course;
 
-import com.zh.learnhub_api.dtos.course.QuestionRequestDTO.AnswerRequestDTO;
-import com.zh.learnhub_api.dtos.course.QuestionReorderRequestDTO;
+import com.zh.learnhub_api.dtos.common.PositionReorderRequestDTO;
 import com.zh.learnhub_api.dtos.course.QuestionRequestDTO;
+import com.zh.learnhub_api.dtos.course.QuestionRequestDTO.AnswerRequestDTO;
 import com.zh.learnhub_api.dtos.course.QuestionResponseDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
+import com.zh.learnhub_api.mappers.QuestionMapper;
 import com.zh.learnhub_api.pojo.Answer;
-import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Lesson;
 import com.zh.learnhub_api.pojo.Question;
 import com.zh.learnhub_api.repositories.course.AnswerRepository;
-import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
 import com.zh.learnhub_api.repositories.course.QuestionRepository;
-import com.zh.learnhub_api.mappers.QuestionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,16 +29,12 @@ public class QuestionService {
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
     private final LessonRepository lessonRepository;
-    private final CourseRepository courseRepository;
     private final CourseEditPolicy courseEditPolicy;
     private final QuestionMapper questionMapper;
 
-    private static final String WHAT = "câu hỏi";
-
     @Transactional
-    public QuestionResponseDTO createQuestion(Long courseId, Long lessonId,
-                                             QuestionRequestDTO request, Long instructorId) {
-        Lesson lesson = loadLessonForMutation(courseId, lessonId, instructorId);
+    public QuestionResponseDTO createQuestion(Long lessonId, QuestionRequestDTO request, Long instructorId) {
+        Lesson lesson = loadLessonForMutation(lessonId, instructorId);
         validateAnswers(request.getAnswers());
 
         Question question = new Question();
@@ -56,13 +50,9 @@ public class QuestionService {
     }
 
     @Transactional
-    public QuestionResponseDTO updateQuestion(Long courseId, Long lessonId, Long questionId,
-                                              QuestionRequestDTO request, Long instructorId) {
-        loadLessonForMutation(courseId, lessonId, instructorId);
+    public QuestionResponseDTO updateQuestion(Long questionId, QuestionRequestDTO request, Long instructorId) {
+        Question question = loadQuestionForMutation(questionId, instructorId);
         validateAnswers(request.getAnswers());
-
-        Question question = questionRepository.findByIdAndLessonId_Id(questionId, lessonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi"));
 
         question.setQuestion(request.getQuestion());
         Question updated = questionRepository.save(question);
@@ -76,13 +66,13 @@ public class QuestionService {
     }
 
     @Transactional
-    public List<QuestionResponseDTO> reorderQuestions(Long courseId, Long lessonId,
-                                                      List<QuestionReorderRequestDTO> requests, Long instructorId) {
-        loadLessonForMutation(courseId, lessonId, instructorId);
+    public List<QuestionResponseDTO> reorderQuestions(
+            Long lessonId, List<PositionReorderRequestDTO> requests, Long instructorId) {
+        loadLessonForMutation(lessonId, instructorId);
 
-        long distinctPositions = requests.stream().map(QuestionReorderRequestDTO::getPosition).distinct().count();
+        long distinctPositions = requests.stream().map(PositionReorderRequestDTO::getPosition).distinct().count();
         if (distinctPositions != requests.size()) {
-            throw new IllegalArgumentException("Các câu hỏi không được trùng vị trí");
+            throw new IllegalArgumentException("Trùng vị trí");
         }
 
         List<Question> questions = questionRepository.findByLessonIdWithAnswers(lessonId);
@@ -90,12 +80,12 @@ public class QuestionService {
                 .collect(Collectors.toMap(Question::getId, q -> q));
 
         if (requests.size() != questions.size()) {
-            throw new IllegalArgumentException("Phải gửi đủ toàn bộ câu hỏi của bài học khi sắp xếp lại");
+            throw new IllegalArgumentException("Thiếu câu hỏi");
         }
-        for (QuestionReorderRequestDTO request : requests) {
+        for (PositionReorderRequestDTO request : requests) {
             Question question = byId.get(request.getId());
             if (question == null) {
-                throw new ResourceNotFoundException("Không tìm thấy câu hỏi " + request.getId() + " trong bài học");
+                throw new ResourceNotFoundException("Không tìm thấy câu hỏi");
             }
             question.setPosition(request.getPosition());
         }
@@ -107,12 +97,8 @@ public class QuestionService {
     }
 
     @Transactional
-    public void deleteQuestion(Long courseId, Long lessonId, Long questionId, Long instructorId) {
-        loadLessonForMutation(courseId, lessonId, instructorId);
-
-        Question question = questionRepository.findByIdAndLessonId_Id(questionId, lessonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi"));
-
+    public void deleteQuestion(Long questionId, Long instructorId) {
+        Question question = loadQuestionForMutation(questionId, instructorId);
         questionRepository.delete(question);
     }
 
@@ -131,18 +117,22 @@ public class QuestionService {
     private void validateAnswers(List<AnswerRequestDTO> answers) {
         boolean hasCorrect = answers.stream().anyMatch(a -> Boolean.TRUE.equals(a.getIsCorrect()));
         if (!hasCorrect) {
-            throw new IllegalArgumentException("Câu hỏi phải có ít nhất một đáp án đúng");
+            throw new IllegalArgumentException("Cần ít nhất một đáp án đúng");
         }
     }
 
-    private Lesson loadLessonForMutation(Long courseId, Long lessonId, Long instructorId) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
+    private Lesson loadLessonForMutation(Long lessonId, Long instructorId) {
+        Lesson lesson = lessonRepository.findByIdWithCourse(lessonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài giảng"));
+        courseEditPolicy.requireOwnerAndEditable(lesson.getCourseId(), instructorId);
+        return lesson;
+    }
 
-        courseEditPolicy.requireOwnerAndEditable(course, instructorId, WHAT);
-
-        return lessonRepository.findByIdAndCourseId_Id(lessonId, courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học"));
+    private Question loadQuestionForMutation(Long questionId, Long instructorId) {
+        Question question = questionRepository.findByIdWithLessonAndCourse(questionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi"));
+        courseEditPolicy.requireOwnerAndEditable(question.getLessonId().getCourseId(), instructorId);
+        return question;
     }
 
     private QuestionResponseDTO mapToDTO(Question question) {

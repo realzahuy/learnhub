@@ -1,9 +1,10 @@
 package com.zh.learnhub_api.controllers.instructor;
 
-import com.zh.learnhub_api.dtos.course.LessonReorderDTO;
+import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
+import com.zh.learnhub_api.dtos.common.PositionReorderRequestDTO;
 import com.zh.learnhub_api.dtos.course.LessonRequestDTO;
 import com.zh.learnhub_api.dtos.course.LessonResponseDTO;
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
+import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.course.LessonService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -11,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +26,7 @@ public class InstructorLessonController {
     @PostMapping
     public ResponseEntity<List<LessonResponseDTO>> createLessons(
             @PathVariable Long courseId,
-            @NotEmpty(message = "Danh sách bài học không được rỗng") @RequestBody List<@Valid LessonRequestDTO> requests,
+            @NotEmpty(message = "Danh sách bài giảng không được rỗng") @RequestBody List<@Valid LessonRequestDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         List<LessonResponseDTO> created = lessonService.createLessons(courseId, requests, userDetails.getUserId());
@@ -47,7 +47,7 @@ public class InstructorLessonController {
     @PutMapping("/reorder")
     public ResponseEntity<List<LessonResponseDTO>> reorderLessons(
             @PathVariable Long courseId,
-            @NotEmpty(message = "Danh sách sắp xếp không được rỗng") @RequestBody List<@Valid LessonReorderDTO> requests,
+            @NotEmpty(message = "Danh sách sắp xếp không được rỗng") @RequestBody List<@Valid PositionReorderRequestDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         List<LessonResponseDTO> reordered = lessonService.reorderLessons(courseId, requests, userDetails.getUserId());
@@ -61,6 +61,6 @@ public class InstructorLessonController {
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         lessonService.deleteLesson(courseId, lessonId, userDetails.getUserId());
-        return ResponseEntity.ok(new MessageResponseDTO("Xóa bài học thành công"));
+        return ResponseEntity.ok(new MessageResponseDTO("Xóa bài giảng thành công"));
     }
 }

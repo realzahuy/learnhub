@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { DropdownOption, LoadingScreen } from '../../components/common';
 import {
   StatsBarChart,
@@ -46,6 +46,9 @@ const METRIC_UNITS: Record<AdminMetric, string> = {
 
 const formatPointValue = (metric: AdminMetric, point: AdminStatsPoint): string =>
   metric === 'revenue' ? formatMoney(point.revenue) : formatCount(point[metric]);
+const selectUsers = (point: AdminStatsPoint) => point.users;
+const selectInstructors = (point: AdminStatsPoint) => point.instructors;
+const selectRevenue = (point: AdminStatsPoint) => point.revenue;
 
 const AdminStatsPage: React.FC = () => {
   const {
@@ -59,12 +62,7 @@ const AdminStatsPage: React.FC = () => {
   } = useStatsDashboard<AdminOverview, AdminTimeSeries, AdminMetric>({
     dataSource: adminStatsService,
     queryScope: 'admin',
-    logLabel: 'quản trị',
   });
-
-  const selectUsers = useCallback((point: AdminStatsPoint) => point.users, []);
-  const selectInstructors = useCallback((point: AdminStatsPoint) => point.instructors, []);
-  const selectRevenue = useCallback((point: AdminStatsPoint) => point.revenue, []);
 
   const periodLabel = overview ? `${overview.periodDays} ngày qua` : '';
 
@@ -97,7 +95,6 @@ const AdminStatsPage: React.FC = () => {
       <div className="admin-stats">
         {error && <div className="alert alert-danger">{error}</div>}
 
-        { }
         {loadingOverview && !overview && !error && <LoadingScreen variant="stats" />}
 
         {overview && (
@@ -114,9 +111,6 @@ const AdminStatsPage: React.FC = () => {
                 hint={`${formatCount(overview.newUsersCurrentPeriod)} mới trong ${periodLabel}`}
               />
               <StatTile label="Giảng viên" value={formatCount(overview.totalInstructors)} />
-              {
-
-}
               <StatTile
                 label="Khóa học đang xuất bản"
                 value={formatCount(overview.publishedCourses)}
@@ -143,8 +137,6 @@ const AdminStatsPage: React.FC = () => {
               loading={loadingSeries}
             />
 
-            {
-}
             <div className={`stats-result${loadingSeries ? ' is-refetching' : ''}`}>
               {activeMetric === '' || !series ? (
 
@@ -190,9 +182,6 @@ const AdminStatsPage: React.FC = () => {
               )}
             </div>
 
-            {
-
-}
             {activeMetric === 'instructors' && (
               <p className="admin-stats-note">
                 Mốc thời gian là ngày tạo tài khoản, không phải ngày được cấp quyền giảng

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { uiConfig } from '../config/uiConfig';
 
-export function useDeferredSave<T>(
-  save: (payload: T) => Promise<void>,
-  delay: number
-): [(payload: T) => void, () => void] {
+export function useDeferredSave<T>(save: (payload: T) => Promise<void>): (payload: T) => void {
   const timerRef = useRef<number | null>(null);
   const pendingRef = useRef<{ payload: T } | null>(null);
   const queueRef = useRef<Promise<unknown> | null>(null);
@@ -37,9 +35,9 @@ export function useDeferredSave<T>(
     (payload: T) => {
       pendingRef.current = { payload };
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-      timerRef.current = window.setTimeout(flush, delay);
+      timerRef.current = window.setTimeout(flush, uiConfig.timing.reorderSaveDelayMs);
     },
-    [delay, flush]
+    [flush]
   );
 
   useEffect(() => {
@@ -52,5 +50,5 @@ export function useDeferredSave<T>(
     };
   }, [flush]);
 
-  return [schedule, flush];
+  return schedule;
 }

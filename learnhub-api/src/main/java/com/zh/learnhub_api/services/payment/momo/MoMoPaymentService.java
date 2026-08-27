@@ -9,13 +9,17 @@ import com.zh.learnhub_api.pojo.Payment;
 import com.zh.learnhub_api.services.payment.PaymentService;
 import com.zh.learnhub_api.services.payment.momo.MoMoHttpClient.CreatePaymentRequest;
 import com.zh.learnhub_api.services.payment.momo.MoMoHttpClient.CreatePaymentResponse;
-import com.zh.learnhub_api.utils.MoMoUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 
 @Service
@@ -26,7 +30,6 @@ public class MoMoPaymentService extends PaymentService {
 
     private final AppProperties.Momo momoConfig;
     private final MoMoHttpClient momoHttpClient;
-    private final AppProperties.Payment paymentProperties;
 
     @Override
     public PaymentMethod getProvider() {
@@ -38,7 +41,7 @@ public class MoMoPaymentService extends PaymentService {
         String orderId = payment.getId() + "_" + System.currentTimeMillis();
         String requestId = orderId;
         String amount = String.valueOf(payment.getTotalPrice().longValue());
-        String orderInfo = "Thanh toan khoa hoc LearnHub - " + payment.getId();
+        String orderInfo = getOrderInfo(payment.getId());
         String requestType = "payWithATM";
         String extraData = "";
 
@@ -54,7 +57,6 @@ public class MoMoPaymentService extends PaymentService {
                 + "&requestType=" + requestType;
 
         CreatePaymentRequest request = CreatePaymentRequest.builder()
-                .orderExpireTime(paymentProperties.expireMinutes())
                 .partnerCode(momoConfig.partnerCode())
                 .accessKey(momoConfig.accessKey())
                 .requestId(requestId)
@@ -65,13 +67,13 @@ public class MoMoPaymentService extends PaymentService {
                 .ipnUrl(momoConfig.notifyUrl())
                 .extraData(extraData)
                 .requestType(requestType)
-                .signature(MoMoUtils.hmacSHA256(momoConfig.secretKey(), rawData))
+                .signature(hmacSHA256(momoConfig.secretKey(), rawData))
                 .lang("vi")
                 .build();
 
         CreatePaymentResponse response = momoHttpClient.createPayment(request);
         if (response.getResultCode() != MOMO_SUCCESS_RESULT_CODE) {
-            throw new PaymentGatewayException("MoMo từ chối tạo giao dịch (mã kết quả=" + response.getResultCode() + ").");
+            throw new PaymentGatewayException("MoMo từ chối giao dịch");
         }
         return response.getPayUrl();
     }
@@ -79,8 +81,7 @@ public class MoMoPaymentService extends PaymentService {
     @Transactional(noRollbackFor = SecurityException.class)
     public void handleNotify(Map<String, Object> data) {
         Map<String, String> params = new HashMap<>();
-        data.forEach((key, value) ->
-                params.put(key, value == null ? "" : String.valueOf(value)));
+        data.forEach((key, value) -> params.put(key, value == null ? "" : String.valueOf(value)));
 
         String rawData = "accessKey=" + momoConfig.accessKey()
                 + "&amount=" + params.get("amount")
@@ -95,14 +96,15 @@ public class MoMoPaymentService extends PaymentService {
                 + "&responseTime=" + params.get("responseTime")
                 + "&resultCode=" + params.get("resultCode")
                 + "&transId=" + params.get("transId");
-        String signature = MoMoUtils.hmacSHA256(momoConfig.secretKey(), rawData);
+        String signature = hmacSHA256(momoConfig.secretKey(), rawData);
         if (!signature.equals(params.get("signature"))) {
             throw new SecurityException("Chữ ký thanh toán không hợp lệ");
         }
 
-        Long paymentId = MoMoUtils.parsePaymentId(params.get("orderId"));
+        Long paymentId = parsePaymentId(params.get("orderId"));
         int resultCode = Integer.parseInt(params.get("resultCode"));
-        Payment payment = paymentRepository.findByIdForUpdate(paymentId)
+        Payment payment = paymentRepository
+                .findByIdForUpdate(paymentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn thanh toán"));
         if (payment.getStatus() != PaymentStatus.PENDING) {
             return;
@@ -116,5 +118,23 @@ public class MoMoPaymentService extends PaymentService {
         }
 
         completePayment(payment, params.get("transId"));
+    }
+
+    private static Long parsePaymentId(String orderId) {
+        if (orderId == null || orderId.isBlank()) {
+            throw new IllegalArgumentException("Mã đơn hàng không được để trống");
+        }
+        int separator = orderId.indexOf('_');
+        return Long.parseLong(separator >= 0 ? orderId.substring(0, separator) : orderId);
+    }
+
+    private static String hmacSHA256(String key, String data) {
+        try {
+            Mac hmac = Mac.getInstance("HmacSHA256");
+            hmac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            return HexFormat.of().formatHex(hmac.doFinal(data.getBytes(StandardCharsets.UTF_8)));
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException("Lỗi tạo chữ ký HMAC SHA256", e);
+        }
     }
 }

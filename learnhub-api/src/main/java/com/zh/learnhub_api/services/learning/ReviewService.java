@@ -1,7 +1,7 @@
 package com.zh.learnhub_api.services.learning;
 
+import com.zh.learnhub_api.configs.CacheConfiguration;
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
-import com.zh.learnhub_api.configs.CacheNames;
 import com.zh.learnhub_api.dtos.learning.RatingSummaryDTO;
 import com.zh.learnhub_api.dtos.learning.ReviewRequestDTO;
 import com.zh.learnhub_api.dtos.learning.ReviewResponseDTO;
@@ -9,12 +9,11 @@ import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.CourseReview;
 import com.zh.learnhub_api.pojo.User;
-import com.zh.learnhub_api.projections.course.PublishedCourseAccessProjection;
 import com.zh.learnhub_api.projections.review.ReviewListProjection;
+import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.CourseReviewRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
-import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -40,17 +39,17 @@ public class ReviewService {
 
     @Transactional
     public ReviewResponseDTO saveReview(String slug, Long userId, ReviewRequestDTO request) {
-        PublishedCourseAccessProjection course = findPublishedCourse(slug);
+        Long courseId = findPublishedCourseId(slug);
 
-        if (!enrollmentRepository.existsByUserId_IdAndCourseId_Id(userId, course.getCourseId())) {
+        if (!enrollmentRepository.existsByUserId_IdAndCourseId_Id(userId, courseId)) {
             throw new ForbiddenException("Bạn cần ghi danh khóa học trước khi đánh giá");
         }
 
         CourseReview review = reviewRepository
-            .findByUserId_IdAndCourseId_Id(userId, course.getCourseId())
+            .findByUserId_IdAndCourseId_Id(userId, courseId)
             .orElseGet(() -> {
                 CourseReview fresh = new CourseReview();
-                fresh.setCourseId(courseRepository.getReferenceById(course.getCourseId()));
+                fresh.setCourseId(courseRepository.getReferenceById(courseId));
                 fresh.setUserId(userRepository.getReferenceById(userId));
                 return fresh;
             });
@@ -59,26 +58,26 @@ public class ReviewService {
         review.setComment(normalizeComment(request.getComment()));
 
         ReviewResponseDTO response = toDTO(reviewRepository.save(review), userId);
-        invalidateRatingCaches(course);
+        invalidateRatingCaches(courseId);
         return response;
     }
 
     @Transactional
     public void deleteMyReview(String slug, Long userId) {
-        PublishedCourseAccessProjection course = findPublishedCourse(slug);
+        Long courseId = findPublishedCourseId(slug);
 
         CourseReview review = reviewRepository
-            .findByUserId_IdAndCourseId_Id(userId, course.getCourseId())
+            .findByUserId_IdAndCourseId_Id(userId, courseId)
             .orElseThrow(() -> new ResourceNotFoundException("Bạn chưa đánh giá khóa học này"));
 
         reviewRepository.delete(review);
-        invalidateRatingCaches(course);
+        invalidateRatingCaches(courseId);
     }
 
     public ReviewResponseDTO getMyReview(String slug, Long userId) {
-        PublishedCourseAccessProjection course = findPublishedCourse(slug);
+        Long courseId = findPublishedCourseId(slug);
 
-        return reviewRepository.findByUserId_IdAndCourseId_Id(userId, course.getCourseId())
+        return reviewRepository.findByUserId_IdAndCourseId_Id(userId, courseId)
             .map(review -> toDTO(review, userId))
             .orElse(null);
     }
@@ -86,19 +85,17 @@ public class ReviewService {
     public PageResponseDTO<ReviewResponseDTO> getCourseReviews(
             String slug, Long currentUserId, Pageable requestedPage) {
 
-        PublishedCourseAccessProjection course = findPublishedCourse(slug);
+        Long courseId = findPublishedCourseId(slug);
 
         Pageable pageable = PageRequest.of(
                 requestedPage.getPageNumber(), requestedPage.getPageSize());
-        Page<ReviewListProjection> reviewPage = reviewRepository.findListByCourse(
-                course.getCourseId(), pageable);
+        Page<ReviewListProjection> reviewPage = reviewRepository.findListByCourse(courseId, pageable);
 
         return PageResponseDTO.from(reviewPage.map(review -> toDTO(review, currentUserId)));
     }
 
     public RatingSummaryDTO getCourseSummary(String slug) {
-        PublishedCourseAccessProjection course = findPublishedCourse(slug);
-        return buildSummary(course.getCourseId());
+        return buildSummary(findPublishedCourseId(slug));
     }
 
     public RatingSummaryDTO buildSummary(Long courseId) {
@@ -113,19 +110,14 @@ public class ReviewService {
         return ratingCacheService.getInstructorStats(instructorId);
     }
 
-    private void invalidateRatingCaches(PublishedCourseAccessProjection course) {
-        Long courseId = course.getCourseId();
-        Long instructorId = course.getInstructorId();
-        cacheInvalidator.evictAfterCommit(CacheNames.COURSE_RATING_STATS, courseId);
-        cacheInvalidator.evictAfterCommit(CacheNames.COURSE_RATING_SUMMARIES, courseId);
-        cacheInvalidator.evictAfterCommit(CacheNames.INSTRUCTOR_RATING_STATS, instructorId);
-        cacheInvalidator.evictAfterCommit(CacheNames.PUBLIC_INSTRUCTOR_PROFILES, instructorId);
+    private void invalidateRatingCaches(Long courseId) {
+        cacheInvalidator.evictAfterCommit(CacheConfiguration.COURSE_RATING_STATS, courseId);
+        cacheInvalidator.evictAfterCommit(CacheConfiguration.COURSE_RATING_SUMMARIES, courseId);
     }
 
-    private PublishedCourseAccessProjection findPublishedCourse(String slug) {
-        return courseRepository.findPublishedAccessBySlug(slug)
+    private Long findPublishedCourseId(String slug) {
+        return courseRepository.findPublishedIdBySlug(slug)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
-
     }
 
     private String normalizeComment(String comment) {

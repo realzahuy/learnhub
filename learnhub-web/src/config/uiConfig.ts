@@ -3,7 +3,6 @@ export const uiConfig = {
     coursePageSize: 12,
     reviewPageSize: 5,
     notificationHistoryPageSize: 12,
-    notificationServiceDefaultPageSize: 30,
   },
   notification: {
     visibleStep: 3,
@@ -16,6 +15,10 @@ export const uiConfig = {
     sseReconnectMaxMs: 15_000,
     progressFlushMs: 300,
     uploadProgressUpdateMs: 200,
+  },
+  payment: {
+    momoPollMs: 2_000,
+    momoMaxPollAttempts: 12,
   },
   query: {
     retryCount: 1,

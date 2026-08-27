@@ -4,12 +4,7 @@ interface Identifiable {
   id: number;
 }
 
-interface DragReorderResult<T> {
-
-  dragId: number | null;
-
-  overId: number | null;
-
+interface DragReorderResult {
   itemProps: (id: number) => {
     draggable: boolean;
     onMouseDown: (e: React.MouseEvent) => void;
@@ -28,14 +23,12 @@ interface DragReorderResult<T> {
   isDragging: (id: number) => boolean;
 
   isDropTarget: (id: number) => boolean;
-
-  items: T[];
 }
 
 export const useDragReorder = <T extends Identifiable>(
   items: T[],
   onReorder: (next: T[]) => void
-): DragReorderResult<T> => {
+): DragReorderResult => {
   const [heldId, setHeldId] = useState<number | null>(null);
   const [dragId, setDragId] = useState<number | null>(null);
   const [overId, setOverId] = useState<number | null>(null);
@@ -123,12 +116,9 @@ export const useDragReorder = <T extends Identifiable>(
   );
 
   return {
-    dragId,
-    overId,
     itemProps,
     handleProps,
     isDragging: (id: number) => dragId === id,
     isDropTarget: (id: number) => overId === id && dragId !== null && dragId !== id,
-    items,
   };
 };

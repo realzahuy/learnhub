@@ -1,11 +1,12 @@
 package com.zh.learnhub_api.dtos.course;
 
 import com.zh.learnhub_api.enums.CourseStatus;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor

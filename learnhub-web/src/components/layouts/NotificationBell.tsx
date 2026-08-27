@@ -42,8 +42,7 @@ const NotificationBell = () => {
     if (nextVisibleCount > notifications.length && hasMore) {
       try {
         await loadMore();
-      } catch (error) {
-        console.error('Không thể tải thêm thông báo:', error);
+      } catch {
         return;
       }
     }

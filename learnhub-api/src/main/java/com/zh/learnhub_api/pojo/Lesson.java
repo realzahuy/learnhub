@@ -5,22 +5,17 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Entity
 @Table(name = "lesson")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Lesson implements Serializable {
+public class Lesson {
 
-    private static final long serialVersionUID = 1L;
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -43,15 +38,8 @@ public class Lesson implements Serializable {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
-    
-    @OneToMany(mappedBy = "lesson", fetch = FetchType.LAZY)
-    private Set<Video> videoSet;
-    
-    @OneToMany(mappedBy = "lessonId", fetch = FetchType.LAZY)
-    private Set<Question> questionSet;
-    
+
     @JoinColumn(name = "course_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Course courseId;
-    
 }

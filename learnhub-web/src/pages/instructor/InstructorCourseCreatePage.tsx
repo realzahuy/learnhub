@@ -92,7 +92,7 @@ const InstructorCourseCreatePage: React.FC = () => {
     clearThumbnailFile,
   } = useCourseThumbnail(setError);
 
-  const { categories } = useCategories(true);
+  const { categories } = useCategories();
 
   useEffect(() => {
     if (!isReopening || !isValidId) return;
@@ -129,7 +129,6 @@ const InstructorCourseCreatePage: React.FC = () => {
         hydrateCourseContent(content);
       } catch (err) {
         if (controller.signal.aborted) return;
-        console.error('Không thể tải khóa học để biên soạn:', err);
         setLoadError('Không tải được khóa học. Vui lòng thử lại sau.');
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -209,11 +208,7 @@ const InstructorCourseCreatePage: React.FC = () => {
       setStep(STEP_LESSONS);
       setSlugSuggestions([]);
       setConflictingSlug(null);
-      if (newlyCreatedId !== null) {
-        navigate(routeTo.instructorCourseBuild(newlyCreatedId), { replace: true });
-      }
     } catch (err) {
-      console.error('Không thể lưu thông tin khóa học:', err);
       const suggestions = getApiSuggestions(err) ?? [];
       if (suggestions.length > 0) {
         setSlugSuggestions(suggestions);
@@ -222,11 +217,10 @@ const InstructorCourseCreatePage: React.FC = () => {
         setForm((prev) => ({ ...prev, slug: '' }));
       }
       setError(getApiErrorMessage(err, 'Không lưu được thông tin khóa học. Vui lòng thử lại.'));
-
+    } finally {
       if (newlyCreatedId !== null) {
         navigate(routeTo.instructorCourseBuild(newlyCreatedId), { replace: true });
       }
-    } finally {
       setSaving(false);
     }
   }, [courseId, form, slugSuggestions, thumbnailFile, thumbnailUrl, clearThumbnailFile, navigate]);
@@ -240,7 +234,6 @@ const InstructorCourseCreatePage: React.FC = () => {
       showToast(`Đã xóa khóa học "${form.title}"`, 'success');
       navigate(ROUTE_PATHS.instructorCourses, { replace: true });
     } catch (err) {
-      console.error('Không thể xóa khóa học:', err);
       showToast(getApiErrorMessage(err, 'Không xóa được khóa học.'), 'error');
     } finally {
       setDeletingCourse(false);
@@ -270,7 +263,6 @@ const InstructorCourseCreatePage: React.FC = () => {
       showToast('Đã gửi khóa học cho admin duyệt', 'success');
       navigate(ROUTE_PATHS.instructorCourses, { replace: true });
     } catch (err) {
-      console.error('Không thể gửi khóa học để duyệt:', err);
       setError(getApiErrorMessage(err, 'Không gửi duyệt được. Vui lòng thử lại.'));
     } finally {
       setSaving(false);
@@ -353,11 +345,8 @@ const InstructorCourseCreatePage: React.FC = () => {
             <div className="alert alert-danger">{loadError}</div>
           ) : (
             <>
-          {
-}
           <Stepper steps={STEPS} current={step} onStepClick={saving ? undefined : setStep} />
 
-          { }
           {rejectComment && (
             <div className="alert alert-danger">
               <strong>Lý do bị từ chối:</strong> {rejectComment}
@@ -366,9 +355,6 @@ const InstructorCourseCreatePage: React.FC = () => {
 
           {error && <div className="alert alert-danger">{error}</div>}
 
-          {
-
-}
           {step === STEP_INFO && (
             <CourseInfoForm
               id={COURSE_INFO_FORM_ID}
@@ -407,11 +393,8 @@ const InstructorCourseCreatePage: React.FC = () => {
             />
           )}
 
-          { }
           {step === STEP_LESSONS && courseId !== null && (
             <div className="course-create-card">
-              {
-}
               <CourseLessonsEditor
                 courseId={courseId}
                 lessons={lessons}
@@ -428,7 +411,6 @@ const InstructorCourseCreatePage: React.FC = () => {
             </div>
           )}
 
-          { }
           {step === STEP_REVIEW && (
             <CourseReviewStep
               form={form}
@@ -440,7 +422,6 @@ const InstructorCourseCreatePage: React.FC = () => {
             />
           )}
 
-          { }
           <div className="course-create-nav">
             <button
               type="button"

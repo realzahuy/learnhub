@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ConfirmDialog } from '../../components/common';
+import { ConfirmDialog, CourseThumbnail } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
@@ -13,12 +13,6 @@ import { PaymentMethod } from '../../types/payment.types';
 import { formatPrice, getApiErrorMessage } from '../../utils';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './CartPage.css';
-
-const EmptyCartIcon: React.FC = () => (
-  <svg width="96" height="96" viewBox="0 0 24 24" fill="currentColor" className="empty-cart-icon">
-    <path d="M19,7H16V6A4,4,0,0,0,8,6V7H5A1,1,0,0,0,4,8V19a3,3,0,0,0,3,3H17a3,3,0,0,0,3-3V8A1,1,0,0,0,19,7ZM10,6a2,2,0,0,1,4,0V7H10Zm8,13a1,1,0,0,1-1,1H7a1,1,0,0,1-1-1V9H8v1a1,1,0,0,0,2,0V9h4v1a1,1,0,0,0,2,0V9h2Z" />
-  </svg>
-);
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,7 +55,6 @@ const CartPage: React.FC = () => {
       showToast(payment.message || 'Đã thêm khóa học vào tài khoản.', 'success');
       navigate(ROUTE_PATHS.myCourses);
     } catch (err) {
-      console.error('Không thể tạo đơn thanh toán:', err);
       showToast(getApiErrorMessage(err, 'Không tạo được đơn thanh toán. Vui lòng thử lại.'), 'error');
       setIsCheckingOut(false);
     }
@@ -84,7 +77,6 @@ const CartPage: React.FC = () => {
             </div>
           ) : (
             <div className="row g-4">
-              { }
               <div className="col-lg-8">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <p className="text-muted mb-0">
@@ -102,20 +94,11 @@ const CartPage: React.FC = () => {
                   {items.map((item) => (
                     <div key={item.id} className="cart-item">
                       <Link to={routeTo.courseDetail(item.slug)} className="cart-item-thumbnail">
-                        {item.thumbnail ? (
-                          <img
-                            src={item.thumbnail}
-                            alt={item.title}
-                            loading="lazy"
-                            decoding="async"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="cart-item-thumbnail-placeholder"></div>
-                        )}
+                        <CourseThumbnail
+                          src={item.thumbnail}
+                          alt={item.title}
+                          placeholder={<div className="cart-item-thumbnail-placeholder" />}
+                        />
                       </Link>
 
                       <div className="cart-item-body">
@@ -142,7 +125,6 @@ const CartPage: React.FC = () => {
                 </div>
               </div>
 
-              { }
               <div className="col-lg-4">
                 <div className="cart-summary">
                   <h2 className="h6 text-uppercase text-muted fw-semibold mb-2">Tổng cộng</h2>
@@ -200,18 +182,7 @@ const CartPage: React.FC = () => {
                     onClick={handleCheckout}
                     disabled={isCheckingOut}
                   >
-                    {isCheckingOut ? (
-                      <>
-                        <span
-                          className="spinner-border spinner-border-sm me-2"
-                          role="status"
-                          aria-hidden="true"
-                        ></span>
-                        Đang chuyển tới trang thanh toán...
-                      </>
-                    ) : (
-                      'Thanh toán'
-                    )}
+                    {isCheckingOut ? 'Đang chuyển tới trang thanh toán...' : 'Thanh toán'}
                   </button>
                   <button
                     className="btn btn-outline-notion w-100"

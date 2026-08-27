@@ -131,7 +131,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         updateUser(fresh);
       } catch (err) {
         if (controller.signal.aborted) return;
-        console.error('Không thể tải hồ sơ:', err);
         setError('Không thể tải thông tin cá nhân. Vui lòng thử lại sau.');
       }
     };
@@ -167,7 +166,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         });
         showToast('Đã lưu thông tin cá nhân', 'success');
       } catch (err) {
-        console.error('Không thể cập nhật hồ sơ:', err);
         showToast(getApiErrorMessage(err, 'Không thể lưu thông tin. Vui lòng thử lại sau.'), 'error');
       } finally {
         setIsSaving(false);
@@ -187,7 +185,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       syncRoles();
       showToast('Đã nâng cấp lên tài khoản giảng viên', 'success');
     } catch (err) {
-      console.error('Không thể nâng cấp tài khoản giảng viên:', err);
       showToast(getApiErrorMessage(err, 'Không thể nâng cấp tài khoản. Vui lòng thử lại sau.'), 'error');
     } finally {
       setIsUpgrading(false);
@@ -206,7 +203,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         'success'
       );
     } catch (err) {
-      console.error('Không thể đăng xuất các thiết bị khác:', err);
       showToast(
         getApiErrorMessage(err, 'Không thể đăng xuất các thiết bị khác. Vui lòng thử lại sau.'),
         'error'
@@ -226,8 +222,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   return (
     <>
-      {
-}
       {error && (
         <div className="alert alert-danger" role="alert">
           {error}
@@ -238,7 +232,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         <PageSkeleton variant="form" count={4} />
       ) : (
         <form onSubmit={handleSave}>
-          { }
           <div className="profile-card mb-4">
             <div className="row g-4">
               <div className="col-lg-3">
@@ -270,8 +263,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </div>
                   <p className="profile-username mb-0">@{profile.username}</p>
 
-                  {
-}
                   {showInstructorUpgrade &&
                     (isInstructor ? (
                       <span className="profile-role-badge">
@@ -285,18 +276,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         onClick={() => setIsUpgradeConfirmOpen(true)}
                         disabled={isUpgrading}
                       >
-                        {isUpgrading ? (
-                          <>
-                            <span
-                              className="spinner-border spinner-border-sm me-2"
-                              role="status"
-                              aria-hidden="true"
-                            ></span>
-                            Đang nâng cấp...
-                          </>
-                        ) : (
-                          'Nâng cấp tài khoản giảng viên'
-                        )}
+                        {isUpgrading ? 'Đang nâng cấp...' : 'Nâng cấp tài khoản giảng viên'}
                       </button>
                     ))}
 
@@ -306,8 +286,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
               </div>
 
-              {
-}
               <div className="col-lg-9">
                 <div className="profile-details">
                   <h2 className="profile-section-title">Thông tin cá nhân</h2>
@@ -335,8 +313,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     />
                   </div>
 
-                  {
-}
                   <div className="profile-field-label">Email:</div>
                   <div className="profile-field-value">
                     <span>{profile.email}</span>
@@ -384,7 +360,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
           </div>
 
-          { }
           <section className="profile-card mb-4">
             <h2 className="profile-section-title">Giới thiệu</h2>
             <textarea
@@ -399,18 +374,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
           <div className="text-center">
             <button type="submit" className="btn-profile-primary" disabled={!isDirty || isSaving}>
-              {isSaving ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Đang lưu...
-                </>
-              ) : (
-                'Lưu thông tin'
-              )}
+              {isSaving ? 'Đang lưu...' : 'Lưu thông tin'}
             </button>
           </div>
         </form>

@@ -6,22 +6,21 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "course_review",
-       uniqueConstraints = @UniqueConstraint(name = "uk_review_user_course",
-                                             columnNames = {"user_id", "course_id"}))
+@Table(
+        name = "course_review",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_review_user_course",
+                        columnNames = {"user_id", "course_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class CourseReview implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class CourseReview {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

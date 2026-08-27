@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 
 public interface SessionAuthenticationProjection {
     Long getUserId();
+
     AccountStatus getAccountStatus();
+
     LocalDateTime getExpiresAt();
 }

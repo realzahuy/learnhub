@@ -1,5 +1,5 @@
 
-export interface ApiProblemDetail {
+interface ApiProblemDetail {
   type?: string;
   title?: string;
   status?: number;

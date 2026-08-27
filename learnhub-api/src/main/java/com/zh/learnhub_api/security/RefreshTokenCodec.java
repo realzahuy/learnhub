@@ -49,8 +49,7 @@ public class RefreshTokenCodec {
 
     public String hash(String secret) {
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(secret.getBytes(StandardCharsets.UTF_8));
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(secret.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("Thuật toán SHA-256 không khả dụng", exception);
@@ -63,6 +62,5 @@ public class RefreshTokenCodec {
         return MessageDigest.isEqual(actual, expected);
     }
 
-    public record ParsedRefreshToken(Long sessionId, String secret) {
-    }
+    public record ParsedRefreshToken(Long sessionId, String secret) {}
 }

@@ -1,8 +1,8 @@
-export const ACCOUNT_LOCKED_MESSAGE =
+const ACCOUNT_LOCKED_MESSAGE =
   'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.';
 
 export const ACCOUNT_LOCKED_EVENT = 'learnhub:account-locked';
-export const ACCOUNT_LOCKED_CODE = 'ACCOUNT_LOCKED';
+const ACCOUNT_LOCKED_CODE = 'ACCOUNT_LOCKED';
 
 export interface AccountLockedEventDetail {
   message: string;

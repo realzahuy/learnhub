@@ -1,31 +1,23 @@
 package com.zh.learnhub_api.services.media.s3;
 
 import com.zh.learnhub_api.configs.AppProperties;
+import com.zh.learnhub_api.exceptions.ExternalServiceException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
-import com.zh.learnhub_api.exceptions.VideoProcessingException;
 import com.zh.learnhub_api.services.media.VideoStorageService;
-import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import java.util.*;
 
 @Service
 @ConditionalOnProperty(name = "video.storage.provider", havingValue = "s3")
@@ -120,7 +112,7 @@ public class S3VideoStorageService implements VideoStorageService {
         } catch (NoSuchKeyException e) {
             throw new ResourceNotFoundException("Không tìm thấy tệp video");
         } catch (Exception e) {
-            throw new VideoProcessingException("Không đọc được tệp video từ kho lưu trữ");
+            throw new ExternalServiceException("Không đọc được tệp video từ kho lưu trữ");
         }
     }
 
@@ -176,15 +168,8 @@ public class S3VideoStorageService implements VideoStorageService {
     }
 
     @Override
-    public void deleteVideo(String objectKey) throws IOException {
-        try {
-
-            s3Client.deleteObject(builder ->
-                builder.bucket(properties.bucketRaw()).key(objectKey)
-            );
-        } catch (S3Exception e) {
-            throw new IOException("Không thể xóa đối tượng S3", e);
-        }
+    public void deleteVideo(String objectKey) {
+        s3Client.deleteObject(builder -> builder.bucket(properties.bucketRaw()).key(objectKey));
     }
 
     @Override
@@ -200,34 +185,27 @@ public class S3VideoStorageService implements VideoStorageService {
     }
 
     @Override
-    public int deleteCourseVideos(Long courseId) {
+    public void deleteCourseVideos(Long courseId) {
         String id = String.valueOf(courseId);
-
-        int deleted = deletePrefix(properties.bucketRaw(), rawCoursePrefix(id))
-                + deletePrefix(properties.bucketHls(), hlsCoursePrefix(id));
-
-        return deleted;
+        deletePrefix(properties.bucketRaw(), rawCoursePrefix(id));
+        deletePrefix(properties.bucketHls(), hlsCoursePrefix(id));
     }
 
     @Override
-    public int deleteLessonVideos(Long courseId, Long lessonId) {
+    public void deleteLessonVideos(Long courseId, Long lessonId) {
         String course = String.valueOf(courseId);
         String lesson = String.valueOf(lessonId);
-        int deleted = deletePrefix(properties.bucketRaw(), rawLessonPrefix(course, lesson))
-                + deletePrefix(properties.bucketHls(), hlsLessonPrefix(course, lesson));
-
-        return deleted;
+        deletePrefix(properties.bucketRaw(), rawLessonPrefix(course, lesson));
+        deletePrefix(properties.bucketHls(), hlsLessonPrefix(course, lesson));
     }
 
     @Override
-    public int deleteHlsOutputOf(String rawObjectKey) {
+    public void deleteHlsOutputOf(String rawObjectKey) {
         String hlsPath = generateHlsOutputPath(rawObjectKey);
-        return deletePrefix(properties.bucketHls(), hlsPath);
+        deletePrefix(properties.bucketHls(), hlsPath);
     }
 
-    private int deletePrefix(String bucket, String prefix) {
-        int deleted = 0;
-
+    private void deletePrefix(String bucket, String prefix) {
         ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
             .bucket(bucket)
             .prefix(prefix)
@@ -242,14 +220,10 @@ public class S3VideoStorageService implements VideoStorageService {
                 continue;
             }
 
-            DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder()
+            s3Client.deleteObjects(DeleteObjectsRequest.builder()
                 .bucket(bucket)
                 .delete(Delete.builder().objects(keys).quiet(true).build())
                 .build());
-
-            deleted += keys.size() - response.errors().size();
         }
-
-        return deleted;
     }
 }

@@ -12,8 +12,8 @@ import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.projections.learning.EnrollmentListProjection;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
-import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
+import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,11 +22,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service

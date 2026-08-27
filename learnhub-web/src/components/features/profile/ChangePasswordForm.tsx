@@ -104,7 +104,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
         showToast('Đổi mật khẩu thành công', 'success');
         goBackToProfile();
       } catch (err) {
-        console.error('Đổi mật khẩu thất bại:', err);
         const message = getApiErrorMessage(err, 'Không thể đổi mật khẩu. Vui lòng thử lại.');
 
         if (message.toLowerCase().includes('cũ')) {
@@ -167,9 +166,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             true
           )}
           {errors.old && <div className="change-password-error">{errors.old}</div>}
-          {
-
-}
           <div className="change-password-forgot">
             <Link to={forgotPasswordTo} state={{ from: location.pathname }}>
               Quên mật khẩu hiện tại?
@@ -209,18 +205,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             Hủy
           </button>
           <button type="submit" className="btn-change-password-submit" disabled={submitting}>
-            {submitting ? (
-              <>
-                <span
-                  className="spinner-border spinner-border-sm me-2"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
-                Đang đổi...
-              </>
-            ) : (
-              'Đổi mật khẩu'
-            )}
+            {submitting ? 'Đang đổi...' : 'Đổi mật khẩu'}
           </button>
         </div>
       </form>

@@ -1,10 +1,6 @@
 package com.zh.learnhub_api.dtos.media;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,12 +19,12 @@ public class VideoUploadRequestDTO {
 
     @NotBlank(message = "Tên tệp không được để trống")
     @Pattern(regexp = "^[\\w\\-. ]+\\.(mp4|mov|avi|mkv)$",
-            message = "Tên tệp không hợp lệ hoặc định dạng không được hỗ trợ. Định dạng hỗ trợ: mp4, mov, avi, mkv")
+            message = "Tên tệp không hợp lệ")
     private String fileName;
 
     @NotBlank(message = "Loại nội dung không được để trống")
     @Pattern(regexp = "^video/(mp4|quicktime|x-msvideo|x-matroska)$",
-            message = "Loại nội dung không hợp lệ. Loại được hỗ trợ: video/mp4, video/quicktime, video/x-msvideo, video/x-matroska")
+            message = "Loại nội dung không hợp lệ")
     private String contentType;
 
     @NotNull(message = "Kích thước tệp không được để trống")

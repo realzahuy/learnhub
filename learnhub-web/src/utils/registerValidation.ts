@@ -8,7 +8,7 @@ export const PASSWORD_MAX = 128;
 
 const SPECIAL_CHARS = "!@#$%^&*()_+-=[]{};':\"\\|,.<>/?";
 
-export interface RegisterFormValues {
+interface RegisterFormValues {
   fullName: string;
   username: string;
   email: string;

@@ -168,8 +168,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
           role="dialog"
           aria-label={ariaLabel}
         >
-          {
-}
           <div className="app-datepicker-nav">
             <Dropdown
               className="app-datepicker-select is-month"

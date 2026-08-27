@@ -7,7 +7,7 @@ interface JwtPayload {
   exp?: number;
 }
 
-export const decodeJwt = (token: string): JwtPayload | null => {
+const decodeJwt = (token: string): JwtPayload | null => {
   try {
     const payload = token.split('.')[1];
     if (!payload) return null;

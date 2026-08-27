@@ -28,7 +28,7 @@ public class ApplicationCacheInvalidator {
     private Cache requireCache(String cacheName) {
         Cache cache = cacheManager.getCache(cacheName);
         if (cache == null) {
-            throw new IllegalStateException("Bộ nhớ đệm chưa được đăng ký: " + cacheName);
+            throw new IllegalStateException("Thiếu cache: %s".formatted(cacheName));
         }
         return cache;
     }
@@ -38,12 +38,11 @@ public class ApplicationCacheInvalidator {
             action.run();
             return;
         }
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        action.run();
-                    }
-                });
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

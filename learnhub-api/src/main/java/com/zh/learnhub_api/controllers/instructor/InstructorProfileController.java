@@ -26,9 +26,7 @@ public class InstructorProfileController {
 
     @GetMapping("/{id}/courses")
     public ResponseEntity<PageResponseDTO<CourseListItemDTO>> getPublishedCourses(
-            @PathVariable Long id,
-            Pageable pageable) {
-        return ResponseEntity.ok(
-                instructorProfileService.getPublishedCourses(id, pageable));
+            @PathVariable Long id, Pageable pageable) {
+        return ResponseEntity.ok(instructorProfileService.getPublishedCourses(id, pageable));
     }
 }

@@ -24,5 +24,4 @@ public class EnrollmentResponseDTO {
 
     private Integer totalLessons;
     private LocalDateTime enrolledAt;
-
 }

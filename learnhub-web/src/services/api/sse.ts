@@ -43,13 +43,3 @@ export const consumeJsonSseEvents = async (
 
   if (buffer.trim()) processEvent(buffer);
 };
-
-export const consumeJsonSseStream = async <T>(
-  response: Response,
-  eventName: string,
-  onEvent: (event: T) => void
-): Promise<void> => {
-  await consumeJsonSseEvents(response, {
-    [eventName]: (data) => onEvent(data as T),
-  });
-};

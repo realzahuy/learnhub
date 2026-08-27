@@ -1,4 +1,4 @@
-package com.zh.learnhub_api.dtos.course;
+package com.zh.learnhub_api.dtos.common;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LessonReorderDTO {
-    @NotNull(message = "Id bài học không được để trống")
+public class PositionReorderRequestDTO {
+    @NotNull(message = "Id không được để trống")
     private Long id;
 
     @NotNull(message = "Vị trí không được để trống")

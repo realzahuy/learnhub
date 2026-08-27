@@ -2,24 +2,7 @@ package com.zh.learnhub_api.services.payment.paypal;
 
 import com.paypal.sdk.PaypalServerSdkClient;
 import com.paypal.sdk.exceptions.ApiException;
-import com.paypal.sdk.models.AmountWithBreakdown;
-import com.paypal.sdk.models.CaptureOrderInput;
-import com.paypal.sdk.models.CaptureStatus;
-import com.paypal.sdk.models.CheckoutPaymentIntent;
-import com.paypal.sdk.models.CreateOrderInput;
-import com.paypal.sdk.models.LinkDescription;
-import com.paypal.sdk.models.Order;
-import com.paypal.sdk.models.OrderRequest;
-import com.paypal.sdk.models.OrdersCapture;
-import com.paypal.sdk.models.PayeePaymentMethodPreference;
-import com.paypal.sdk.models.PaymentSource;
-import com.paypal.sdk.models.PaypalExperienceLandingPage;
-import com.paypal.sdk.models.PaypalExperienceUserAction;
-import com.paypal.sdk.models.PaypalWallet;
-import com.paypal.sdk.models.PaypalWalletContextShippingPreference;
-import com.paypal.sdk.models.PaypalWalletExperienceContext;
-import com.paypal.sdk.models.PurchaseUnit;
-import com.paypal.sdk.models.PurchaseUnitRequest;
+import com.paypal.sdk.models.*;
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.payment.PaymentResponseDTO;
 import com.zh.learnhub_api.enums.PaymentMethod;
@@ -75,7 +58,7 @@ public class PayPalPaymentService extends PaymentService {
                 .toUriString();
 
         PaypalWalletExperienceContext experienceContext = new PaypalWalletExperienceContext.Builder()
-                .brandName("LearnHub")
+                .brandName(paymentProperties.brand())
                 .locale("en-VN")
                 .landingPage(PaypalExperienceLandingPage.LOGIN)
                 .shippingPreference(PaypalWalletContextShippingPreference.NO_SHIPPING)
@@ -95,8 +78,8 @@ public class PayPalPaymentService extends PaymentService {
         PurchaseUnitRequest purchaseUnit = new PurchaseUnitRequest.Builder(paypalAmount)
                 .referenceId(paymentId)
                 .customId(paymentId)
-                .invoiceId("LEARNHUB-" + paymentId)
-                .description("Thanh toan khoa hoc LearnHub #" + paymentId)
+                .invoiceId(paymentProperties.brand() + "-" + paymentId)
+                .description(getOrderInfo(payment.getId()))
                 .build();
         OrderRequest request = new OrderRequest.Builder(
                 CheckoutPaymentIntent.CAPTURE, List.of(purchaseUnit))

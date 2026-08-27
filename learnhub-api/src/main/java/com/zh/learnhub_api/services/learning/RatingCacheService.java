@@ -1,6 +1,6 @@
 package com.zh.learnhub_api.services.learning;
 
-import com.zh.learnhub_api.configs.CacheNames;
+import com.zh.learnhub_api.configs.CacheConfiguration;
 import com.zh.learnhub_api.dtos.learning.RatingSummaryDTO;
 import com.zh.learnhub_api.projections.review.RatingStatsProjection;
 import com.zh.learnhub_api.repositories.learning.CourseReviewRepository;
@@ -11,13 +11,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +22,7 @@ public class RatingCacheService {
     private final CacheManager cacheManager;
 
     @Cacheable(
-            cacheNames = CacheNames.COURSE_RATING_SUMMARIES,
+            cacheNames = CacheConfiguration.COURSE_RATING_SUMMARIES,
             key = "#courseId",
             sync = true)
     public RatingSummaryDTO getCourseSummary(Long courseId) {
@@ -61,7 +55,7 @@ public class RatingCacheService {
         }
 
         List<Long> uniqueIds = new ArrayList<>(new LinkedHashSet<>(courseIds));
-        Cache cache = requireCache(CacheNames.COURSE_RATING_STATS);
+        Cache cache = requireCache(CacheConfiguration.COURSE_RATING_STATS);
         Map<Long, RatingStats> result = new HashMap<>();
         List<Long> misses = new ArrayList<>();
 
@@ -92,10 +86,6 @@ public class RatingCacheService {
         return Map.copyOf(result);
     }
 
-    @Cacheable(
-            cacheNames = CacheNames.INSTRUCTOR_RATING_STATS,
-            key = "#instructorId",
-            sync = true)
     public RatingStats getInstructorStats(Long instructorId) {
         return readStats(reviewRepository.findRatingStatsByInstructor(instructorId));
     }
@@ -113,7 +103,7 @@ public class RatingCacheService {
     private Cache requireCache(String cacheName) {
         Cache cache = cacheManager.getCache(cacheName);
         if (cache == null) {
-            throw new IllegalStateException("Bộ nhớ đệm chưa được đăng ký: " + cacheName);
+            throw new IllegalStateException("Thiếu cache: %s".formatted(cacheName));
         }
         return cache;
     }

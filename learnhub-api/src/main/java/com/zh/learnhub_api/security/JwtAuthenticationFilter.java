@@ -26,11 +26,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final SessionAuthenticationCache sessionAuthenticationCache;
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -57,11 +54,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        List<SimpleGrantedAuthority> authorities = claims.roles().stream()
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
-        AuthenticatedUserPrincipal userDetails = new AuthenticatedUserPrincipal(claims.userId(), claims.sessionId(), claims.username(), authorities);
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+        List<SimpleGrantedAuthority> authorities =
+                claims.roles().stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
+        AuthenticatedUserPrincipal userDetails =
+                new AuthenticatedUserPrincipal(claims.userId(), claims.sessionId(), claims.username(), authorities);
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
 

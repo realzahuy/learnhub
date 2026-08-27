@@ -62,7 +62,6 @@ const LoginPage = () => {
 
         navigate(redirectTo, { replace: true });
       } catch (err) {
-        console.error('Lỗi đăng nhập:', err);
         setError(getApiErrorMessage(err, 'Đã có lỗi xảy ra. Vui lòng thử lại.'));
         setSubmitting(false);
       }
@@ -124,25 +123,13 @@ const LoginPage = () => {
                 </label>
               </div>
 
-              { }
               <Link to={ROUTE_PATHS.forgotPassword} className="auth-forgot">
                 Quên mật khẩu?
               </Link>
             </div>
 
             <button type="submit" className="auth-login-button" disabled={submitting}>
-              {submitting ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Đang đăng nhập...
-                </>
-              ) : (
-                'Đăng nhập'
-              )}
+              {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
 

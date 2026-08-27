@@ -1,19 +1,19 @@
 package com.zh.learnhub_api.controllers.instructor;
 
+import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
+import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseCreateResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseRejectResponseDTO;
-import com.zh.learnhub_api.dtos.course.CourseUpsertRequestDTO;
 import com.zh.learnhub_api.dtos.course.CourseResponseDTO;
-import com.zh.learnhub_api.dtos.common.PageResponseDTO;
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
+import com.zh.learnhub_api.dtos.course.CourseUpsertRequestDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorCourseContentDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
 import com.zh.learnhub_api.enums.CourseStatus;
+import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.instructor.InstructorCourseContentService;
 import com.zh.learnhub_api.services.instructor.InstructorCourseService;
-import com.zh.learnhub_api.services.media.VideoProgressSseService;
 import com.zh.learnhub_api.services.media.VideoManagementService;
-import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
+import com.zh.learnhub_api.services.media.VideoProgressSseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

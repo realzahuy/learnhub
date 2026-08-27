@@ -66,13 +66,10 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
   );
 
   const refreshSummary = useCallback(async () => {
-    try {
-      const next = await reviewService.getCourseSummary(slug);
-      setSummary(next);
-      onSummaryChange?.(next);
-    } catch {
-
-    }
+    const next = await reviewService.getCourseSummary(slug).catch(() => null);
+    if (!next) return;
+    setSummary(next);
+    onSummaryChange?.(next);
   }, [slug, onSummaryChange]);
 
   useEffect(() => {
@@ -165,7 +162,6 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
     <div className="course-content-card">
       <h2 className="h4 fw-bold mb-3">Đánh giá từ học viên</h2>
 
-      { }
       {total === 0 ? (
         <p className="text-muted mb-0">
           Khóa học chưa có đánh giá nào.
@@ -201,9 +197,6 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
         </div>
       )}
 
-      {
-
-}
       {!isAuthenticated ? (
         <p className="review-gate mb-4">Đăng nhập và ghi danh khóa học để viết đánh giá.</p>
       ) : !isEnrolled ? (
@@ -266,7 +259,6 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
         </form>
       )}
 
-      { }
       {isLoading ? (
         <PageSkeleton variant="list" count={3} />
       ) : (
@@ -280,8 +272,6 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
                 <StarRating value={review.rating} size="sm" />
                 <span className="review-item__meta">
                   {formatRelativeDate(review.createdAt)}
-                  {
-}
                   {review.updatedAt !== review.createdAt && ' · đã chỉnh sửa'}
                 </span>
               </div>

@@ -11,10 +11,6 @@
   background-color: #f5f7fa;
 }
 
-.instructor-page .text-notion {
-  color: var(--notion-blue) !important;
-}
-
 .instructor-toolbar {
   display: flex;
   flex-wrap: wrap;

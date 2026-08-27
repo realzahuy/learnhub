@@ -21,12 +21,7 @@ public class ChatController {
 
     @PostMapping
     public ChatResponseDTO chat(
-            @Valid @RequestBody ChatRequestDTO request,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return chatAssistantService.respond(request, usernameOf(principal));
-    }
-
-    private String usernameOf(AuthenticatedUserPrincipal principal) {
-        return principal == null ? null : principal.getUsername();
+            @Valid @RequestBody ChatRequestDTO request, @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
+        return chatAssistantService.respond(request, principal == null ? null : principal.getUsername());
     }
 }

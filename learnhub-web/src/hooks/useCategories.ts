@@ -27,5 +27,5 @@ export function useCategories(enabled = true) {
     void load();
   }, [enabled, load]);
 
-  return { categories, loading, error, reload: load };
+  return { categories, loading, error };
 }

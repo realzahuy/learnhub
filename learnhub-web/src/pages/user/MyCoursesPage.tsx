@@ -137,8 +137,6 @@ const MyCoursesPage = () => {
                 return (
 
                   <div key={enrollment.enrollmentId} className="col-12 col-sm-6 col-lg-4 col-xl-3">
-                    {
-}
                     <Link
                       to={routeTo.learning(enrollment.courseSlug)}
                       className="my-course-card h-100"
@@ -155,8 +153,6 @@ const MyCoursesPage = () => {
                         <h2 className="my-course-name">{enrollment.courseTitle}</h2>
                         <p className="my-course-instructor">{enrollment.instructorName}</p>
 
-                        {
-}
                         <p className="my-course-meta">
                           {enrollment.totalLessons} bài học
                           {enrolled ? ` · Ghi danh ${enrolled}` : ''}

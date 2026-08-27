@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { StatsChartPoint, StatsGranularity } from '../../../types/stats.types';
+import { StatsGranularity } from '../../../types/stats.types';
 import { formatStatsPeriod } from './statsFormat';
 import './StatsBarChart.css';
 
-interface StatsBarChartProps<P extends StatsChartPoint> {
+interface StatsBarChartProps<P extends { label: string }> {
   title: string;
   points: P[];
   granularity: StatsGranularity;
@@ -36,7 +36,7 @@ const niceCeil = (value: number): number => {
   return step * magnitude;
 };
 
-const StatsBarChart = <P extends StatsChartPoint>({
+const StatsBarChart = <P extends { label: string }>({
   title,
   points,
   granularity,
@@ -102,9 +102,6 @@ const StatsBarChart = <P extends StatsChartPoint>({
     <section className="stats-chart" style={{ ['--stats-series' as string]: color }}>
       <header className="stats-chart-head">
         <h2 className="stats-chart-title">{title}</h2>
-        {
-
-}
         <p className="stats-chart-total">Tổng {formatValue(total)}</p>
         <p className="stats-chart-range">Từ {rangeLabel}</p>
       </header>
@@ -126,9 +123,6 @@ const StatsBarChart = <P extends StatsChartPoint>({
               ))}
             </div>
 
-            {
-
-}
             <div className="stats-chart-bars" onMouseLeave={clear} onBlur={handleBlur}>
               {points.map((point, index) => {
                 const value = values[index];
@@ -171,16 +165,11 @@ const StatsBarChart = <P extends StatsChartPoint>({
           </div>
         </div>
 
-        {
-
-}
         {tip && (
           <div className="stats-chart-tip" aria-hidden="true">
             <span className="stats-chart-tip-when">
               {formatStatsPeriod(tip.label, granularity)}
             </span>
-            {
-}
             <span className="stats-chart-tip-series">
               <span className="stats-chart-dot" />
               <span className="stats-chart-tip-value">{formatValue(tip.value)}</span>

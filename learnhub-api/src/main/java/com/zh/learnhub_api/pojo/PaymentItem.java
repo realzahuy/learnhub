@@ -4,25 +4,23 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "payment_item",
-       uniqueConstraints = @UniqueConstraint(
-               name = "uk_payment_item_payment_course",
-               columnNames = {"payment_id", "course_id"}),
-       indexes = @Index(name = "idx_payment_item_course", columnList = "course_id"))
+@Table(
+        name = "payment_item",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_payment_item_payment_course",
+                        columnNames = {"payment_id", "course_id"}),
+        indexes = @Index(name = "idx_payment_item_course", columnList = "course_id"))
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class PaymentItem implements Serializable {
+public class PaymentItem {
 
-    private static final long serialVersionUID = 1L;
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -33,11 +31,11 @@ public class PaymentItem implements Serializable {
     @NotNull
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
-    
+
     @JoinColumn(name = "course_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Course courseId;
-    
+
     @JoinColumn(name = "payment_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Payment paymentId;

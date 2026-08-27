@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,13 +12,10 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class CourseReject implements Serializable {
+public class CourseReject {
 
-    private static final long serialVersionUID = 1L;
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -35,7 +31,7 @@ public class CourseReject implements Serializable {
     @NotNull
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-    
+
     @JoinColumn(name = "course_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Course courseId;

@@ -9,11 +9,7 @@ import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class QdrantCourseVectorStore implements CourseVectorStore {
@@ -49,14 +45,23 @@ public class QdrantCourseVectorStore implements CourseVectorStore {
 
     @Override
     public void upsert(Long courseId, List<Float> vector, CourseVectorStore.Payload payload) {
-        Map<String, Object> qdrantPayload = new HashMap<>();
-        qdrantPayload.put("slug", payload.slug());
-        qdrantPayload.put("title", payload.title());
-        qdrantPayload.put("thumbnail", payload.thumbnail());
-        qdrantPayload.put("price", payload.price());
-        Map<String, Object> body = Map.of("points", List.of(Map.of("id", courseId, "vector", vector, "payload", qdrantPayload)));
+        Map<String, Object> body = Map.of("points", List.of(Map.of(
+                "id", courseId, "vector", vector, "payload", toQdrantPayload(payload))));
         restClient.put()
                 .uri("/collections/{collection}/points?wait=true", collection)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    @Override
+    public void updatePayload(Long courseId, CourseVectorStore.Payload payload) {
+        Map<String, Object> body = Map.of(
+                "payload", toQdrantPayload(payload),
+                "points", List.of(courseId));
+        restClient.post()
+                .uri("/collections/{collection}/points/payload?wait=true", collection)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
@@ -122,5 +127,14 @@ public class QdrantCourseVectorStore implements CourseVectorStore {
     private CourseVectorStore.Payload parsePayload(Object payloadValue) {
         Map<?, ?> payload = (Map<?, ?>) payloadValue;
         return new CourseVectorStore.Payload((String) payload.get("slug"), (String) payload.get("title"), (String) payload.get("thumbnail"), new BigDecimal(payload.get("price").toString()));
+    }
+
+    private Map<String, Object> toQdrantPayload(CourseVectorStore.Payload payload) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("slug", payload.slug());
+        result.put("title", payload.title());
+        result.put("thumbnail", payload.thumbnail());
+        result.put("price", payload.price());
+        return result;
     }
 }

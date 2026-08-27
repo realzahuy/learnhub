@@ -14,11 +14,6 @@ export interface InstructorOverview {
   periodDays: number;
 }
 
-export interface StatsChartPoint {
-
-  label: string;
-}
-
 export type StatsGranularity = 'day' | 'month' | 'quarter';
 
 export const STATS_GRANULARITY_LABELS: Record<StatsGranularity, string> = {
@@ -27,7 +22,8 @@ export const STATS_GRANULARITY_LABELS: Record<StatsGranularity, string> = {
   quarter: 'Quý',
 };
 
-export interface StatsPoint extends StatsChartPoint {
+export interface StatsPoint {
+  label: string;
   enrollments: number;
 
   students: number;
@@ -61,8 +57,8 @@ export interface AdminOverview {
   periodDays: number;
 }
 
-export interface AdminStatsPoint extends StatsChartPoint {
-
+export interface AdminStatsPoint {
+  label: string;
   users: number;
 
   instructors: number;
