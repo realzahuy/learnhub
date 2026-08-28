@@ -1,6 +1,5 @@
 package com.zh.learnhub_api.controllers.instructor;
 
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.dtos.common.PositionReorderRequestDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
 import com.zh.learnhub_api.dtos.media.VideoTitleRequestDTO;
@@ -37,43 +36,39 @@ public class InstructorVideoController {
     }
 
     @GetMapping("/videos/{videoId}")
-    public ResponseEntity<VideoResponseDTO> getVideo(
+    public VideoResponseDTO getVideo(
             @PathVariable Long videoId,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        VideoResponseDTO response = videoManagementService.getVideo(
-                videoId, userDetails.getUserId());
-        return ResponseEntity.ok(response);
+        return videoManagementService.getVideo(videoId, userDetails.getUserId());
     }
 
     @PutMapping("/lessons/{lessonId}/videos/reorder")
-    public ResponseEntity<java.util.List<VideoResponseDTO>> reorderVideos(
+    public java.util.List<VideoResponseDTO> reorderVideos(
             @PathVariable Long lessonId,
             @NotEmpty(message = "Danh sách sắp xếp không được rỗng") @RequestBody java.util.List<@Valid PositionReorderRequestDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        var reordered = videoManagementService.reorderVideos(
+        return videoManagementService.reorderVideos(
                 lessonId, requests, userDetails.getUserId());
-        return ResponseEntity.ok(reordered);
     }
 
     @PutMapping("/videos/{videoId}")
-    public ResponseEntity<VideoResponseDTO> updateVideoTitle(
+    public VideoResponseDTO updateVideoTitle(
             @PathVariable Long videoId,
             @Valid @RequestBody VideoTitleRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        VideoResponseDTO updated = videoManagementService.updateTitle(videoId, request.title(), userDetails.getUserId());
-        return ResponseEntity.ok(updated);
+        return videoManagementService.updateTitle(videoId, request.title(), userDetails.getUserId());
     }
 
     @DeleteMapping("/videos/{videoId}")
-    public ResponseEntity<MessageResponseDTO> deleteVideo(
+    public ResponseEntity<Void> deleteVideo(
             @PathVariable Long videoId,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         videoManagementService.deleteVideo(videoId, userDetails.getUserId());
-        return ResponseEntity.ok(new MessageResponseDTO("Xóa video thành công"));
+        return ResponseEntity.noContent().build();
     }
 
 }

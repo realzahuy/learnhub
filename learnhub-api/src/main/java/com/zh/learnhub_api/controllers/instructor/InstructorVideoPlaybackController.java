@@ -1,17 +1,15 @@
 package com.zh.learnhub_api.controllers.instructor;
 
-import com.zh.learnhub_api.configs.AppProperties;
+import com.zh.learnhub_api.dtos.media.VideoPlaybackSessionDTO;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.learning.VideoPlaybackService;
-import com.zh.learnhub_api.services.media.VideoStorageService;
+import com.zh.learnhub_api.services.media.CloudFrontPlaybackService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,24 +19,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class InstructorVideoPlaybackController {
 
     private final VideoPlaybackService videoPlaybackService;
-    private final AppProperties.Hls hlsProperties;
+    private final CloudFrontPlaybackService cloudFrontPlaybackService;
 
-    @GetMapping("/{videoId}/hls/{fileName}")
-    public ResponseEntity<InputStreamResource> streamHlsFile(
+    @PostMapping("/{videoId}/playback-session")
+    public ResponseEntity<VideoPlaybackSessionDTO> createPlaybackSession(
             @PathVariable Long videoId,
-            @PathVariable String fileName,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        VideoStorageService.StoredObject object =
-                videoPlaybackService.openInstructorVideoFile(videoId, fileName, principal.getUserId());
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) throws Exception {
+        String masterKey = videoPlaybackService.authorizeInstructorPlayback(videoId, principal.getUserId());
+        CloudFrontPlaybackService.PlaybackSession session = cloudFrontPlaybackService.createSession(masterKey);
+        HttpHeaders headers = new HttpHeaders();
+        session.setCookieHeaders().forEach(cookie -> headers.add(HttpHeaders.SET_COOKIE, cookie));
 
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(object.contentType()))
-                .contentLength(object.contentLength())
-                .header(HttpHeaders.CACHE_CONTROL, privateCacheControl())
-                .body(new InputStreamResource(object.content()));
-    }
-
-    private String privateCacheControl() {
-        return "private, max-age=" + hlsProperties.privateCacheMaxAgeSeconds();
+                .headers(headers)
+                .body(new VideoPlaybackSessionDTO(session.playbackUrl(), session.expiresInSeconds()));
     }
 }

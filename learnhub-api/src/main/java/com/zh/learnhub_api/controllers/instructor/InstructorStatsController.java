@@ -6,7 +6,6 @@ import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.instructor.InstructorStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,14 +22,14 @@ public class InstructorStatsController {
     private final InstructorStatsService instructorStatsService;
 
     @GetMapping("/overview")
-    public ResponseEntity<InstructorOverviewDTO> getOverview(
+    public InstructorOverviewDTO getOverview(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        return ResponseEntity.ok(instructorStatsService.getOverview(principal.getUserId()));
+        return instructorStatsService.getOverview(principal.getUserId());
     }
 
     @GetMapping("/timeseries")
-    public ResponseEntity<InstructorTimeSeriesDTO> getTimeSeries(
+    public InstructorTimeSeriesDTO getTimeSeries(
             @RequestParam(defaultValue = "day") String groupBy,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -38,7 +37,6 @@ public class InstructorStatsController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        return ResponseEntity.ok(
-                instructorStatsService.getTimeSeries(principal.getUserId(), groupBy, from, to));
+        return instructorStatsService.getTimeSeries(principal.getUserId(), groupBy, from, to);
     }
 }

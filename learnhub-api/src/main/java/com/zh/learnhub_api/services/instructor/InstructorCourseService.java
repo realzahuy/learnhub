@@ -114,13 +114,12 @@ public class InstructorCourseService {
             String thumbnailUrl = imageStorageService.uploadCourseThumbnail(thumbnailFile, courseId);
             course.setThumbnail(thumbnailUrl);
         }
-        Course updatedCourse = courseRepository.save(course);
         if (statusBeforeUpdate == CourseStatus.PUBLISHED) {
-            cacheInvalidator.evictAfterCommit(CacheConfiguration.PUBLIC_COURSE_DETAILS, updatedCourse.getSlug());
+            cacheInvalidator.evictAfterCommit(CacheConfiguration.PUBLIC_COURSE_DETAILS, course.getSlug());
         }
-        boolean embeddingDataChanged = !Objects.equals(oldTitle, updatedCourse.getTitle())
-                || !Objects.equals(oldShortDescription, updatedCourse.getShortDescription())
-                || !Objects.equals(oldDescription, updatedCourse.getDescription());
+        boolean embeddingDataChanged = !Objects.equals(oldTitle, course.getTitle())
+                || !Objects.equals(oldShortDescription, course.getShortDescription())
+                || !Objects.equals(oldDescription, course.getDescription());
         if (statusBeforeUpdate == CourseStatus.PUBLISHED) {
             if (embeddingDataChanged) {
                 eventPublisher.publishEvent(new SyncEvent(courseId));
@@ -128,7 +127,7 @@ public class InstructorCourseService {
                 eventPublisher.publishEvent(new PayloadSyncEvent(courseId));
             }
         }
-        return courseMapper.mapEntityToDTO(updatedCourse);
+        return courseMapper.mapEntityToDTO(course);
     }
 
     @Transactional

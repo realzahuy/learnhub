@@ -29,10 +29,6 @@ public final class VideoPlaybackUrls {
             return null;
         }
 
-        String masterFileName = storageKey.substring(storageKey.lastIndexOf('/') + 1);
-        if (masterFileName.isBlank()) {
-            return null;
-        }
-        return prefix + video.getId() + "/hls/" + masterFileName;
+        return prefix + video.getId() + "/playback-session";
     }
 }

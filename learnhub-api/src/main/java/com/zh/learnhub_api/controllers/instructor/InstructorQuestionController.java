@@ -1,6 +1,5 @@
 package com.zh.learnhub_api.controllers.instructor;
 
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.dtos.common.PositionReorderRequestDTO;
 import com.zh.learnhub_api.dtos.course.QuestionRequestDTO;
 import com.zh.learnhub_api.dtos.course.QuestionResponseDTO;
@@ -35,32 +34,29 @@ public class InstructorQuestionController {
     }
 
     @PutMapping("/questions/{questionId}")
-    public ResponseEntity<QuestionResponseDTO> updateQuestion(
+    public QuestionResponseDTO updateQuestion(
             @PathVariable Long questionId,
             @Valid @RequestBody QuestionRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        QuestionResponseDTO updated = questionService.updateQuestion(questionId, request, userDetails.getUserId());
-        return ResponseEntity.ok(updated);
+        return questionService.updateQuestion(questionId, request, userDetails.getUserId());
     }
 
     @PutMapping("/lessons/{lessonId}/questions/reorder")
-    public ResponseEntity<List<QuestionResponseDTO>> reorderQuestions(
+    public List<QuestionResponseDTO> reorderQuestions(
             @PathVariable Long lessonId,
             @NotEmpty(message = "Danh sách sắp xếp không được rỗng") @RequestBody List<@Valid PositionReorderRequestDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        List<QuestionResponseDTO> reordered =
-                questionService.reorderQuestions(lessonId, requests, userDetails.getUserId());
-        return ResponseEntity.ok(reordered);
+        return questionService.reorderQuestions(lessonId, requests, userDetails.getUserId());
     }
 
     @DeleteMapping("/questions/{questionId}")
-    public ResponseEntity<MessageResponseDTO> deleteQuestion(
+    public ResponseEntity<Void> deleteQuestion(
             @PathVariable Long questionId,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         questionService.deleteQuestion(questionId, userDetails.getUserId());
-        return ResponseEntity.ok(new MessageResponseDTO("Xóa câu hỏi thành công"));
+        return ResponseEntity.noContent().build();
     }
 }

@@ -20,14 +20,12 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    @ToString.Include
     @EqualsAndHashCode.Include
     private Long id;
 
@@ -42,7 +40,6 @@ public class Payment {
 
     @Size(max = 255)
     @Column(name = "transaction_id")
-    @ToString.Include
     private String transactionId;
 
     @NotNull

@@ -55,14 +55,12 @@ public class QuestionService {
         validateAnswers(request.getAnswers());
 
         question.setQuestion(request.getQuestion());
-        Question updated = questionRepository.save(question);
-
         answerRepository.deleteByQuestionId_Id(questionId);
         answerRepository.flush();
 
-        replaceAnswers(updated, request.getAnswers());
+        replaceAnswers(question, request.getAnswers());
 
-        return mapToDTO(updated);
+        return mapToDTO(question);
     }
 
     @Transactional
@@ -93,7 +91,7 @@ public class QuestionService {
         return questionRepository.saveAllAndFlush(questions).stream()
                 .sorted(java.util.Comparator.comparingInt(Question::getPosition))
                 .map(question -> questionMapper.toDTO(question, question.getAnswerSet()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.mediaconvert.MediaConvertClient;
 import software.amazon.awssdk.services.mediaconvert.model.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -40,8 +39,7 @@ public class MediaConvertTranscoder {
 
     private JobSettings buildJobSettings(String inputUri, String outputUri) {
 
-        Map<String, AudioSelector> audioSelectors = new HashMap<>();
-        audioSelectors.put(
+        Map<String, AudioSelector> audioSelectors = Map.of(
                 "DEFAULT",
                 AudioSelector.builder()
                         .defaultSelection(AudioDefaultSelection.DEFAULT)

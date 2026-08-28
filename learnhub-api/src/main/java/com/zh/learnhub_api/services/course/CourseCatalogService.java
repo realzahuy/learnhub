@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -54,7 +53,7 @@ public class CourseCatalogService {
                     pageable);
             List<CourseListItemDTO> content = coursePage.getContent().stream()
                     .map(courseMapper::mapRatedListProjectionToDTO)
-                    .collect(Collectors.toList());
+                    .toList();
             return PageResponseDTO.from(coursePage, content);
         }
 
@@ -73,11 +72,11 @@ public class CourseCatalogService {
 
         List<CourseListItemDTO> content = coursePage.getContent().stream()
                 .map(courseMapper::mapListProjectionToDTO)
-                .collect(Collectors.toList());
+                .toList();
         courseMapper.applyRatings(
                 content,
                 reviewService.getRatingStatsByCourses(
-                        content.stream().map(CourseListItemDTO::getId).collect(Collectors.toList())));
+                        content.stream().map(CourseListItemDTO::getId).toList()));
 
         return PageResponseDTO.from(coursePage, content);
     }

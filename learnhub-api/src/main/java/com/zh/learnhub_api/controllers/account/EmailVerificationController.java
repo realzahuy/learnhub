@@ -21,10 +21,10 @@ public class EmailVerificationController {
     private final EmailVerificationService emailVerificationService;
 
     @PostMapping("/send")
-    public ResponseEntity<EmailVerificationStatusDTO> sendCode(
+    public EmailVerificationStatusDTO sendCode(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        return ResponseEntity.ok(emailVerificationService.sendCode(principal.getUsername()));
+        return emailVerificationService.sendCode(principal.getUsername());
     }
 
     @PostMapping("/confirm")

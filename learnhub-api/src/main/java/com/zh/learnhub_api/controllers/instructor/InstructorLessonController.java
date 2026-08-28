@@ -1,6 +1,5 @@
 package com.zh.learnhub_api.controllers.instructor;
 
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.dtos.common.PositionReorderRequestDTO;
 import com.zh.learnhub_api.dtos.course.LessonRequestDTO;
 import com.zh.learnhub_api.dtos.course.LessonResponseDTO;
@@ -34,33 +33,31 @@ public class InstructorLessonController {
     }
 
     @PutMapping("/{lessonId}")
-    public ResponseEntity<LessonResponseDTO> updateLesson(
+    public LessonResponseDTO updateLesson(
             @PathVariable Long courseId,
             @PathVariable Long lessonId,
             @Valid @RequestBody LessonRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        LessonResponseDTO updated = lessonService.updateLesson(courseId, lessonId, request, userDetails.getUserId());
-        return ResponseEntity.ok(updated);
+        return lessonService.updateLesson(courseId, lessonId, request, userDetails.getUserId());
     }
 
     @PutMapping("/reorder")
-    public ResponseEntity<List<LessonResponseDTO>> reorderLessons(
+    public List<LessonResponseDTO> reorderLessons(
             @PathVariable Long courseId,
             @NotEmpty(message = "Danh sách sắp xếp không được rỗng") @RequestBody List<@Valid PositionReorderRequestDTO> requests,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        List<LessonResponseDTO> reordered = lessonService.reorderLessons(courseId, requests, userDetails.getUserId());
-        return ResponseEntity.ok(reordered);
+        return lessonService.reorderLessons(courseId, requests, userDetails.getUserId());
     }
 
     @DeleteMapping("/{lessonId}")
-    public ResponseEntity<MessageResponseDTO> deleteLesson(
+    public ResponseEntity<Void> deleteLesson(
             @PathVariable Long courseId,
             @PathVariable Long lessonId,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         lessonService.deleteLesson(courseId, lessonId, userDetails.getUserId());
-        return ResponseEntity.ok(new MessageResponseDTO("Xóa bài giảng thành công"));
+        return ResponseEntity.noContent().build();
     }
 }

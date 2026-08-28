@@ -24,12 +24,12 @@ public class PaymentController {
     private final PaymentFactory paymentFactory;
 
     @PostMapping
-    public ResponseEntity<PaymentResponseDTO> createPayment(
+    public PaymentResponseDTO createPayment(
             @Valid @RequestBody CreatePaymentRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return ResponseEntity.ok(paymentFactory
+        return paymentFactory
                 .getMethod(request.getPaymentMethod())
-                .createPayment(request, principal.getUserId()));
+                .createPayment(request, principal.getUserId());
     }
 
     @PostMapping("/momo/notify")
@@ -40,20 +40,20 @@ public class PaymentController {
     }
 
     @PostMapping("/{id}/paypal/capture")
-    public ResponseEntity<PaymentResponseDTO> capturePayPal(
+    public PaymentResponseDTO capturePayPal(
             @PathVariable Long id,
             @Valid @RequestBody PayPalCaptureRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return ResponseEntity.ok(((PayPalPaymentService) paymentFactory
+        return ((PayPalPaymentService) paymentFactory
                 .getMethod(PaymentMethod.PAYPAL))
-                .capturePayment(id, request.orderId(), principal.getUserId()));
+                .capturePayment(id, request.orderId(), principal.getUserId());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PaymentResponseDTO> getPaymentStatus(
+    public PaymentResponseDTO getPaymentStatus(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return ResponseEntity.ok(paymentFactory.getMethod(PaymentMethod.MOMO)
-                .getPaymentStatus(id, principal.getUserId()));
+        return paymentFactory.getMethod(PaymentMethod.MOMO)
+                .getPaymentStatus(id, principal.getUserId());
     }
 }

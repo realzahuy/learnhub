@@ -18,7 +18,6 @@ import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
 import com.zh.learnhub_api.repositories.course.QuestionRepository;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
-import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import com.zh.learnhub_api.services.learning.VideoPlaybackService;
 import com.zh.learnhub_api.services.notification.NotificationService;
 import com.zh.learnhub_api.services.realtime.CourseRealtimeEventListener.Audience;
@@ -54,7 +53,6 @@ public class AdminCourseService {
     private final QuestionRepository questionRepository;
     private final VideoPlaybackService videoPlaybackService;
     private final ApplicationEventPublisher eventPublisher;
-    private final ApplicationCacheInvalidator cacheInvalidator;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -80,15 +78,15 @@ public class AdminCourseService {
                         lesson.isPreview(),
                         videosByLesson.getOrDefault(lesson.getId(), List.of()).stream()
                                 .map(videoPlaybackService::toPlayableVideo)
-                                .collect(Collectors.toList()),
+                                .toList(),
                         questionsByLesson.getOrDefault(lesson.getId(), List.of()).stream()
 
                                 .sorted(Comparator.comparing(Question::getPosition,
                                             Comparator.nullsLast(Comparator.naturalOrder()))
                                         .thenComparing(Question::getId))
                                 .map(q -> questionMapper.toDTO(q, q.getAnswerSet()))
-                                .collect(Collectors.toList())))
-                .collect(Collectors.toList());
+                                .toList()))
+                .toList();
 
         return new AdminCourseContentDTO(course.getId(), course.getTitle(), lessonDTOs);
     }

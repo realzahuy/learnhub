@@ -61,9 +61,8 @@ public class CategoryService {
 
         category.setName(name);
 
-        Category updatedCategory = categoryRepository.save(category);
         cacheInvalidator.clearAfterCommit(CacheConfiguration.CATEGORIES, CacheConfiguration.PUBLIC_COURSE_DETAILS);
-        return convertToResponseDTO(updatedCategory);
+        return convertToResponseDTO(category);
     }
 
     public void deleteCategory(Short id) {
@@ -81,9 +80,6 @@ public class CategoryService {
     }
 
     private CategoryResponseDTO convertToResponseDTO(Category category) {
-        CategoryResponseDTO dto = new CategoryResponseDTO();
-        dto.setId(category.getId());
-        dto.setName(category.getName());
-        return dto;
+        return new CategoryResponseDTO(category.getId(), category.getName());
     }
 }

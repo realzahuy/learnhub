@@ -41,7 +41,7 @@ public class QuizService {
 
         List<QuizQuestionDTO> questionDTOs = questions.stream()
                 .map(this::toQuizQuestion)
-                .collect(Collectors.toList());
+                .toList();
 
         return new QuizResponseDTO(
                 quiz.getLessonId(),
@@ -128,7 +128,7 @@ public class QuizService {
         List<QuizOptionDTO> options = answers.stream()
                 .sorted(Comparator.comparing(Answer::getId))
                 .map(answer -> new QuizOptionDTO(answer.getId(), answer.getAnswer()))
-                .collect(Collectors.toList());
+                .toList();
 
         return new QuizQuestionDTO(
                 question.getId(),
@@ -142,7 +142,7 @@ public class QuizService {
         return questionRepository.findByLessonIdWithAnswers(lessonId).stream()
                 .sorted(Comparator.comparingInt(Question::getPosition)
                         .thenComparing(Question::getId))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Set<Answer> answersOf(Question question) {
@@ -150,7 +150,7 @@ public class QuizService {
     }
 
     private List<Long> sortedIds(Set<Long> ids) {
-        return ids.stream().sorted().collect(Collectors.toList());
+        return ids.stream().sorted().toList();
     }
 
 }

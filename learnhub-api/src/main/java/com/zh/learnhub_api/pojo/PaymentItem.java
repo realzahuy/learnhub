@@ -17,14 +17,12 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PaymentItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    @ToString.Include
     @EqualsAndHashCode.Include
     private Long id;
 

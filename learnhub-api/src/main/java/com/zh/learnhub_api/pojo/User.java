@@ -16,7 +16,6 @@ import java.util.Set;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @org.hibernate.annotations.DynamicUpdate
 public class User {
@@ -24,14 +23,12 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    @ToString.Include
     @EqualsAndHashCode.Include
     private Long id;
 
     @NotNull
     @Size(min = 1, max = 50)
     @Column(name = "username")
-    @ToString.Include
     private String username;
 
     @NotNull

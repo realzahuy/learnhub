@@ -1,8 +1,6 @@
 package com.zh.learnhub_api.services.media.s3;
 
 import com.zh.learnhub_api.configs.AppProperties;
-import com.zh.learnhub_api.exceptions.ExternalServiceException;
-import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.services.media.VideoStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -94,33 +92,6 @@ public class S3VideoStorageService implements VideoStorageService {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(key, "HmacSHA256"));
         return mac.doFinal(value.getBytes(StandardCharsets.UTF_8));
-    }
-
-    @Override
-    public StoredObject openHlsObject(String objectKey) {
-        try {
-            var response = s3Client.getObject(GetObjectRequest.builder()
-                .bucket(properties.bucketHls())
-                .key(objectKey)
-                .build());
-
-            return new StoredObject(
-                response,
-                response.response().contentLength(),
-                contentTypeOf(objectKey));
-
-        } catch (NoSuchKeyException e) {
-            throw new ResourceNotFoundException("Không tìm thấy tệp video");
-        } catch (Exception e) {
-            throw new ExternalServiceException("Không đọc được tệp video từ kho lưu trữ");
-        }
-    }
-
-    private String contentTypeOf(String objectKey) {
-        if (objectKey.endsWith(".m3u8")) return "application/vnd.apple.mpegurl";
-        if (objectKey.endsWith(".ts")) return "video/mp2t";
-        if (objectKey.endsWith(".m4s") || objectKey.endsWith(".mp4")) return "video/mp4";
-        return "application/octet-stream";
     }
 
     private String rawCoursePrefix(String courseId) {

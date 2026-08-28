@@ -14,9 +14,6 @@ import java.util.Map;
 @Configuration(proxyBeanMethods = false)
 public final class AppProperties {
 
-    public AppProperties() {
-    }
-
     @Validated
     @ConfigurationProperties("app")
     public record Time(
@@ -69,23 +66,6 @@ public final class AppProperties {
     }
 
     @Validated
-    @ConfigurationProperties("app.auth-cache")
-    public record AuthCache(
-            @Positive long maximumSize,
-            @Positive long expireAfterWriteMinutes,
-            @Positive long generationExtraTtlMinutes) {
-    }
-
-    @Validated
-    @ConfigurationProperties("app.video-playback-cache")
-    public record VideoPlaybackCache(
-            @Positive long metadataMaximumSize,
-            @Positive long metadataExpireAfterWriteMinutes,
-            @Positive long accessMaximumSize,
-            @Positive long accessExpireAfterWriteMinutes) {
-    }
-
-    @Validated
     @ConfigurationProperties("app.cache")
     public record ApplicationCache(
             @NotNull @Valid CacheSpec categories,
@@ -112,11 +92,6 @@ public final class AppProperties {
     public record Scheduler(
             @Positive long sessionCleanupDelayMs,
             @Positive long paymentExpirationScanDelayMs) {
-    }
-
-    @Validated
-    @ConfigurationProperties("app.hls")
-    public record Hls(@PositiveOrZero long privateCacheMaxAgeSeconds) {
     }
 
     @Validated
@@ -199,6 +174,15 @@ public final class AppProperties {
 
         public record PresignedUrl(@Positive int expiration) {
         }
+    }
+
+    @Validated
+    @ConfigurationProperties("aws.cloudfront")
+    public record AwsCloudFront(
+            @NotBlank String baseUrl,
+            @NotBlank String keyPairId,
+            @NotBlank String privateKeyPath,
+            @Positive long cookieExpiration) {
     }
 
     @Validated

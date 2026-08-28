@@ -108,7 +108,7 @@ public class EnrollmentService {
 
         List<Long> courseIds = enrollments.stream()
             .map(EnrollmentListProjection::getCourseId)
-            .collect(Collectors.toList());
+            .toList();
 
         Map<Long, Integer> totalByCourse = lessonRepository.countGroupedByCourseIds(courseIds)
             .stream()
@@ -131,7 +131,7 @@ public class EnrollmentService {
                     .enrolledAt(enrollment.getEnrolledAt())
                     .build();
             })
-            .collect(Collectors.toList());
+            .toList();
 
         return PageResponseDTO.from(enrollmentPage, content);
     }

@@ -19,12 +19,12 @@ public class AdminUserController {
     private final AdminUserService adminUserService;
 
     @GetMapping
-    public ResponseEntity<PageResponseDTO<AdminUserDTO>> listUsers(
+    public PageResponseDTO<AdminUserDTO> listUsers(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "ALL") AdminUserFilter filter,
             Pageable pageable) {
 
-        return ResponseEntity.ok(adminUserService.listUsers(search, filter, pageable));
+        return adminUserService.listUsers(search, filter, pageable);
     }
 
     @PostMapping("/{userId}/lock")

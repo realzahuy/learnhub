@@ -1,7 +1,6 @@
 package com.zh.learnhub_api.services.payment;
 
 import com.zh.learnhub_api.enums.PaymentMethod;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -13,7 +12,6 @@ public class PaymentFactory {
 
     private final Map<PaymentMethod, PaymentService> providers = new EnumMap<>(PaymentMethod.class);
 
-    @Autowired
     public PaymentFactory(List<PaymentService> providerList) {
         for (PaymentService provider : providerList) {
             providers.put(provider.getProvider(), provider);

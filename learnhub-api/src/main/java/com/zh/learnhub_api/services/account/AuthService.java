@@ -13,7 +13,6 @@ import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.account.UserSessionRepository;
 import com.zh.learnhub_api.security.JwtUtil;
 import com.zh.learnhub_api.security.RefreshTokenCodec;
-import com.zh.learnhub_api.security.SessionAuthenticationCache;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,6 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final RefreshTokenCodec refreshTokenCodec;
     private final AppProperties.Jwt jwtProperties;
-    private final SessionAuthenticationCache sessionAuthenticationCache;
 
     public AuthTokens login(LoginRequestDTO request, String currentRefreshToken) {
         UserAuthProjection userAuth = findUserAuthByLoginIdentifier(request.getLogin());
@@ -61,7 +59,6 @@ public class AuthService {
         userRepository.updateLastLogin(userAuth.getId(), now);
         String accessToken = jwtUtil.generateAccessToken(
                 userAuth.getId(), userAuth.getUsername(), userAuth.getRoles(), session.getId());
-        sessionAuthenticationCache.putActiveAfterCommit(session.getId(), lockedUser.getId(), expiresAt);
 
         return new AuthTokens(
                 accessToken,
@@ -69,10 +66,6 @@ public class AuthService {
                 expiresAt,
                 lockedUser.getFullName(),
                 lockedUser.getAvatar());
-    }
-
-    public AuthTokens refresh(String refreshToken) {
-        return refresh(refreshToken, null);
     }
 
     public AuthTokens refresh(String refreshToken, String previousAccessToken) {
@@ -87,7 +80,6 @@ public class AuthService {
         LocalDateTime now = LocalDateTime.now();
         if (!session.getExpiresAt().isAfter(now)) {
             sessionRepository.deleteById(session.getSessionId());
-            sessionAuthenticationCache.evictSessionAfterCommit(session.getSessionId());
             throw new InvalidCredentialsException("Phiên đăng nhập đã hết hạn");
         }
         if (!refreshTokenCodec.matches(parsed.secret(), session.getRefreshTokenHash())) {
@@ -108,8 +100,6 @@ public class AuthService {
 
         String accessToken = jwtUtil.generateAccessToken(
                 session.getUserId(), session.getUsername(), session.getRoles(), session.getSessionId());
-        sessionAuthenticationCache.putActiveAfterCommit(
-                session.getSessionId(), session.getUserId(), session.getExpiresAt());
 
         return new AuthTokens(
                 accessToken,
@@ -129,20 +119,13 @@ public class AuthService {
 
     public void logout(String refreshToken) {
         refreshTokenCodec.parse(refreshToken).ifPresent(parsed -> {
-            int deleted = sessionRepository.deleteMatchingSession(
-                    parsed.sessionId(), refreshTokenCodec.hash(parsed.secret()));
-            if (deleted == 1) {
-                sessionAuthenticationCache.evictSessionAfterCommit(parsed.sessionId());
-            }
+            sessionRepository.deleteMatchingSession(parsed.sessionId(), refreshTokenCodec.hash(parsed.secret()));
         });
     }
 
     public void logout(String refreshToken, Long authenticatedUserId, Long authenticatedSessionId) {
         if (authenticatedUserId != null && authenticatedSessionId != null) {
-            int deleted = sessionRepository.deleteCurrentSession(authenticatedSessionId, authenticatedUserId);
-            if (deleted == 1) {
-                sessionAuthenticationCache.evictSessionAfterCommit(authenticatedSessionId);
-            }
+            sessionRepository.deleteCurrentSession(authenticatedSessionId, authenticatedUserId);
             return;
         }
         logout(refreshToken);
@@ -152,11 +135,7 @@ public class AuthService {
         if (!sessionRepository.existsByIdAndUser_Id(currentSessionId, userId)) {
             throw new InvalidCredentialsException("Phiên đăng nhập không còn hiệu lực");
         }
-        int deleted = sessionRepository.deleteOtherSessions(userId, currentSessionId);
-        if (deleted > 0) {
-            sessionAuthenticationCache.evictOtherSessionsAfterCommit(userId, currentSessionId);
-        }
-        return deleted;
+        return sessionRepository.deleteOtherSessions(userId, currentSessionId);
     }
 
     private UserAuthProjection findUserAuthByLoginIdentifier(String login) {

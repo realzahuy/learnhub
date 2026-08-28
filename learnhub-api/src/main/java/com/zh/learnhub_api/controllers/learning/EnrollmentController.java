@@ -7,7 +7,6 @@ import com.zh.learnhub_api.services.learning.EnrollmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,39 +18,35 @@ public class EnrollmentController {
     private final EnrollmentService enrollmentService;
 
     @PostMapping("/free/{courseId}")
-    public ResponseEntity<FreeEnrollmentResponseDTO> enrollFreeCourse(
+    public FreeEnrollmentResponseDTO enrollFreeCourse(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             @PathVariable Long courseId) {
-        return ResponseEntity.ok(
-                enrollmentService.enrollFreeCourse(principal.getUserId(), courseId));
+        return enrollmentService.enrollFreeCourse(principal.getUserId(), courseId);
     }
 
     @GetMapping
-    public ResponseEntity<PageResponseDTO<EnrollmentResponseDTO>> getMyEnrollments(
+    public PageResponseDTO<EnrollmentResponseDTO> getMyEnrollments(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
         @RequestParam(required = false) String category,
         @RequestParam(required = false) String search,
         Pageable pageable
     ) {
-        return ResponseEntity.ok(enrollmentService.getEnrollmentsByUserId(
-                principal.getUserId(), category, search, pageable));
+        return enrollmentService.getEnrollmentsByUserId(principal.getUserId(), category, search, pageable);
     }
 
     @GetMapping("/check")
-    public ResponseEntity<EnrollmentStatusDTO> checkEnrolled(
+    public EnrollmentStatusDTO checkEnrolled(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
         @RequestParam Long courseId
     ) {
-        return ResponseEntity.ok(new EnrollmentStatusDTO(
-                enrollmentService.isEnrolled(principal.getUserId(), courseId)));
+        return new EnrollmentStatusDTO(enrollmentService.isEnrolled(principal.getUserId(), courseId));
     }
 
     @PostMapping("/check-batch")
-    public ResponseEntity<EnrollmentBatchStatusDTO> checkEnrolledBatch(
+    public EnrollmentBatchStatusDTO checkEnrolledBatch(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             @Valid @RequestBody EnrollmentBatchCheckRequestDTO request) {
-        return ResponseEntity.ok(new EnrollmentBatchStatusDTO(
-                enrollmentService.findEnrolledCourseIds(
-                        principal.getUserId(), request.courseIds())));
+        return new EnrollmentBatchStatusDTO(
+                enrollmentService.findEnrolledCourseIds(principal.getUserId(), request.courseIds()));
     }
 }

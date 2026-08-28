@@ -4,7 +4,6 @@ import com.zh.learnhub_api.dtos.account.ChangePasswordRequestDTO;
 import com.zh.learnhub_api.dtos.account.LogoutOtherDevicesResponseDTO;
 import com.zh.learnhub_api.dtos.account.UpdateProfileRequestDTO;
 import com.zh.learnhub_api.dtos.account.UserResponseDTO;
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.account.AuthService;
 import com.zh.learnhub_api.services.account.UserService;
@@ -25,25 +24,22 @@ public class UserController {
     private final AuthService authService;
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponseDTO> getCurrentUser(
+    public UserResponseDTO getCurrentUser(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-
-        UserResponseDTO user = userService.getUserByUsername(principal.getUsername());
-        return ResponseEntity.ok(user);
+        return userService.getUserByUsername(principal.getUsername());
     }
 
     @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UserResponseDTO> updateProfile(
+    public UserResponseDTO updateProfile(
             @Valid @ModelAttribute UpdateProfileRequestDTO request,
             @RequestPart(value = "avatar", required = false) MultipartFile avatar,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        UserResponseDTO updated = userService.updateProfile(principal.getUsername(), request, avatar);
-        return ResponseEntity.ok(updated);
+        return userService.updateProfile(principal.getUsername(), request, avatar);
     }
 
     @PutMapping("/me/password")
-    public ResponseEntity<MessageResponseDTO> changePassword(
+    public ResponseEntity<Void> changePassword(
             @Valid @RequestBody ChangePasswordRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
@@ -52,23 +48,22 @@ public class UserController {
                 principal.getSessionId(),
                 request.getOldPassword(),
                 request.getNewPassword());
-        return ResponseEntity.ok(new MessageResponseDTO("Đổi mật khẩu thành công"));
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/me/sessions/logout-others")
-    public ResponseEntity<LogoutOtherDevicesResponseDTO> logoutOtherDevices(
+    public LogoutOtherDevicesResponseDTO logoutOtherDevices(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
         int loggedOutSessions = authService.logoutOtherDevices(
                 principal.getUserId(), principal.getSessionId());
-        return ResponseEntity.ok(new LogoutOtherDevicesResponseDTO(
-                "Đã đăng xuất khỏi các thiết bị khác", loggedOutSessions));
+        return new LogoutOtherDevicesResponseDTO(
+                "Đã đăng xuất khỏi các thiết bị khác", loggedOutSessions);
     }
 
     @PostMapping("/upgrade-to-instructor")
-    public ResponseEntity<MessageResponseDTO> upgradeToInstructor(
+    public ResponseEntity<Void> upgradeToInstructor(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
         userService.upgradeToInstructor(principal.getUsername());
-        return ResponseEntity.ok(
-                new MessageResponseDTO("Nâng cấp tài khoản lên giảng viên thành công"));
+        return ResponseEntity.noContent().build();
     }
 }

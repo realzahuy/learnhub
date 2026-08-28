@@ -64,9 +64,9 @@ public class LearningCourseService {
                             lesson.isPreview(),
                             videosByLesson.getOrDefault(lesson.getId(), List.of()).stream()
                                     .map(videoPlaybackService::toPlayableVideo)
-                                    .collect(Collectors.toList()),
+                                    .toList(),
                             questionCounts.getOrDefault(lesson.getId(), 0)))
-                .collect(Collectors.toList());
+                .toList();
 
         return new LearnCourseDTO(
                 courseId,

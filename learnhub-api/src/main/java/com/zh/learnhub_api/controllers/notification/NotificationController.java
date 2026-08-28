@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -25,20 +24,20 @@ public class NotificationController {
     private final NotificationSseService notificationSseService;
 
     @GetMapping
-    public ResponseEntity<NotificationPageDTO> getMine(
+    public NotificationPageDTO getMine(
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
                     java.time.LocalDateTime cursorCreatedAt,
             @RequestParam(required = false) Long cursorId,
             Pageable pageable) {
-        return ResponseEntity.ok(
-                notificationService.getMine(principal.getUserId(), cursorCreatedAt, cursorId, pageable.getPageSize()));
+        return notificationService.getMine(
+                principal.getUserId(), cursorCreatedAt, cursorId, pageable.getPageSize());
     }
 
     @PutMapping("/{id}/read")
-    public ResponseEntity<NotificationResponseDTO> markAsRead(
+    public NotificationResponseDTO markAsRead(
             @PathVariable Long id, @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return ResponseEntity.ok(notificationService.markAsRead(principal.getUserId(), id));
+        return notificationService.markAsRead(principal.getUserId(), id);
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

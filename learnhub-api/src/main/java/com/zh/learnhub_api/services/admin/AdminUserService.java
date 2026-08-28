@@ -13,7 +13,6 @@ import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.account.UserSessionRepository;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
-import com.zh.learnhub_api.security.SessionAuthenticationCache;
 import com.zh.learnhub_api.services.notification.email.AccountEmailEventListener.Locked;
 import com.zh.learnhub_api.services.notification.email.AccountEmailEventListener.Unlocked;
 import com.zh.learnhub_api.services.realtime.AccountRealtimeEventListener.AccountLocked;
@@ -44,7 +43,6 @@ public class AdminUserService {
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final SessionAuthenticationCache sessionAuthenticationCache;
 
     public PageResponseDTO<AdminUserDTO> listUsers(
             String search, AdminUserFilter filter, Pageable requestedPage) {
@@ -96,7 +94,6 @@ public class AdminUserService {
 
         target.setAccountStatus(AccountStatus.LOCKED);
         sessionRepository.deleteAllByUserId(target.getId());
-        sessionAuthenticationCache.evictUserSessionsAfterCommit(target.getId());
         eventPublisher.publishEvent(new AccountLocked(target.getId()));
         eventPublisher.publishEvent(new Locked(
                 target.getEmail(), target.getFullName(), admin.getEmail()));

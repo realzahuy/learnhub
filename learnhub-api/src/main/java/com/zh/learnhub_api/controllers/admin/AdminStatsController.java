@@ -5,7 +5,6 @@ import com.zh.learnhub_api.dtos.admin.AdminTimeSeriesDTO;
 import com.zh.learnhub_api.services.admin.AdminStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,16 +20,16 @@ public class AdminStatsController {
     private final AdminStatsService adminStatsService;
 
     @GetMapping("/overview")
-    public ResponseEntity<AdminOverviewDTO> getOverview() {
-        return ResponseEntity.ok(adminStatsService.getOverview());
+    public AdminOverviewDTO getOverview() {
+        return adminStatsService.getOverview();
     }
 
     @GetMapping("/timeseries")
-    public ResponseEntity<AdminTimeSeriesDTO> getTimeSeries(
+    public AdminTimeSeriesDTO getTimeSeries(
             @RequestParam(defaultValue = "day") String groupBy,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
-        return ResponseEntity.ok(adminStatsService.getTimeSeries(groupBy, from, to));
+        return adminStatsService.getTimeSeries(groupBy, from, to);
     }
 }

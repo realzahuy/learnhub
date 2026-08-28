@@ -20,11 +20,11 @@ public class ChatAssistantService {
     private final ChatModelClient chatModelClient;
     private final ChatCourseRecommendationService recommendationService;
 
-    public ChatResponseDTO respond(ChatRequestDTO request, String username) {
+    public ChatResponseDTO respond(ChatRequestDTO request, Long userId) {
         ChatPlan plan = chatModelClient.generatePlan(request);
         List<RecommendationCardDTO> courses = plan.shouldSearchCourses()
                 ? recommendationService.recommend(
-                        plan.searchKeywords(), username)
+                        plan.searchKeywords(), userId)
                 : List.of();
 
         String reply = plan.reply();

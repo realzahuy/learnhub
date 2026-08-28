@@ -45,7 +45,7 @@ public class CourseEmbeddingTextBuilder {
     }
 
     @Transactional(readOnly = true)
-    public EmbeddingDocument buildCourse(Course course) {
+    private EmbeddingDocument buildCourse(Course course) {
         Long courseId = course.getId();
         List<Lesson> lessons = lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId);
         StringBuilder text = new StringBuilder();
@@ -68,9 +68,8 @@ public class CourseEmbeddingTextBuilder {
         }
 
         String document = text.toString().trim();
-        int safeLimit = Math.max(1000, embeddingProperties.embeddingMaxChars());
-        if (document.length() > safeLimit) {
-            document = document.substring(0, safeLimit);
+        if (document.length() > embeddingProperties.embeddingMaxChars()) {
+            document = document.substring(0, embeddingProperties.embeddingMaxChars());
         }
         CourseVectorStore.Payload payload = buildPayload(course);
         return new EmbeddingDocument(courseId, normalize(course.getTitle()), document, payload);

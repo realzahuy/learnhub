@@ -3,6 +3,7 @@ package com.zh.learnhub_api.services.notification.email;
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.exceptions.ExternalServiceException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -12,20 +13,12 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 @Service
+@RequiredArgsConstructor
 public class AccountEmailSender {
 
     private final JavaMailSender mailSender;
-    private final String fromAddress;
-    private final String fromName;
-
-    public AccountEmailSender(
-            JavaMailSender mailSender,
-            AppProperties.SpringMail springMailProperties,
-            AppProperties.Mail mailProperties) {
-        this.mailSender = mailSender;
-        this.fromAddress = springMailProperties.username();
-        this.fromName = mailProperties.fromName();
-    }
+    private final AppProperties.SpringMail springMailProperties;
+    private final AppProperties.Mail mailProperties;
 
     public void sendVerificationCode(String toEmail, String code, int expireMinutes) {
         sendCodeEmail(
@@ -64,7 +57,7 @@ public class AccountEmailSender {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
 
-            helper.setFrom(fromAddress, fromName);
+            helper.setFrom(springMailProperties.username(), mailProperties.fromName());
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(html, true);

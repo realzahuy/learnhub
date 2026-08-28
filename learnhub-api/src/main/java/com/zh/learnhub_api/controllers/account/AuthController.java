@@ -2,7 +2,6 @@ package com.zh.learnhub_api.controllers.account;
 
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.account.*;
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.account.AuthService;
 import com.zh.learnhub_api.services.account.PasswordResetService;
@@ -54,22 +53,22 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<MessageResponseDTO> logout(
+    public ResponseEntity<Void> logout(
             @CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
         authService.logout(
                 refreshToken,
                 principal == null ? null : principal.getUserId(),
                 principal == null ? null : principal.getSessionId());
-        return ResponseEntity.ok()
+        return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, clearRefreshCookie().toString())
-                .body(new MessageResponseDTO("Đăng xuất thành công"));
+                .build();
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<PasswordResetStatusDTO> forgotPassword(
+    public PasswordResetStatusDTO forgotPassword(
             @Valid @RequestBody ForgotPasswordRequestDTO request) {
-        return ResponseEntity.ok(passwordResetService.requestCode(request.getEmail()));
+        return passwordResetService.requestCode(request.getEmail());
     }
 
     @PostMapping("/reset-password")

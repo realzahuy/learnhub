@@ -1,6 +1,5 @@
 package com.zh.learnhub_api.controllers.learning;
 
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.learning.RatingSummaryDTO;
 import com.zh.learnhub_api.dtos.learning.ReviewRequestDTO;
@@ -22,19 +21,19 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @GetMapping
-    public ResponseEntity<PageResponseDTO<ReviewResponseDTO>> getReviews(
+    public PageResponseDTO<ReviewResponseDTO> getReviews(
             @PathVariable String slug,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             Pageable pageable) {
 
         Long currentUserId = principal == null ? null : principal.getUserId();
 
-        return ResponseEntity.ok(reviewService.getCourseReviews(slug, currentUserId, pageable));
+        return reviewService.getCourseReviews(slug, currentUserId, pageable);
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<RatingSummaryDTO> getSummary(@PathVariable String slug) {
-        return ResponseEntity.ok(reviewService.getCourseSummary(slug));
+    public RatingSummaryDTO getSummary(@PathVariable String slug) {
+        return reviewService.getCourseSummary(slug);
     }
 
     @GetMapping("/me")
@@ -48,22 +47,21 @@ public class ReviewController {
     }
 
     @PostMapping
-    public ResponseEntity<ReviewResponseDTO> saveReview(
+    public ReviewResponseDTO saveReview(
             @PathVariable String slug,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             @Valid @RequestBody ReviewRequestDTO request) {
 
-        return ResponseEntity.ok(reviewService.saveReview(
-                slug, principal.getUserId(), request));
+        return reviewService.saveReview(slug, principal.getUserId(), request);
     }
 
     @DeleteMapping("/me")
-    public ResponseEntity<MessageResponseDTO> deleteMyReview(
+    public ResponseEntity<Void> deleteMyReview(
             @PathVariable String slug,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
         reviewService.deleteMyReview(slug, principal.getUserId());
 
-        return ResponseEntity.ok(new MessageResponseDTO("Đã xóa đánh giá"));
+        return ResponseEntity.noContent().build();
     }
 }

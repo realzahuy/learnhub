@@ -9,9 +9,9 @@ import com.zh.learnhub_api.pojo.UserActionCode;
 import com.zh.learnhub_api.repositories.account.UserActionCodeRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.account.UserSessionRepository;
-import com.zh.learnhub_api.security.SessionAuthenticationCache;
 import com.zh.learnhub_api.services.notification.email.AccountEmailSender;
 import com.zh.learnhub_api.utils.UserActionCodes;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class PasswordResetService {
 
     private static final UserActionCodePurpose PURPOSE = UserActionCodePurpose.PASSWORD_RESET;
@@ -35,32 +36,7 @@ public class PasswordResetService {
     private final UserActionCodeRepository codeRepository;
     private final AccountEmailSender emailService;
     private final PasswordEncoder passwordEncoder;
-    private final SessionAuthenticationCache sessionAuthenticationCache;
-
-    private final int codeLength;
-    private final int expireMinutes;
-    private final int resendCooldownSeconds;
-    private final int maxAttempts;
-
-    public PasswordResetService(
-            UserRepository userRepository,
-            UserSessionRepository sessionRepository,
-            UserActionCodeRepository codeRepository,
-            AccountEmailSender emailService,
-            PasswordEncoder passwordEncoder,
-            SessionAuthenticationCache sessionAuthenticationCache,
-            AppProperties.PasswordReset properties) {
-        this.userRepository = userRepository;
-        this.sessionRepository = sessionRepository;
-        this.codeRepository = codeRepository;
-        this.emailService = emailService;
-        this.passwordEncoder = passwordEncoder;
-        this.sessionAuthenticationCache = sessionAuthenticationCache;
-        this.codeLength = properties.codeLength();
-        this.expireMinutes = properties.expireMinutes();
-        this.resendCooldownSeconds = properties.resendCooldownSeconds();
-        this.maxAttempts = properties.maxAttempts();
-    }
+    private final AppProperties.PasswordReset properties;
 
     @Transactional
     public PasswordResetStatusDTO requestCode(String rawEmail) {
@@ -78,17 +54,17 @@ public class PasswordResetService {
         Optional<UserActionCode> latest = codeRepository
                 .findTopByUserId_IdAndPurposeOrderByIdDesc(user.getId(), PURPOSE);
         if (latest.map(code -> UserActionCodes.secondsUntilResend(
-                code, now, resendCooldownSeconds)).orElse(0L) > 0) {
+                code, now, properties.resendCooldownSeconds())).orElse(0L) > 0) {
             return sentStatus();
         }
 
         codeRepository.expireActiveCodes(user.getId(), PURPOSE, now);
 
-        String code = UserActionCodes.generateNumericCode(codeLength);
+        String code = UserActionCodes.generateNumericCode(properties.codeLength());
         codeRepository.save(new UserActionCode(
-                user, PURPOSE, code, now.plusMinutes(expireMinutes)));
+                user, PURPOSE, code, now.plusMinutes(properties.expireMinutes())));
 
-        emailService.sendPasswordResetCode(user.getEmail(), code, expireMinutes);
+        emailService.sendPasswordResetCode(user.getEmail(), code, properties.expireMinutes());
 
         return sentStatus();
     }
@@ -110,14 +86,14 @@ public class PasswordResetService {
         if (latest.isExpired()) {
             throw new IllegalArgumentException(INVALID_CODE_MESSAGE);
         }
-        if (latest.getAttempts() >= maxAttempts) {
+        if (latest.getAttempts() >= properties.maxAttempts()) {
             throw new TooManyRequestsException("Nhập sai quá nhiều lần");
         }
 
         if (!latest.getCode().equals(inputCode.trim())) {
             latest.setAttempts(latest.getAttempts() + 1);
 
-            int remaining = maxAttempts - latest.getAttempts();
+            int remaining = properties.maxAttempts() - latest.getAttempts();
             throw new IllegalArgumentException(remaining > 0
                     ? "Sai mã, còn %d lần".formatted(remaining)
                     : INVALID_CODE_MESSAGE);
@@ -130,12 +106,13 @@ public class PasswordResetService {
 
         userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
         sessionRepository.deleteAllByUserId(user.getId());
-        sessionAuthenticationCache.evictUserSessionsAfterCommit(user.getId());
     }
 
     private PasswordResetStatusDTO sentStatus() {
         return new PasswordResetStatusDTO(
-                SENT_MESSAGE, (long) expireMinutes * 60, resendCooldownSeconds);
+                SENT_MESSAGE,
+                (long) properties.expireMinutes() * 60,
+                properties.resendCooldownSeconds());
     }
 
 }

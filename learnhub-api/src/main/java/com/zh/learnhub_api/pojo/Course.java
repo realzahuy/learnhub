@@ -20,21 +20,18 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Course {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    @ToString.Include
     @EqualsAndHashCode.Include
     private Long id;
 
     @NotNull
     @Size(min = 1, max = 255)
     @Column(name = "title")
-    @ToString.Include
     private String title;
 
     @NotNull

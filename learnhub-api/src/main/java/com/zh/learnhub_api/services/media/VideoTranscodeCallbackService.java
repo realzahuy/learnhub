@@ -50,7 +50,6 @@ public class VideoTranscodeCallbackService {
 
         if ("ERROR".equals(status) || "CANCELED".equals(status)) {
             videoLifecycle.markFailed(video, LocalDateTime.now());
-            videoRepository.save(video);
             evictPublishedCourseDetail(video);
             videoProgressSseService.publishAfterCommit(courseId, video.getId(), VideoStatus.FAILED, progress);
             return;
@@ -64,7 +63,6 @@ public class VideoTranscodeCallbackService {
         videoLifecycle.markReady(video, LocalDateTime.now());
         video.setStorageKey(masterPlaylistKey);
         video.setDurationSeconds(durationSeconds);
-        videoRepository.save(video);
         evictPublishedCourseDetail(video);
 
         videoProgressSseService.publishAfterCommit(courseId, video.getId(), VideoStatus.READY, 100);

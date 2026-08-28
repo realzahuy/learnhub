@@ -14,7 +14,7 @@ public class CourseEditPolicy {
         }
     }
 
-    public void requireEditable(Course course) {
+    private void requireEditable(Course course) {
         CourseStatus status = course.getStatus();
         if (status == CourseStatus.PENDING || status == CourseStatus.PUBLISHED) {
             throw new IllegalArgumentException("Không thể thay đổi");

@@ -45,7 +45,7 @@ public class VideoManagementService {
             return List.of();
         }
 
-        List<Long> distinctIds = new LinkedHashSet<>(videoIds).stream().toList();
+        List<Long> distinctIds = videoIds.stream().distinct().toList();
         int statusBatchLimit = videoManagementProperties.statusBatchLimit();
         if (distinctIds.size() > statusBatchLimit) {
             throw new IllegalArgumentException("Vượt quá giới hạn video");

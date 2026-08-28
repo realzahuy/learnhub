@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -70,10 +69,10 @@ public class InstructorProfileService {
 
         List<CourseListItemDTO> courses = projectionPage.getContent().stream()
                 .map(courseMapper::mapListProjectionToDTO)
-                .collect(Collectors.toList());
+                .toList();
 
         courseMapper.applyRatings(courses, reviewService.getRatingStatsByCourses(
-                courses.stream().map(CourseListItemDTO::getId).collect(Collectors.toList())));
+                courses.stream().map(CourseListItemDTO::getId).toList()));
 
         return PageResponseDTO.from(projectionPage, courses);
     }

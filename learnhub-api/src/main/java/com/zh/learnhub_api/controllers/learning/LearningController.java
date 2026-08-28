@@ -1,21 +1,19 @@
 package com.zh.learnhub_api.controllers.learning;
 
-import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.course.RecommendationCardDTO;
 import com.zh.learnhub_api.dtos.learning.LearnCourseDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResponseDTO;
 import com.zh.learnhub_api.dtos.learning.QuizResultDTO;
 import com.zh.learnhub_api.dtos.learning.QuizSubmitRequestDTO;
+import com.zh.learnhub_api.dtos.media.VideoPlaybackSessionDTO;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.learning.LearningCourseService;
 import com.zh.learnhub_api.services.learning.QuizService;
 import com.zh.learnhub_api.services.learning.VideoPlaybackService;
-import com.zh.learnhub_api.services.media.VideoStorageService;
+import com.zh.learnhub_api.services.media.CloudFrontPlaybackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -31,76 +29,60 @@ public class LearningController {
 
     private final LearningCourseService learningCourseService;
     private final VideoPlaybackService videoPlaybackService;
+    private final CloudFrontPlaybackService cloudFrontPlaybackService;
     private final QuizService quizService;
-    private final AppProperties.Hls hlsProperties;
 
     @GetMapping("/courses/by-slug/{slug}")
-    public ResponseEntity<LearnCourseDTO> getCourseBySlug(
+    public LearnCourseDTO getCourseBySlug(
             @PathVariable String slug,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        return ResponseEntity.ok(
-                learningCourseService.getCourseForLearningBySlug(slug, principal.getUserId()));
+        return learningCourseService.getCourseForLearningBySlug(slug, principal.getUserId());
     }
 
     @GetMapping("/courses/{courseId}/recommendations")
-    public ResponseEntity<List<RecommendationCardDTO>> getCourseRecommendations(
+    public List<RecommendationCardDTO> getCourseRecommendations(
             @PathVariable Long courseId,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        return ResponseEntity.ok(
-                learningCourseService.getRecommendations(courseId, principal.getUserId()));
+        return learningCourseService.getRecommendations(courseId, principal.getUserId());
     }
 
-    @GetMapping("/videos/{videoId}/hls/{fileName}")
-    public ResponseEntity<InputStreamResource> streamHlsFile(
+    @PostMapping("/videos/{videoId}/playback-session")
+    public ResponseEntity<VideoPlaybackSessionDTO> createPlaybackSession(
             @PathVariable Long videoId,
-            @PathVariable String fileName,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal) throws Exception {
 
-        VideoStorageService.StoredObject object =
-                videoPlaybackService.openVideoFile(
-                        videoId, fileName, principal.getUserId(), isAdmin(principal));
+        String masterKey = videoPlaybackService.authorizeVideoPlayback(
+                videoId, principal.getUserId(), isAdmin(principal));
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(object.contentType()))
-                .contentLength(object.contentLength())
-
-                .header(HttpHeaders.CACHE_CONTROL, privateCacheControl())
-                .body(new InputStreamResource(object.content()));
+        return playbackSession(masterKey);
     }
 
-    @GetMapping("/preview/videos/{videoId}/hls/{fileName}")
-    public ResponseEntity<InputStreamResource> streamPreviewHlsFile(
-            @PathVariable Long videoId,
-            @PathVariable String fileName) {
+    @PostMapping("/preview/videos/{videoId}/playback-session")
+    public ResponseEntity<VideoPlaybackSessionDTO> createPreviewPlaybackSession(
+            @PathVariable Long videoId) throws Exception {
 
-        VideoStorageService.StoredObject object =
-                videoPlaybackService.openPreviewVideoFile(videoId, fileName);
+        String masterKey = videoPlaybackService.authorizePreviewPlayback(videoId);
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(object.contentType()))
-                .contentLength(object.contentLength())
-                .header(HttpHeaders.CACHE_CONTROL, privateCacheControl())
-                .body(new InputStreamResource(object.content()));
+        return playbackSession(masterKey);
     }
 
     @GetMapping("/lessons/{lessonId}/quiz")
-    public ResponseEntity<QuizResponseDTO> getQuiz(
+    public QuizResponseDTO getQuiz(
             @PathVariable Long lessonId,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        return ResponseEntity.ok(quizService.getQuiz(lessonId, principal.getUserId()));
+        return quizService.getQuiz(lessonId, principal.getUserId());
     }
 
     @PostMapping("/lessons/{lessonId}/quiz/submit")
-    public ResponseEntity<QuizResultDTO> submitQuiz(
+    public QuizResultDTO submitQuiz(
             @PathVariable Long lessonId,
             @Valid @RequestBody QuizSubmitRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
 
-        return ResponseEntity.ok(
-                quizService.submit(lessonId, request, principal.getUserId()));
+        return quizService.submit(lessonId, request, principal.getUserId());
     }
 
     private boolean isAdmin(AuthenticatedUserPrincipal principal) {
@@ -108,7 +90,13 @@ public class LearningController {
                 .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
     }
 
-    private String privateCacheControl() {
-        return "private, max-age=" + hlsProperties.privateCacheMaxAgeSeconds();
+    private ResponseEntity<VideoPlaybackSessionDTO> playbackSession(String masterKey) throws Exception {
+        CloudFrontPlaybackService.PlaybackSession session = cloudFrontPlaybackService.createSession(masterKey);
+        HttpHeaders headers = new HttpHeaders();
+        session.setCookieHeaders().forEach(cookie -> headers.add(HttpHeaders.SET_COOKIE, cookie));
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(new VideoPlaybackSessionDTO(session.playbackUrl(), session.expiresInSeconds()));
     }
 }

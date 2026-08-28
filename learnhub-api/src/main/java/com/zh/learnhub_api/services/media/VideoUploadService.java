@@ -66,7 +66,6 @@ public class VideoUploadService {
         String objectKey = videoStorageService.generateRawObjectKey(
                 course.getId(), lessonId, video.getId(), request.getFileName());
         video.setStorageKey(objectKey);
-        video = videoRepository.save(video);
 
         VideoStorageService.PresignedUpload upload = videoStorageService.generatePresignedUpload(
                 objectKey, request.getContentType(), videoProperties.maxSize());
@@ -100,7 +99,6 @@ public class VideoUploadService {
         String jobId = mediaConvertService.createHlsTranscodingJob(
                 objectKey, outputPath, mediaConvertClientToken(videoId, objectKey));
         video.setMediaconvertJobId(jobId);
-        videoRepository.save(video);
 
         Long courseId = video.getLesson().getCourseId().getId();
         videoProgressSseService.publishAfterCommit(courseId, videoId, VideoStatus.PROCESSING, 0);

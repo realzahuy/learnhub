@@ -11,7 +11,6 @@ import org.mapstruct.Named;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Mapper
 public interface QuestionMapper {
@@ -32,6 +31,6 @@ public interface QuestionMapper {
         return answers.stream()
                 .sorted(Comparator.comparing(Answer::getId))
                 .map(this::toAnswerDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

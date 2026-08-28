@@ -79,24 +79,22 @@ public class QdrantCourseVectorStore implements CourseVectorStore {
     }
 
     @Override
-    public List<CourseVectorStore.Match> findSimilar(Long courseId, int limit, Set<Long> excludedCourseIds, Double scoreThreshold) {
+    public List<CourseVectorStore.Match> findSimilar(Long courseId, int limit, Set<Long> excludedCourseIds, double scoreThreshold) {
         return querySimilar(courseId, limit, excludedCourseIds, scoreThreshold);
     }
 
     @Override
-    public List<CourseVectorStore.Match> findSimilar(List<Float> queryVector, int limit, Set<Long> excludedCourseIds, Double scoreThreshold) {
+    public List<CourseVectorStore.Match> findSimilar(List<Float> queryVector, int limit, Set<Long> excludedCourseIds, double scoreThreshold) {
         return querySimilar(queryVector, limit, excludedCourseIds, scoreThreshold);
     }
 
-    private List<CourseVectorStore.Match> querySimilar(Object query, int limit, Set<Long> excludedCourseIds, Double scoreThreshold) {
+    private List<CourseVectorStore.Match> querySimilar(Object query, int limit, Set<Long> excludedCourseIds, double scoreThreshold) {
         Map<String, Object> body = new HashMap<>();
         body.put("query", query);
         body.put("limit", limit);
         body.put("with_payload", List.of("slug", "title", "thumbnail", "price"));
         body.put("with_vector", false);
-        if (scoreThreshold != null) {
-            body.put("score_threshold", scoreThreshold);
-        }
+        body.put("score_threshold", scoreThreshold);
         if (!excludedCourseIds.isEmpty()) {
             body.put("filter", Map.of("must_not", List.of(Map.of("has_id", List.copyOf(excludedCourseIds)))));
         }
@@ -116,10 +114,9 @@ public class QdrantCourseVectorStore implements CourseVectorStore {
         List<CourseVectorStore.Match> matches = new ArrayList<>(points.size());
         for (Object pointValue : points) {
             Map<?, ?> point = (Map<?, ?>) pointValue;
-            Number score = (Number) point.get("score");
             CourseVectorStore.Payload payload = parsePayload(point.get("payload"));
             Long id = ((Number) point.get("id")).longValue();
-            matches.add(new CourseVectorStore.Match(id, score.doubleValue(), payload));
+            matches.add(new CourseVectorStore.Match(id, payload));
         }
         return List.copyOf(matches);
     }

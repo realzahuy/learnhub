@@ -10,20 +10,17 @@ import lombok.*;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    @ToString.Include
     @EqualsAndHashCode.Include
     private Short id;
 
     @NotNull
     @Size(min = 1, max = 100)
     @Column(name = "name")
-    @ToString.Include
     private String name;
 }

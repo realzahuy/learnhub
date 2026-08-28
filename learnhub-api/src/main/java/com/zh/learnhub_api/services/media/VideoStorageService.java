@@ -10,10 +10,6 @@ public interface VideoStorageService {
         }
     }
 
-    record StoredObject(java.io.InputStream content, long contentLength, String contentType) {}
-
-    StoredObject openHlsObject(String objectKey);
-
     PresignedUpload generatePresignedUpload(String objectKey, String contentType, long maxSizeBytes);
 
     void deleteVideo(String objectKey);

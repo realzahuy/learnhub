@@ -1,6 +1,5 @@
 package com.zh.learnhub_api.controllers.instructor;
 
-import com.zh.learnhub_api.dtos.common.MessageResponseDTO;
 import com.zh.learnhub_api.dtos.common.PageResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseCreateResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseRejectResponseDTO;
@@ -38,52 +37,46 @@ public class InstructorCourseController {
     private final VideoProgressSseService videoProgressSseService;
 
     @GetMapping
-    public ResponseEntity<PageResponseDTO<CourseResponseDTO>> listInstructorCourses(
+    public PageResponseDTO<CourseResponseDTO> listInstructorCourses(
             @RequestParam(required = false) CourseStatus status,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
             Pageable pageable,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        PageResponseDTO<CourseResponseDTO> response =
-            instructorCourseService.getInstructorCourses(
-                    userDetails.getUserId(), status, category, search, pageable);
-        return ResponseEntity.ok(response);
+        return instructorCourseService.getInstructorCourses(
+                userDetails.getUserId(), status, category, search, pageable);
     }
 
     @GetMapping("/{id}/reject-reason")
-    public ResponseEntity<CourseRejectResponseDTO> getRejectReason(
+    public CourseRejectResponseDTO getRejectReason(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        CourseRejectResponseDTO reason = instructorCourseService.getCourseRejectReason(id, userDetails.getUserId());
-        return ResponseEntity.ok(reason);
+        return instructorCourseService.getCourseRejectReason(id, userDetails.getUserId());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CourseResponseDTO> getCourseDetail(
+    public CourseResponseDTO getCourseDetail(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        CourseResponseDTO course = instructorCourseService.getInstructorCourseDetail(id, userDetails.getUserId());
-        return ResponseEntity.ok(course);
+        return instructorCourseService.getInstructorCourseDetail(id, userDetails.getUserId());
     }
 
     @GetMapping("/{id}/content")
-    public ResponseEntity<InstructorCourseContentDTO> getCourseContent(
+    public InstructorCourseContentDTO getCourseContent(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
-        return ResponseEntity.ok(
-                courseContentService.getCourseContent(id, userDetails.getUserId()));
+        return courseContentService.getCourseContent(id, userDetails.getUserId());
     }
 
     @GetMapping("/{id}/videos/status")
-    public ResponseEntity<List<VideoResponseDTO>> getVideoStatuses(
+    public List<VideoResponseDTO> getVideoStatuses(
             @PathVariable Long id,
             @RequestParam List<Long> ids,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
-        return ResponseEntity.ok(
-                videoManagementService.getVideoStatuses(id, ids, userDetails.getUserId()));
+        return videoManagementService.getVideoStatuses(id, ids, userDetails.getUserId());
     }
 
     @GetMapping(value = "/{id}/videos/progress-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -108,35 +101,34 @@ public class InstructorCourseController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CourseResponseDTO> updateCourse(
+    public CourseResponseDTO updateCourse(
             @PathVariable Long id,
             @Valid @ModelAttribute CourseUpsertRequestDTO request,
             @RequestPart(value = "thumbnailFile", required = false) MultipartFile thumbnailFile,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
-        CourseResponseDTO updated = instructorCourseService.updateCourse(
+        return instructorCourseService.updateCourse(
                 id,
                 request,
                 userDetails.getUserId(),
                 thumbnailFile);
-        return ResponseEntity.ok(updated);
     }
 
     @PostMapping("/{id}/submit")
-    public ResponseEntity<MessageResponseDTO> submitCourse(
+    public ResponseEntity<Void> submitCourse(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         instructorCourseService.submitCourse(id, userDetails.getUserId());
-        return ResponseEntity.ok(new MessageResponseDTO("Gửi khóa học kiểm duyệt thành công"));
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<MessageResponseDTO> deleteCourse(
+    public ResponseEntity<Void> deleteCourse(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUserPrincipal userDetails) {
 
         instructorCourseService.deleteCourse(id, userDetails.getUserId());
-        return ResponseEntity.ok(new MessageResponseDTO("Xóa khóa học thành công"));
+        return ResponseEntity.noContent().build();
     }
 }

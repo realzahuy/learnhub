@@ -31,11 +31,10 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryResponseDTO> updateCategory(
+    public CategoryResponseDTO updateCategory(
             @PathVariable Short id, 
             @Valid @RequestBody CategoryRequestDTO requestDTO) {
-        CategoryResponseDTO updatedCategory = categoryService.updateCategory(id, requestDTO);
-        return ResponseEntity.ok(updatedCategory);
+        return categoryService.updateCategory(id, requestDTO);
     }
 
     @DeleteMapping("/{id}")

@@ -56,7 +56,7 @@ public class LessonService {
 
         List<Lesson> savedLessons = lessonRepository.saveAll(lessons);
 
-        return savedLessons.stream().map(this::mapToDTO).collect(Collectors.toList());
+        return savedLessons.stream().map(this::mapToDTO).toList();
     }
 
     @Transactional
@@ -79,8 +79,7 @@ public class LessonService {
             lesson.setPosition(request.getPosition());
         }
 
-        Lesson updated = lessonRepository.save(lesson);
-        return mapToDTO(updated);
+        return mapToDTO(lesson);
     }
 
     @Transactional
@@ -122,7 +121,7 @@ public class LessonService {
         return saved.stream()
                 .sorted(java.util.Comparator.comparingInt(Lesson::getPosition))
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
@@ -144,12 +143,11 @@ public class LessonService {
     }
 
     private LessonResponseDTO mapToDTO(Lesson lesson) {
-        LessonResponseDTO dto = new LessonResponseDTO();
-        dto.setId(lesson.getId());
-        dto.setTitle(lesson.getTitle());
-        dto.setPosition(lesson.getPosition());
-        dto.setIsPreview(lesson.isPreview());
-        dto.setCourseId(lesson.getCourseId().getId());
-        return dto;
+        return new LessonResponseDTO(
+                lesson.getId(),
+                lesson.getTitle(),
+                lesson.getPosition(),
+                lesson.isPreview(),
+                lesson.getCourseId().getId());
     }
 }

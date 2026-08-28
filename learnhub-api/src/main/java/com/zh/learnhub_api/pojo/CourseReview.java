@@ -18,14 +18,12 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class CourseReview {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    @ToString.Include
     @EqualsAndHashCode.Include
     private Long id;
 
@@ -33,7 +31,6 @@ public class CourseReview {
     @Min(1)
     @Max(5)
     @Column(name = "rating", nullable = false)
-    @ToString.Include
     private Integer rating;
 
     @Lob

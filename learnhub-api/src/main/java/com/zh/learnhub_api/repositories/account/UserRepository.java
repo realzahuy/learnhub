@@ -16,7 +16,6 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -78,7 +77,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     void updateLastLogin(@Param("userId") Long userId, @Param("lastLogin") LocalDateTime lastLogin);
 
     @Modifying
-    @Transactional
     @Query("UPDATE User u SET u.fullName = :fullName, u.bio = :bio, u.avatar = :avatar WHERE u.id = :userId")
     void updateProfile(
             @Param("userId") Long userId,
@@ -87,7 +85,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("avatar") String avatar);
 
     @Modifying
-    @Transactional
     @Query("UPDATE User u SET u.password = :password WHERE u.id = :userId")
     void updatePassword(@Param("userId") Long userId, @Param("password") String password);
 

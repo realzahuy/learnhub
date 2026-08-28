@@ -1,5 +1,8 @@
 package com.zh.learnhub_api.security;
 
+import com.zh.learnhub_api.enums.AccountStatus;
+import com.zh.learnhub_api.projections.account.SessionAuthenticationProjection;
+import com.zh.learnhub_api.repositories.account.UserSessionRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,14 +19,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final SessionAuthenticationCache sessionAuthenticationCache;
+    private final UserSessionRepository sessionRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -49,13 +51,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        if (!sessionAuthenticationCache.isActive(claims.sessionId(), claims.userId(), LocalDateTime.now())) {
+        SessionAuthenticationProjection session =
+                sessionRepository.findAuthenticationById(claims.sessionId()).orElse(null);
+        if (session == null
+                || !claims.userId().equals(session.getUserId())
+                || session.getAccountStatus() != AccountStatus.ACTIVE
+                || !session.getExpiresAt().isAfter(LocalDateTime.now())) {
             filterChain.doFilter(request, response);
             return;
         }
 
         List<SimpleGrantedAuthority> authorities =
-                claims.roles().stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
+                claims.roles().stream().map(SimpleGrantedAuthority::new).toList();
         AuthenticatedUserPrincipal userDetails =
                 new AuthenticatedUserPrincipal(claims.userId(), claims.sessionId(), claims.username(), authorities);
         UsernamePasswordAuthenticationToken authToken =

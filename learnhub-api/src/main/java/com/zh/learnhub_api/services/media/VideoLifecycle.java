@@ -34,10 +34,6 @@ public class VideoLifecycle {
         return currentStatus(video) == VideoStatus.PROCESSING;
     }
 
-    public boolean isFailed(Video video) {
-        return currentStatus(video) == VideoStatus.FAILED;
-    }
-
     public void requireDeletable(Video video) {
         VideoStatus current = currentStatus(video);
         if (!DELETABLE_STATUSES.contains(current)) {

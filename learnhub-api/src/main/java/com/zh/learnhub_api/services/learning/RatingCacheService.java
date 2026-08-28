@@ -46,7 +46,7 @@ public class RatingCacheService {
         return new RatingSummaryDTO(
                 average,
                 totalReviews,
-                Collections.unmodifiableMap(new LinkedHashMap<>(distribution)));
+                Collections.unmodifiableMap(distribution));
     }
 
     public Map<Long, RatingStats> getCourseStats(List<Long> courseIds) {
@@ -54,7 +54,7 @@ public class RatingCacheService {
             return Map.of();
         }
 
-        List<Long> uniqueIds = new ArrayList<>(new LinkedHashSet<>(courseIds));
+        List<Long> uniqueIds = courseIds.stream().distinct().toList();
         Cache cache = requireCache(CacheConfiguration.COURSE_RATING_STATS);
         Map<Long, RatingStats> result = new HashMap<>();
         List<Long> misses = new ArrayList<>();

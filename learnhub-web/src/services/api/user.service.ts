@@ -24,9 +24,8 @@ export const userService = {
     return response.data;
   },
 
-  upgradeToInstructor: async (): Promise<{ message: string }> => {
-    const response = await apiClient.post<{ message: string }>('/users/upgrade-to-instructor');
-    return response.data;
+  upgradeToInstructor: async (): Promise<void> => {
+    await apiClient.post('/users/upgrade-to-instructor');
   },
 
   changePassword: async (oldPassword: string, newPassword: string): Promise<void> => {

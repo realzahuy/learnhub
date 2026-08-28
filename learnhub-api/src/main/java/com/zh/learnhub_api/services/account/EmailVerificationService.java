@@ -11,6 +11,7 @@ import com.zh.learnhub_api.repositories.account.UserActionCodeRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.services.notification.email.AccountEmailSender;
 import com.zh.learnhub_api.utils.UserActionCodes;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class EmailVerificationService {
 
     private static final UserActionCodePurpose PURPOSE =
@@ -27,25 +29,7 @@ public class EmailVerificationService {
     private final UserRepository userRepository;
     private final UserActionCodeRepository codeRepository;
     private final AccountEmailSender emailService;
-
-    private final int codeLength;
-    private final int expireMinutes;
-    private final int resendCooldownSeconds;
-    private final int maxAttempts;
-
-    public EmailVerificationService(
-            UserRepository userRepository,
-            UserActionCodeRepository codeRepository,
-            AccountEmailSender emailService,
-            AppProperties.Verification properties) {
-        this.userRepository = userRepository;
-        this.codeRepository = codeRepository;
-        this.emailService = emailService;
-        this.codeLength = properties.codeLength();
-        this.expireMinutes = properties.expireMinutes();
-        this.resendCooldownSeconds = properties.resendCooldownSeconds();
-        this.maxAttempts = properties.maxAttempts();
-    }
+    private final AppProperties.Verification properties;
 
     @Transactional
     public EmailVerificationStatusDTO sendCode(String username) {
@@ -61,7 +45,7 @@ public class EmailVerificationService {
                 .findTopByUserId_IdAndPurposeOrderByIdDesc(user.getId(), PURPOSE);
         long waitSeconds = latest
                 .map(code -> UserActionCodes.secondsUntilResend(
-                        code, now, resendCooldownSeconds))
+                        code, now, properties.resendCooldownSeconds()))
                 .orElse(0L);
         if (waitSeconds > 0) {
             throw new TooManyRequestsException("Thử lại sau %d giây".formatted(waitSeconds));
@@ -69,16 +53,16 @@ public class EmailVerificationService {
 
         codeRepository.expireActiveCodes(user.getId(), PURPOSE, now);
 
-        String code = UserActionCodes.generateNumericCode(codeLength);
+        String code = UserActionCodes.generateNumericCode(properties.codeLength());
         UserActionCode saved = codeRepository.save(new UserActionCode(
-                user, PURPOSE, code, now.plusMinutes(expireMinutes)));
+                user, PURPOSE, code, now.plusMinutes(properties.expireMinutes())));
 
-        emailService.sendVerificationCode(user.getEmail(), code, expireMinutes);
+        emailService.sendVerificationCode(user.getEmail(), code, properties.expireMinutes());
 
         return EmailVerificationStatusDTO.pending(
                 AccountEmailSender.maskEmail(user.getEmail()),
                 Duration.between(now, saved.getExpiresAt()).toSeconds(),
-                resendCooldownSeconds);
+                properties.resendCooldownSeconds());
     }
 
     @Transactional(noRollbackFor = { IllegalArgumentException.class, TooManyRequestsException.class })
@@ -99,14 +83,14 @@ public class EmailVerificationService {
         if (latest.isExpired()) {
             throw new IllegalArgumentException("Mã xác thực đã hết hạn");
         }
-        if (latest.getAttempts() >= maxAttempts) {
+        if (latest.getAttempts() >= properties.maxAttempts()) {
             throw new TooManyRequestsException("Nhập sai quá nhiều lần");
         }
 
         if (!latest.getCode().equals(inputCode.trim())) {
             latest.setAttempts(latest.getAttempts() + 1);
 
-            int remaining = maxAttempts - latest.getAttempts();
+            int remaining = properties.maxAttempts() - latest.getAttempts();
             throw new IllegalArgumentException(remaining > 0
                     ? "Sai mã, còn %d lần".formatted(remaining)
                     : "Mã xác thực không hợp lệ");

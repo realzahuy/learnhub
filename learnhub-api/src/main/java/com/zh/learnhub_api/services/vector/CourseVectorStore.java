@@ -16,9 +16,9 @@ public interface CourseVectorStore {
 
     void delete(Long courseId);
 
-    List<Match> findSimilar(Long courseId, int limit, Set<Long> excludedCourseIds, Double scoreThreshold);
+    List<Match> findSimilar(Long courseId, int limit, Set<Long> excludedCourseIds, double scoreThreshold);
 
-    List<Match> findSimilar(List<Float> queryVector, int limit, Set<Long> excludedCourseIds, Double scoreThreshold);
+    List<Match> findSimilar(List<Float> queryVector, int limit, Set<Long> excludedCourseIds, double scoreThreshold);
 
     record Payload(String slug, String title, String thumbnail, BigDecimal price) {
 
@@ -27,5 +27,5 @@ public interface CourseVectorStore {
         }
     }
 
-    record Match(Long courseId, double score, Payload payload) {}
+    record Match(Long courseId, Payload payload) {}
 }

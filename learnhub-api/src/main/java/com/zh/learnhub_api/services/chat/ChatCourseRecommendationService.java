@@ -24,15 +24,15 @@ public class ChatCourseRecommendationService {
     private final AppProperties.Recommendation recommendationProperties;
 
     @Transactional(readOnly = true)
-    public List<RecommendationCardDTO> recommend(List<String> searchKeywords, String username) {
+    public List<RecommendationCardDTO> recommend(List<String> searchKeywords, Long userId) {
         if (!vectorStore.isEnabled() || searchKeywords.isEmpty()) {
             return List.of();
         }
 
         try {
-            Set<Long> enrolledIds = username == null || username.isBlank()
+            Set<Long> enrolledIds = userId == null
                     ? Set.of()
-                    : enrollmentRepository.findCourseIdsByUsername(username);
+                    : enrollmentRepository.findCourseIdsByUserId(userId);
             List<Match> matches = vectorStore.findSimilar(
                     embeddingClient.embedQuery(String.join(" ", searchKeywords)),
                     recommendationProperties.resultLimit(),

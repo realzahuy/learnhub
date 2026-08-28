@@ -17,12 +17,9 @@ public class CacheConfiguration {
     public static final String COURSE_RATING_SUMMARIES = "courseRatingSummaries";
     public static final String PUBLIC_COURSE_DETAILS = "publicCourseDetails";
     public static final String PUBLIC_COURSE_CATALOG = "publicCourseCatalog";
-    public static final String PUBLISHED_VIDEO_PLAYBACK = "publishedVideoPlayback";
-    public static final String COURSE_PLAYBACK_ACCESS = "coursePlaybackAccess";
 
     @Bean
-    public CacheManager cacheManager(
-            AppProperties.ApplicationCache applicationCache, AppProperties.VideoPlaybackCache videoPlaybackCache) {
+    public CacheManager cacheManager(AppProperties.ApplicationCache applicationCache) {
         CaffeineCacheManager manager = new CaffeineCacheManager();
         manager.setAllowNullValues(false);
         manager.setCacheNames(Collections.emptyList());
@@ -32,16 +29,6 @@ public class CacheConfiguration {
         register(manager, COURSE_RATING_SUMMARIES, applicationCache.courseRatingSummaries());
         register(manager, PUBLIC_COURSE_DETAILS, applicationCache.publicCourseDetails());
         register(manager, PUBLIC_COURSE_CATALOG, applicationCache.publicCourseCatalog());
-        register(
-                manager,
-                PUBLISHED_VIDEO_PLAYBACK,
-                videoPlaybackCache.metadataMaximumSize(),
-                Duration.ofMinutes(videoPlaybackCache.metadataExpireAfterWriteMinutes()));
-        register(
-                manager,
-                COURSE_PLAYBACK_ACCESS,
-                videoPlaybackCache.accessMaximumSize(),
-                Duration.ofMinutes(videoPlaybackCache.accessExpireAfterWriteMinutes()));
         return manager;
     }
 

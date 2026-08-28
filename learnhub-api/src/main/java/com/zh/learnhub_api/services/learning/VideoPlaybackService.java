@@ -1,6 +1,7 @@
 package com.zh.learnhub_api.services.learning;
 
 import com.zh.learnhub_api.dtos.media.PlayableVideoDTO;
+import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -8,7 +9,6 @@ import com.zh.learnhub_api.pojo.Video;
 import com.zh.learnhub_api.projections.learning.VideoPlaybackProjection;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.media.VideoPlaybackUrls;
-import com.zh.learnhub_api.services.media.VideoStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,38 +19,36 @@ import org.springframework.transaction.annotation.Transactional;
 public class VideoPlaybackService {
 
     private final VideoRepository videoRepository;
-    private final VideoStorageService videoStorageService;
-    private final PublishedVideoPlaybackCacheService publishedVideoPlaybackCacheService;
     private final LearningAccessService learningAccessService;
 
-    public VideoStorageService.StoredObject openVideoFile(Long videoId, String fileName, Long userId, boolean admin) {
+    public String authorizeVideoPlayback(Long videoId, Long userId, boolean admin) {
         if (admin) {
             VideoPlaybackProjection video = videoRepository
                     .findPlaybackById(videoId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
-            return openReadyVideoFile(video, fileName);
+            return requireReadyStorageKey(video);
         }
 
-        var video = publishedVideoPlaybackCacheService.getReadyPublishedVideo(videoId);
-        if (!video.lessonPreview()) {
-            learningAccessService.requireEnrollment(userId, video.courseId());
+        VideoPlaybackProjection video = requireReadyPublishedVideo(videoId);
+        if (!video.isLessonPreview()) {
+            learningAccessService.requireEnrollment(userId, video.getCourseId());
         }
-        return videoStorageService.openHlsObject(resolveHlsKey(video.storageKey(), fileName));
+        return video.getStorageKey();
     }
 
-    public VideoStorageService.StoredObject openPreviewVideoFile(Long videoId, String fileName) {
-        var video = publishedVideoPlaybackCacheService.getReadyPublishedVideo(videoId);
-        if (!video.lessonPreview()) {
+    public String authorizePreviewPlayback(Long videoId) {
+        VideoPlaybackProjection video = requireReadyPublishedVideo(videoId);
+        if (!video.isLessonPreview()) {
             throw new ForbiddenException("Bài giảng này không khả dụng để xem thử");
         }
-        return videoStorageService.openHlsObject(resolveHlsKey(video.storageKey(), fileName));
+        return video.getStorageKey();
     }
 
-    public VideoStorageService.StoredObject openInstructorVideoFile(Long videoId, String fileName, Long instructorId) {
+    public String authorizeInstructorPlayback(Long videoId, Long instructorId) {
         VideoPlaybackProjection video = videoRepository
                 .findPlaybackForInstructorById(videoId, instructorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
-        return openReadyVideoFile(video, fileName);
+        return requireReadyStorageKey(video);
     }
 
     public PlayableVideoDTO toPlayableVideo(Video video) {
@@ -62,22 +60,21 @@ public class VideoPlaybackService {
                 video.getStatus());
     }
 
-    private VideoStorageService.StoredObject openReadyVideoFile(VideoPlaybackProjection video, String fileName) {
+    private String requireReadyStorageKey(VideoPlaybackProjection video) {
         if (video.getStorageKey() == null || video.getStatus() != VideoStatus.READY) {
             throw new ResourceNotFoundException("Video chưa sẵn sàng để phát");
         }
-        return videoStorageService.openHlsObject(resolveHlsKey(video.getStorageKey(), fileName));
+        return video.getStorageKey();
     }
 
-    private String resolveHlsKey(String masterKey, String fileName) {
-        if (fileName == null
-                || fileName.isBlank()
-                || fileName.contains("/")
-                || fileName.contains("\\")
-                || fileName.contains("..")) {
-            throw new ForbiddenException("Tên tệp không hợp lệ");
+    private VideoPlaybackProjection requireReadyPublishedVideo(Long videoId) {
+        VideoPlaybackProjection video = videoRepository
+                .findPlaybackById(videoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
+        if (video.getCourseStatus() != CourseStatus.PUBLISHED) {
+            throw new ResourceNotFoundException("Video chưa sẵn sàng để phát");
         }
-        String folder = masterKey.substring(0, masterKey.lastIndexOf('/') + 1);
-        return folder + fileName;
+        requireReadyStorageKey(video);
+        return video;
     }
 }

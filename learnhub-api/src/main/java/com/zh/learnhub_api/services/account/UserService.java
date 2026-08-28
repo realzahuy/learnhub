@@ -14,7 +14,6 @@ import com.zh.learnhub_api.projections.account.UserUpgradeProjection;
 import com.zh.learnhub_api.repositories.account.RoleRepository;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.account.UserSessionRepository;
-import com.zh.learnhub_api.security.SessionAuthenticationCache;
 import com.zh.learnhub_api.services.media.ImageStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,7 +22,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -36,7 +34,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserSessionRepository sessionRepository;
-    private final SessionAuthenticationCache sessionAuthenticationCache;
     private final UserProfileUpdateService userProfileUpdateService;
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
@@ -72,7 +69,7 @@ public class UserService {
         Short userRoleId = roleRepository.findIdByName("ROLE_USER")
                 .orElseThrow(() -> new ResourceNotFoundException("Lỗi: Không tìm thấy vai trò ROLE_USER"));
         Role userRole = roleRepository.getReferenceById(userRoleId);
-        user.setRoleSet(new HashSet<>(Collections.singletonList(userRole)));
+        user.setRoleSet(new HashSet<>(List.of(userRole)));
 
         User savedUser = userRepository.save(user);
 
@@ -151,10 +148,6 @@ public class UserService {
         }
 
         userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
-        int deleted = sessionRepository.deleteOtherSessions(user.getId(), currentSessionId);
-        if (deleted > 0) {
-            sessionAuthenticationCache.evictOtherSessionsAfterCommit(
-                    user.getId(), currentSessionId);
-        }
+        sessionRepository.deleteOtherSessions(user.getId(), currentSessionId);
     }
 }
