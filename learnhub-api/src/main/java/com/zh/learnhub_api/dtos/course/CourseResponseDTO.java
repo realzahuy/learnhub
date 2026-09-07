@@ -22,7 +22,7 @@ public class CourseResponseDTO {
     private CourseStatus status;
     private Long instructorId;
     private String instructorName;
-    private Long categoryId;
+    private Short categoryId;
     private String categoryName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

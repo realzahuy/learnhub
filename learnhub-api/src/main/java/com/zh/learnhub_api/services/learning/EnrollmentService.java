@@ -43,7 +43,7 @@ public class EnrollmentService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
         if (course.getStatus() != CourseStatus.PUBLISHED) {
-            throw new IllegalStateException("Khóa học không khả dụng để đăng ký");
+            throw new IllegalArgumentException("Khóa học không khả dụng để đăng ký");
         }
         if (course.getPrice().compareTo(BigDecimal.ZERO) != 0) {
             throw new IllegalArgumentException("Chỉ có thể đăng ký trực tiếp khóa học miễn phí");
@@ -93,7 +93,7 @@ public class EnrollmentService {
         Pageable pageable = PageRequest.of(
                 requestedPage.getPageNumber(),
                 requestedPage.getPageSize(),
-                Sort.by(Sort.Direction.DESC, "enrolledAt"));
+                Sort.by(Sort.Direction.DESC, "enrolledAt").and(Sort.by(Sort.Direction.DESC, "id")));
         Page<EnrollmentListProjection> enrollmentPage = enrollmentRepository
                 .findListByUserId(
                         userId,

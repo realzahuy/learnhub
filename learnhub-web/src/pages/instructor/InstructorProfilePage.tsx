@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { uiConfig } from '../../config/uiConfig';
 import { BackButton, LoadingScreen, PageSkeleton, Pagination, StarRating } from '../../components/common';
-import { reviewService } from '../../services/api/review.service';
-import { Course } from '../../types/course.types';
-import { PageResponse } from '../../types/pagination.types';
-import { InstructorProfile } from '../../types/review.types';
+import { instructorProfileService } from '../../services/api/instructorProfile.service';
+import { queryKeys } from '../../query/queryKeys';
 import { formatPrice, getApiErrorMessage } from '../../utils';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './InstructorProfilePage.css';
@@ -15,60 +13,29 @@ const InstructorProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const parsedPage = Number(searchParams.get('page') ?? 0);
   const currentPage = Number.isInteger(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
-
-  const [profile, setProfile] = useState<InstructorProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [coursePage, setCoursePage] = useState<PageResponse<Course> | null>(null);
-  const [coursesLoading, setCoursesLoading] = useState(true);
-  const [coursesError, setCoursesError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!id) return;
-
-    const controller = new AbortController();
-    setIsLoading(true);
-    reviewService
-      .getInstructorProfile(Number(id), controller.signal)
-      .then((data) => {
-        if (controller.signal.aborted) return;
-        setProfile(data);
-        setError(null);
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          setError(getApiErrorMessage(err, 'Không tìm thấy giảng viên'));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [id]);
-
-  useEffect(() => {
-    if (!id) return;
-
-    const controller = new AbortController();
-    setCoursesLoading(true);
-    setCoursesError(null);
-    reviewService
-      .getInstructorCourses(Number(id), currentPage, controller.signal)
-      .then((data) => {
-        if (!controller.signal.aborted) setCoursePage(data);
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          setCoursesError(getApiErrorMessage(err, 'Không tải được khóa học của giảng viên'));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setCoursesLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [id, currentPage]);
+  const instructorId = Number(id);
+  const enabled = Number.isSafeInteger(instructorId) && instructorId > 0;
+  const profileQuery = useQuery({
+    queryKey: queryKeys.publicInstructors.profile(instructorId),
+    enabled,
+    queryFn: ({ signal }) => instructorProfileService.getProfile(instructorId, signal),
+  });
+  const coursesQuery = useQuery({
+    queryKey: queryKeys.publicInstructors.courses(instructorId, currentPage),
+    enabled,
+    queryFn: ({ signal }) => instructorProfileService.getCourses(instructorId, currentPage, signal),
+    placeholderData: keepPreviousData,
+  });
+  const profile = profileQuery.data ?? null;
+  const coursePage = coursesQuery.data ?? null;
+  const isLoading = enabled && profileQuery.isPending;
+  const coursesLoading = coursesQuery.isFetching;
+  const error = profileQuery.error
+    ? getApiErrorMessage(profileQuery.error, 'Không tìm thấy giảng viên')
+    : null;
+  const coursesError = coursesQuery.error
+    ? getApiErrorMessage(coursesQuery.error, 'Không tải được khóa học của giảng viên')
+    : null;
 
   const handlePageChange = (page: number) => {
     const next = new URLSearchParams(searchParams);

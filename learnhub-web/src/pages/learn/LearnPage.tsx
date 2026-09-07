@@ -24,7 +24,7 @@ const LearnPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
-  const { course, viewing, setViewing, loading, error } = useLearningCourse(
+  const { course, viewing, loading, error } = useLearningCourse(
     isAuthenticated,
     slug,
     videoId,
@@ -44,21 +44,19 @@ const LearnPage = () => {
   }, []);
 
   const openVideo = useCallback(
-    (lessonId: number, video: LearnVideo) => {
+    (_lessonId: number, video: LearnVideo) => {
       if (!slug) return;
-      setViewing({ kind: 'video', lessonId, video });
       navigate(routeTo.learningLecture(slug, video.id), { replace: true });
     },
-    [navigate, setViewing, slug]
+    [navigate, slug]
   );
 
   const openQuiz = useCallback(
     (lessonId: number) => {
       if (!slug) return;
-      setViewing({ kind: 'quiz', lessonId });
       navigate(routeTo.learningQuiz(slug, lessonId), { replace: true });
     },
-    [navigate, setViewing, slug]
+    [navigate, slug]
   );
 
   useEffect(() => {
@@ -150,7 +148,7 @@ const LearnPage = () => {
         </div>
       ) : (
         course && (
-          <main className="learn-main motion-content-enter">
+          <main className="learn-main">
             <section className="learn-stage">
               {viewing?.kind === 'quiz' ? (
                 <QuizPanel

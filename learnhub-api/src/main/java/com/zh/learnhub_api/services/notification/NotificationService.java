@@ -8,7 +8,6 @@ import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Notification;
 import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.repositories.notification.NotificationRepository;
-import com.zh.learnhub_api.services.notification.NotificationSseService.Created;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -37,7 +36,7 @@ public class NotificationService {
 
         Notification saved = notificationRepository.save(notification);
         NotificationResponseDTO response = toResponse(saved);
-        eventPublisher.publishEvent(new Created(saved.getRecipientId().getId(), response));
+        eventPublisher.publishEvent(new NotificationCreated(saved.getRecipientId().getId(), response));
     }
 
     public NotificationPageDTO getMine(Long userId, LocalDateTime cursorCreatedAt, Long cursorId, int pageSize) {
@@ -48,13 +47,11 @@ public class NotificationService {
         List<NotificationRepository.NotificationPageRow> rows = cursorCreatedAt == null
                 ? notificationRepository.findFirstNotificationPage(userId, pageSize + 1)
                 : notificationRepository.findNotificationPageAfter(userId, cursorCreatedAt, cursorId, pageSize + 1);
-        long unreadCount = rows.isEmpty() ? 0 : rows.getFirst().getUnreadCount();
-        List<NotificationRepository.NotificationPageRow> notificationRows =
-                rows.stream().filter(row -> row.getId() != null).toList();
-        boolean last = notificationRows.size() <= pageSize;
+        long unreadCount = notificationRepository.countByRecipientId_IdAndReadAtIsNull(userId);
+        boolean last = rows.size() <= pageSize;
 
         List<NotificationResponseDTO> content =
-                notificationRows.stream().limit(pageSize).map(this::toResponse).toList();
+                rows.stream().limit(pageSize).map(this::toResponse).toList();
 
         NotificationResponseDTO nextCursor = !last && !content.isEmpty() ? content.getLast() : null;
 

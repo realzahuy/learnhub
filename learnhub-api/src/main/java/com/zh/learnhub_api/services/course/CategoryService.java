@@ -48,23 +48,6 @@ public class CategoryService {
         return convertToResponseDTO(savedCategory);
     }
 
-    public CategoryResponseDTO updateCategory(Short id, CategoryRequestDTO requestDTO) {
-        Category category = categoryRepository
-                .findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh mục"));
-
-        String name = requestDTO.getName().trim();
-
-        if (categoryRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
-            throw new DuplicateResourceException("Danh mục đã tồn tại");
-        }
-
-        category.setName(name);
-
-        cacheInvalidator.clearAfterCommit(CacheConfiguration.CATEGORIES, CacheConfiguration.PUBLIC_COURSE_DETAILS);
-        return convertToResponseDTO(category);
-    }
-
     public void deleteCategory(Short id) {
         Category category = categoryRepository
                 .findById(id)

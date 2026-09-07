@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { DatePicker, Dropdown, DropdownOption } from '../../common';
 import {
+  StatsFilterValue,
   StatsGranularity,
+  StatsView,
   STATS_GRANULARITY_LABELS,
 } from '../../../types/stats.types';
 import { toIsoDate } from '../../../utils';
-import { StatsFilterValue, StatsView } from './statsFormat';
+import { uiConfig } from '../../../config/uiConfig';
 
 const GRANULARITY_OPTIONS: DropdownOption[] = (
   ['day', 'month', 'quarter'] as StatsGranularity[]
@@ -17,9 +19,9 @@ const VIEW_OPTIONS: DropdownOption[] = [
 ];
 
 const MAX_BUCKETS: Record<StatsGranularity, number> = {
-  day: 90,
-  month: 120,
-  quarter: 40,
+  day: uiConfig.stats.maxDayBuckets,
+  month: uiConfig.stats.maxMonthBuckets,
+  quarter: uiConfig.stats.maxQuarterBuckets,
 };
 
 interface StatsFilterBarProps<M extends string> {

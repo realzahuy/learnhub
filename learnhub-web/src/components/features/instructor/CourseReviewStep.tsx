@@ -47,11 +47,18 @@ const CourseReviewStep: React.FC<CourseReviewStepProps> = ({
         {lessons.map((lesson) => {
           const lessonVideos = videos[lesson.id] ?? [];
           const lessonQuestions = questions[lesson.id] ?? [];
-          const processing = lessonVideos.filter((video) => video.status !== 'READY').length;
+          const uploading = lessonVideos.filter((video) => video.status === 'UPLOADING').length;
+          const processing = lessonVideos.filter((video) => video.status === 'PROCESSING').length;
+          const failed = lessonVideos.filter((video) => video.status === 'FAILED').length;
           const contentCount = lessonVideos.length + lessonQuestions.length;
-          const videoSummary = processing > 0
-            ? `${lessonVideos.length} video (${processing} đang xử lý)`
-            : `${lessonVideos.length} video`;
+          const videoStates = [
+            uploading > 0 ? `${uploading} đang tải lên` : '',
+            processing > 0 ? `${processing} đang xử lý` : '',
+            failed > 0 ? `${failed} lỗi` : '',
+          ].filter(Boolean);
+          const videoSummary = `${lessonVideos.length} video${
+            videoStates.length > 0 ? ` (${videoStates.join(', ')})` : ''
+          }`;
           const summary = contentCount === 0
             ? 'Chưa có nội dung'
             : `${videoSummary} · ${lessonQuestions.length} câu hỏi`;
@@ -62,7 +69,9 @@ const CourseReviewStep: React.FC<CourseReviewStepProps> = ({
               <span className={`lesson-status ${
                 contentCount === 0
                   ? 'lesson-status-empty'
-                  : processing > 0
+                  : failed > 0
+                    ? 'lesson-status-failed'
+                    : uploading > 0 || processing > 0
                     ? 'lesson-status-processing'
                     : 'lesson-status-ready'
               }`}>

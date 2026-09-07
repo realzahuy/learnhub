@@ -15,7 +15,8 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(name = "uk_course_slug", columnNames = "slug"),
         indexes = {
             @Index(name = "idx_course_status_created", columnList = "status, created_at, id"),
-            @Index(name = "idx_course_instructor_status_created", columnList = "instructor_id, status, created_at")
+            @Index(name = "idx_course_instructor_status_created", columnList = "instructor_id, status, created_at"),
+            @Index(name = "idx_course_instructor_updated", columnList = "instructor_id, updated_at, id")
         })
 @Getter
 @Setter
@@ -60,12 +61,12 @@ public class Course {
     @Column(name = "status", nullable = false, length = 20)
     private CourseStatus status;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "instructor_id", referencedColumnName = "id")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "instructor_id", referencedColumnName = "id", nullable = false)
     private User instructorId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", referencedColumnName = "id")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = false)
     private Category categoryId;
 
     @Column(name = "created_at", insertable = false, updatable = false)

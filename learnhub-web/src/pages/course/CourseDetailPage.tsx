@@ -16,6 +16,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { enrollmentService } from '../../services/api/enrollment.service';
+import { reviewService } from '../../services/api/review.service';
+import { queryClient } from '../../query/queryClient';
+import { queryKeys } from '../../query/queryKeys';
 import { formatPrice, getApiErrorMessage } from '../../utils';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './CourseDetailPage.css';
@@ -23,16 +26,22 @@ import './CourseDetailPage.css';
 const CourseDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userId } = useAuth();
   const { addToCart, isInCart, removeFromCart } = useCart();
   const { showToast } = useToast();
   const [isEnrolling, setIsEnrolling] = useState(false);
   const courseQuery = useQuery<CourseDetail>({
-    queryKey: ['course-detail', slug],
+    queryKey: queryKeys.courseDetails.detail(slug),
     enabled: Boolean(slug),
     queryFn: ({ signal }) => courseService.getCourseBySlug(slug!, signal),
   });
   const course = courseQuery.data ?? null;
+  const summaryQuery = useQuery<RatingSummary>({
+    queryKey: queryKeys.reviews.summary(slug),
+    enabled: Boolean(slug && course),
+    queryFn: ({ signal }) => reviewService.getCourseSummary(slug!, signal),
+    initialData: course?.ratingSummary,
+  });
   const isLoading = courseQuery.isPending;
   const error = courseQuery.error
     ? getApiErrorMessage(
@@ -41,15 +50,13 @@ const CourseDetailPage = () => {
       )
     : null;
 
-  const [isEnrolled, setIsEnrolled] = useState(false);
-
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
   const [preview, setPreview] = useState<{ lesson: PublicLesson; videoId: number } | null>(null);
 
-  const [ratingOverride, setRatingOverride] = useState<RatingSummary | null>(null);
-  const averageRating = ratingOverride?.average ?? course?.ratingSummary.average ?? 0;
-  const reviewCount = ratingOverride?.totalReviews ?? course?.ratingSummary.totalReviews ?? 0;
+  const ratingSummary = summaryQuery.data ?? course?.ratingSummary;
+  const averageRating = ratingSummary?.average ?? 0;
+  const reviewCount = ratingSummary?.totalReviews ?? 0;
 
   const reviewsRef = useRef<HTMLDivElement>(null);
 
@@ -64,26 +71,15 @@ const CourseDetailPage = () => {
 
   useEffect(() => {
     setThumbnailFailed(false);
-    setRatingOverride(null);
   }, [slug]);
 
-  useEffect(() => {
-    if (!isAuthenticated || !course) {
-      setIsEnrolled(false);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    enrollmentService
-      .checkEnrolled(course.id, controller.signal)
-      .then((enrolled) => {
-        if (!controller.signal.aborted) setIsEnrolled(enrolled);
-      })
-      .catch(() => {});
-
-    return () => controller.abort();
-  }, [isAuthenticated, course]);
+  const enrollmentQuery = useQuery<boolean>({
+    queryKey: queryKeys.enrollments.status(userId, course?.id ?? null),
+    enabled: userId !== null && course !== null,
+    queryFn: ({ signal }) => enrollmentService.checkEnrolled(course!.id, signal),
+  });
+  const isEnrolled = enrollmentQuery.data === true;
+  const isCheckingEnrollment = userId !== null && course !== null && enrollmentQuery.isPending;
 
   const handleEnroll = async () => {
     if (!isAuthenticated) {
@@ -99,6 +95,7 @@ const CourseDetailPage = () => {
     try {
       const enrollment = await enrollmentService.enrollFree(course.id);
 
+      void queryClient.invalidateQueries({ queryKey: queryKeys.enrollments.all });
       removeFromCart(course.id);
       showToast(enrollment.message || 'Đã thêm khóa học vào tài khoản.', 'success');
       navigate(ROUTE_PATHS.myCourses);
@@ -152,7 +149,7 @@ const CourseDetailPage = () => {
   return (
     <div className="course-detail-page">
 
-      <main className="course-detail-main motion-content-enter">
+      <main className="course-detail-main">
       <CourseHero
         course={course}
         averageRating={averageRating}
@@ -181,9 +178,8 @@ const CourseDetailPage = () => {
             <div ref={reviewsRef}>
               <CourseReviewSection
                 slug={course.slug}
-                initialSummary={course.ratingSummary}
+                initialSummary={ratingSummary}
                 isEnrolled={isEnrolled}
-                onSummaryChange={setRatingOverride}
               />
             </div>
           </div>
@@ -196,7 +192,11 @@ const CourseDetailPage = () => {
                 </h3>
               </div>
 
-              {isEnrolled ? (
+              {isCheckingEnrollment ? (
+                <button className="btn btn-notion w-100 btn-lg mb-3" disabled>
+                  Đang kiểm tra...
+                </button>
+              ) : isEnrolled ? (
                 <>
                   <p className="course-owned-note">
                     <i className="bi bi-check-circle-fill"></i>

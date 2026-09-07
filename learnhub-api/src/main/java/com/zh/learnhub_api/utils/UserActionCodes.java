@@ -13,10 +13,6 @@ public final class UserActionCodes {
     private UserActionCodes() {}
 
     public static String generateNumericCode(int length) {
-        if (length < 1 || length > 10) {
-            throw new IllegalArgumentException("Độ dài mã phải nằm trong khoảng 1-10");
-        }
-
         StringBuilder code = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
             code.append(RANDOM.nextInt(10));

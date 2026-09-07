@@ -3,9 +3,9 @@ package com.zh.learnhub_api.controllers.payment;
 import com.zh.learnhub_api.dtos.payment.CreatePaymentRequestDTO;
 import com.zh.learnhub_api.dtos.payment.PayPalCaptureRequestDTO;
 import com.zh.learnhub_api.dtos.payment.PaymentResponseDTO;
-import com.zh.learnhub_api.enums.PaymentMethod;
 import com.zh.learnhub_api.security.AuthenticatedUserPrincipal;
 import com.zh.learnhub_api.services.payment.PaymentFactory;
+import com.zh.learnhub_api.services.payment.PaymentStatusService;
 import com.zh.learnhub_api.services.payment.momo.MoMoPaymentService;
 import com.zh.learnhub_api.services.payment.paypal.PayPalPaymentService;
 import jakarta.validation.Valid;
@@ -22,6 +22,9 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentFactory paymentFactory;
+    private final MoMoPaymentService moMoPaymentService;
+    private final PayPalPaymentService payPalPaymentService;
+    private final PaymentStatusService paymentStatusService;
 
     @PostMapping
     public PaymentResponseDTO createPayment(
@@ -34,8 +37,7 @@ public class PaymentController {
 
     @PostMapping("/momo/notify")
     public ResponseEntity<Void> momoNotify(@RequestBody Map<String, Object> data) {
-        ((MoMoPaymentService) paymentFactory.getMethod(PaymentMethod.MOMO))
-                .handleNotify(data);
+        moMoPaymentService.handleNotify(data);
         return ResponseEntity.noContent().build();
     }
 
@@ -44,16 +46,13 @@ public class PaymentController {
             @PathVariable Long id,
             @Valid @RequestBody PayPalCaptureRequestDTO request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return ((PayPalPaymentService) paymentFactory
-                .getMethod(PaymentMethod.PAYPAL))
-                .capturePayment(id, request.orderId(), principal.getUserId());
+        return payPalPaymentService.capturePayment(id, request.orderId(), principal.getUserId());
     }
 
     @GetMapping("/{id}")
     public PaymentResponseDTO getPaymentStatus(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal) {
-        return paymentFactory.getMethod(PaymentMethod.MOMO)
-                .getPaymentStatus(id, principal.getUserId());
+        return paymentStatusService.getPaymentStatus(id, principal.getUserId());
     }
 }

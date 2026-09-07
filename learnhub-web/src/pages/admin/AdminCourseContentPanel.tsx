@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { HlsPlayer, PageSkeleton } from '../../components/common';
 import { adminService } from '../../services/api/admin.service';
-import { AdminCourseContent, AdminLessonContent } from '../../types/learn.types';
+import { AdminCourseContent, AdminLessonContent } from '../../types/admin.types';
 import { formatDuration, getApiErrorMessage } from '../../utils';
 import './AdminCourseContentPanel.css';
 
@@ -10,9 +10,10 @@ interface AdminCourseContentPanelProps {
 }
 
 const describeContent = (lesson: AdminLessonContent): string => {
-  if (lesson.questions.length > 0) return `${lesson.questions.length} câu hỏi`;
-  if (lesson.videos.length > 0) return `${lesson.videos.length} video`;
-  return 'Chưa có nội dung';
+  const parts: string[] = [];
+  if (lesson.videos.length > 0) parts.push(`${lesson.videos.length} video`);
+  if (lesson.questions.length > 0) parts.push(`${lesson.questions.length} câu hỏi`);
+  return parts.length > 0 ? parts.join(' · ') : 'Chưa có nội dung';
 };
 
 const LessonBlock: React.FC<{ lesson: AdminLessonContent }> = ({ lesson }) => {
@@ -52,12 +53,18 @@ const LessonBlock: React.FC<{ lesson: AdminLessonContent }> = ({ lesson }) => {
                 title={
                   video.playbackUrl
                     ? 'Bấm để xem video'
-                    : 'Video đang được xử lý, chưa xem được'
+                    : video.status === 'FAILED'
+                      ? 'Video xử lý thất bại'
+                      : 'Video đang được xử lý, chưa xem được'
                 }
               >
                 <i
                   className={`bi ${
-                    playingId === video.id ? 'bi-pause-circle' : 'bi-play-circle'
+                    video.status === 'FAILED'
+                      ? 'bi-exclamation-circle'
+                      : playingId === video.id
+                        ? 'bi-pause-circle'
+                        : 'bi-play-circle'
                   }`}
                 ></i>
                 <span className="admin-content-video-title">{video.title}</span>
@@ -66,7 +73,11 @@ const LessonBlock: React.FC<{ lesson: AdminLessonContent }> = ({ lesson }) => {
                     ? video.durationSeconds
                       ? formatDuration(video.durationSeconds)
                       : ''
-                    : 'Đang xử lý'}
+                    : video.status === 'FAILED'
+                      ? 'Xử lý thất bại'
+                      : video.status === 'UPLOADING'
+                        ? 'Đang tải lên'
+                        : 'Đang xử lý'}
                 </span>
               </button>
 

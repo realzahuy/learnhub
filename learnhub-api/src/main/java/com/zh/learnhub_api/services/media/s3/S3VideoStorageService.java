@@ -3,7 +3,6 @@ package com.zh.learnhub_api.services.media.s3;
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.services.media.VideoStorageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -12,13 +11,13 @@ import tools.jackson.databind.ObjectMapper;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
-@ConditionalOnProperty(name = "video.storage.provider", havingValue = "s3")
 @RequiredArgsConstructor
 public class S3VideoStorageService implements VideoStorageService {
 
@@ -73,12 +72,12 @@ public class S3VideoStorageService implements VideoStorageService {
                     "https://%s.s3.%s.amazonaws.com/",
                     properties.bucketRaw(), properties.region());
             return new PresignedUpload(uploadUrl, fields);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new RuntimeException("Không thể tạo biểu mẫu tải video lên", e);
         }
     }
 
-    private String signPolicy(String policy, String dateStamp) throws Exception {
+    private String signPolicy(String policy, String dateStamp) throws GeneralSecurityException {
         byte[] dateKey = hmac(
                 ("AWS4" + properties.secretKey()).getBytes(StandardCharsets.UTF_8),
                 dateStamp);
@@ -88,7 +87,7 @@ public class S3VideoStorageService implements VideoStorageService {
         return HexFormat.of().formatHex(hmac(signingKey, policy));
     }
 
-    private byte[] hmac(byte[] key, String value) throws Exception {
+    private byte[] hmac(byte[] key, String value) throws GeneralSecurityException {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(key, "HmacSHA256"));
         return mac.doFinal(value.getBytes(StandardCharsets.UTF_8));

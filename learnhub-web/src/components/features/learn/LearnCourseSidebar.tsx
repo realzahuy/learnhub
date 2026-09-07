@@ -1,6 +1,5 @@
-import { LearnCourse, LearnVideo } from '../../../types/learn.types';
+import { LearnCourse, LearnVideo, Viewing } from '../../../types/learn.types';
 import { formatDuration } from '../../../utils';
-import { Viewing } from './learnView.types';
 
 interface LearnCourseSidebarProps {
   course: LearnCourse;

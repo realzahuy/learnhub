@@ -20,7 +20,7 @@ const RouteTransition = ({ children }: RouteTransitionProps) => {
     if (typeof target.animate !== 'function') return;
 
     animationRef.current?.cancel();
-    animationRef.current = target.animate(
+    const animation = target.animate(
       [
         { opacity: 0.78, transform: 'translateY(6px)' },
         { opacity: 1, transform: 'translateY(0)' },
@@ -28,11 +28,19 @@ const RouteTransition = ({ children }: RouteTransitionProps) => {
       {
         duration: uiConfig.timing.routeTransitionMs,
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        fill: 'both',
       }
     );
+    animationRef.current = animation;
+    animation.onfinish = () => {
+      animation.cancel();
+      if (animationRef.current === animation) animationRef.current = null;
+    };
 
-    return () => animationRef.current?.cancel();
+    return () => {
+      animation.onfinish = null;
+      animation.cancel();
+      if (animationRef.current === animation) animationRef.current = null;
+    };
   }, [pathname]);
 
   return (

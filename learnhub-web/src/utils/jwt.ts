@@ -1,7 +1,7 @@
 
 interface JwtPayload {
   sub?: string;
-
+  userId?: number;
   roles?: string[];
   type?: string;
   exp?: number;
@@ -32,4 +32,10 @@ const decodeJwt = (token: string): JwtPayload | null => {
 export const getRolesFromToken = (token: string | null): string[] => {
   if (!token) return [];
   return decodeJwt(token)?.roles ?? [];
+};
+
+export const getUserIdFromToken = (token: string | null): number | null => {
+  if (!token) return null;
+  const userId = decodeJwt(token)?.userId;
+  return typeof userId === 'number' && Number.isSafeInteger(userId) ? userId : null;
 };

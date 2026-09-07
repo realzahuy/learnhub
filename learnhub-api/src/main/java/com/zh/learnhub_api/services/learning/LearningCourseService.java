@@ -11,7 +11,6 @@ import com.zh.learnhub_api.projections.course.LearningCourseProjection;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.course.LessonRepository;
 import com.zh.learnhub_api.repositories.course.QuestionRepository;
-import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,19 +23,18 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class LearningCourseService {
 
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
     private final VideoRepository videoRepository;
     private final QuestionRepository questionRepository;
-    private final EnrollmentRepository enrollmentRepository;
     private final VideoPlaybackService videoPlaybackService;
     private final LearningAccessService learningAccessService;
     private final LearningRecommendationService recommendationService;
     private final AppProperties.Quiz quizProperties;
 
+    @Transactional(readOnly = true)
     public LearnCourseDTO getCourseForLearningBySlug(String slug, Long userId) {
         LearningCourseProjection course = courseRepository.findLearningCourseBySlug(slug, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
@@ -50,7 +48,7 @@ public class LearningCourseService {
         List<Lesson> lessons = lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId);
         Map<Long, List<Video>> videosByLesson = videoRepository.findPublicByCourseId(courseId)
                 .stream()
-                .collect(Collectors.groupingBy(video -> video.getLesson().getId()));
+                .collect(Collectors.groupingBy(video -> video.getLessonId().getId()));
         Map<Long, Integer> questionCounts = questionRepository
                 .countByCourseGroupedByLesson(courseId).stream()
                 .collect(Collectors.toMap(
@@ -79,7 +77,7 @@ public class LearningCourseService {
     }
 
     public List<RecommendationCardDTO> getRecommendations(Long courseId, Long userId) {
-        Set<Long> enrolledCourseIds = enrollmentRepository.findCourseIdsByUserId(userId);
+        Set<Long> enrolledCourseIds = learningAccessService.getEnrolledCourseIds(userId);
         learningAccessService.requireEnrollment(enrolledCourseIds.contains(courseId));
         return recommendationService.getRecommendations(courseId, enrolledCourseIds);
     }

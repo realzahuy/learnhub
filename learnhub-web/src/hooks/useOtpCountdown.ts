@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface OtpCountdownState {
   expiresIn: number;
@@ -15,30 +15,34 @@ export const formatCountdown = (seconds: number) => {
 
 export function useOtpCountdown(active: boolean) {
   const [countdown, setCountdown] = useState<OtpCountdownState>(EMPTY_COUNTDOWN);
+  const expiresAtRef = useRef(0);
+  const resendAtRef = useRef(0);
   const running = countdown.expiresIn > 0 || countdown.resendAfter > 0;
 
   useEffect(() => {
     if (!active || !running) return;
 
-    const timer = window.setInterval(() => {
-      setCountdown((current) => {
-        const next = {
-          expiresIn: Math.max(0, current.expiresIn - 1),
-          resendAfter: Math.max(0, current.resendAfter - 1),
-        };
-        return next.expiresIn === current.expiresIn && next.resendAfter === current.resendAfter
-          ? current
-          : next;
+    const update = () => {
+      const now = Date.now();
+      setCountdown({
+        expiresIn: Math.max(0, Math.ceil((expiresAtRef.current - now) / 1000)),
+        resendAfter: Math.max(0, Math.ceil((resendAtRef.current - now) / 1000)),
       });
-    }, 1000);
+    };
+
+    update();
+    const timer = window.setInterval(update, 1000);
 
     return () => window.clearInterval(timer);
   }, [active, running]);
 
   const startCountdown = useCallback((expiresIn: number, resendAfter: number) => {
+    const now = Date.now();
+    expiresAtRef.current = now + Math.max(0, expiresIn) * 1000;
+    resendAtRef.current = now + Math.max(0, resendAfter) * 1000;
     setCountdown({
-      expiresIn: Math.max(0, expiresIn),
-      resendAfter: Math.max(0, resendAfter),
+      expiresIn: Math.max(0, Math.ceil((expiresAtRef.current - now) / 1000)),
+      resendAfter: Math.max(0, Math.ceil((resendAtRef.current - now) / 1000)),
     });
   }, []);
 

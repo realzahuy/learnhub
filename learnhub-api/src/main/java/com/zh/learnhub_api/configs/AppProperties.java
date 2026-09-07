@@ -9,17 +9,9 @@ import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 @Configuration(proxyBeanMethods = false)
 public final class AppProperties {
-
-    @Validated
-    @ConfigurationProperties("app")
-    public record Time(
-            @NotBlank String timeZone,
-            @NotBlank String dbSessionTimeZone) {
-    }
 
     @Validated
     @ConfigurationProperties("app.pagination")
@@ -88,13 +80,6 @@ public final class AppProperties {
     }
 
     @Validated
-    @ConfigurationProperties("app.scheduler")
-    public record Scheduler(
-            @Positive long sessionCleanupDelayMs,
-            @Positive long paymentExpirationScanDelayMs) {
-    }
-
-    @Validated
     @ConfigurationProperties("app.cors")
     public record Cors(
             @NotEmpty List<@NotBlank String> allowedOrigins,
@@ -137,7 +122,7 @@ public final class AppProperties {
     @Validated
     @ConfigurationProperties("app.verification")
     public record Verification(
-            @Min(1) @Max(10) int codeLength,
+            @Min(4) @Max(10) int codeLength,
             @Positive int expireMinutes,
             @PositiveOrZero int resendCooldownSeconds,
             @Positive int maxAttempts) {
@@ -193,12 +178,7 @@ public final class AppProperties {
     @Validated
     @ConfigurationProperties("app.media-convert")
     public record MediaConvert(
-            @NotBlank String activeProfile,
-            @NotEmpty Map<@NotBlank String, @NotEmpty List<@NotNull @Valid Rendition>> profiles) {
-
-        public List<Rendition> activeRenditions() {
-            return List.copyOf(profiles.get(activeProfile));
-        }
+            @NotEmpty List<@NotNull @Valid Rendition> renditions) {
 
         public record Rendition(
                 @NotBlank
@@ -279,12 +259,8 @@ public final class AppProperties {
     @ConfigurationProperties("learnhub.ai")
     public record Ai(
             @NotBlank String chatSystemPrompt,
-            @Positive int embeddingDimension) {
-    }
-
-    @Validated
-    @ConfigurationProperties("learnhub.ai")
-    public record EmbeddingText(@Min(1000) int embeddingMaxChars) {
+            @Positive int embeddingDimension,
+            @Min(1000) int embeddingMaxChars) {
     }
 
     @Validated

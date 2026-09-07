@@ -62,7 +62,7 @@ public class MediaConvertTranscoder {
                                 .manifestDurationFormat(HlsManifestDurationFormat.INTEGER)
                                 .build())
                         .build())
-                .outputs(mediaConvertProperties.activeRenditions().stream()
+                .outputs(mediaConvertProperties.renditions().stream()
                         .map(this::buildOutput)
                         .toList())
                 .build();

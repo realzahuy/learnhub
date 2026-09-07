@@ -1,25 +1,21 @@
 package com.zh.learnhub_api.services.vector;
 
-import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.services.ai.EmbeddingClient;
+import com.zh.learnhub_api.services.ai.springai.SpringAiCourseKeywordExtractor;
+import com.zh.learnhub_api.services.ai.springai.SpringAiCourseKeywordExtractor.CourseKeywords;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class CourseVectorIndexer {
 
     private final CourseEmbeddingTextBuilder textBuilder;
+    private final SpringAiCourseKeywordExtractor keywordExtractor;
     private final EmbeddingClient embeddingClient;
     private final CourseVectorStore vectorStore;
 
@@ -35,7 +31,13 @@ public class CourseVectorIndexer {
         }
 
         CourseEmbeddingTextBuilder.EmbeddingDocument value = document.get();
-        vectorStore.upsert(courseId, embeddingClient.embedDocument(value.text(), value.title()), value.payload());
+        CourseKeywords extracted = keywordExtractor.extract(value.text());
+        String keywords = Stream.concat(Stream.of(extracted.subject()), extracted.keywords().stream())
+                .distinct()
+                .collect(Collectors.joining("; "));
+        String embeddingText = value.category() + "; " + keywords;
+        vectorStore.upsert(courseId,
+                embeddingClient.embedDocument(embeddingText, extracted.subject()), value.payload());
     }
 
     public void syncPayloadIfPublished(Long courseId) {
@@ -51,43 +53,4 @@ public class CourseVectorIndexer {
         vectorStore.updatePayload(courseId, payload.get());
     }
 
-    public record SyncEvent(Long courseId) {}
-
-    public record PayloadSyncEvent(Long courseId) {}
-}
-
-@Component
-@RequiredArgsConstructor
-class CourseVectorEventListener {
-
-    private final CourseVectorIndexer indexer;
-
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onCourseVectorSync(CourseVectorIndexer.SyncEvent event) {
-        indexer.indexIfPublished(event.courseId());
-    }
-
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onCoursePayloadSync(CourseVectorIndexer.PayloadSyncEvent event) {
-        indexer.syncPayloadIfPublished(event.courseId());
-    }
-}
-
-@Component
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "learnhub.vector.backfill-on-startup", havingValue = "true")
-class CourseVectorBackfillRunner implements ApplicationRunner {
-
-    private final CourseRepository courseRepository;
-    private final CourseVectorIndexer indexer;
-
-    @Override
-    public void run(ApplicationArguments args) {
-        List<Long> courseIds = courseRepository.findPublishedCourseIds();
-        for (Long courseId : courseIds) {
-            indexer.indexIfPublished(courseId);
-        }
-    }
 }

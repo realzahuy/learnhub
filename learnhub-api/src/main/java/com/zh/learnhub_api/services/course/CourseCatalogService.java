@@ -47,10 +47,9 @@ public class CourseCatalogService {
 
         if ("rating_desc".equals(normalizedSort)) {
             Pageable pageable = PageRequest.of(requestedPage.getPageNumber(), requestedPage.getPageSize());
-            Page<RatedCourseListProjection> coursePage = courseRepository.findPublishedCoursesOrderByRating(
-                    normalizedCategory,
-                    normalizedKeyword,
-                    pageable);
+            Page<RatedCourseListProjection> coursePage = normalizedCategory == null && normalizedKeyword == null
+                    ? courseRepository.findAllPublishedCoursesOrderByRating(pageable)
+                    : courseRepository.findPublishedCoursesOrderByRating(normalizedCategory, normalizedKeyword, pageable);
             List<CourseListItemDTO> content = coursePage.getContent().stream()
                     .map(courseMapper::mapRatedListProjectionToDTO)
                     .toList();
@@ -61,9 +60,13 @@ public class CourseCatalogService {
                 switch (normalizedSort) {
                     case "oldest" -> Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by(Sort.Direction.ASC, "id"));
                     case "price_asc" ->
-                        Sort.by(Sort.Direction.ASC, "price").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+                        Sort.by(Sort.Direction.ASC, "price")
+                                .and(Sort.by(Sort.Direction.DESC, "createdAt"))
+                                .and(Sort.by(Sort.Direction.DESC, "id"));
                     case "price_desc" ->
-                        Sort.by(Sort.Direction.DESC, "price").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+                        Sort.by(Sort.Direction.DESC, "price")
+                                .and(Sort.by(Sort.Direction.DESC, "createdAt"))
+                                .and(Sort.by(Sort.Direction.DESC, "id"));
                     default -> Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
                 };
         Pageable pageable = PageRequest.of(requestedPage.getPageNumber(), requestedPage.getPageSize(), pageSort);

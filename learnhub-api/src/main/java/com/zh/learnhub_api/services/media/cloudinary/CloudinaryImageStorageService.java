@@ -84,7 +84,8 @@ public class CloudinaryImageStorageService implements ImageStorageService {
     private void destroy(String publicId) {
         try {
             cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("invalidate", true));
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException e) {
+            throw new ExternalServiceException("Không thể xóa ảnh", e);
         }
     }
 

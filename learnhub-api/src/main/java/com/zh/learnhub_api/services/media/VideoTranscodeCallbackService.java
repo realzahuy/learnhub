@@ -35,7 +35,7 @@ public class VideoTranscodeCallbackService {
             return;
         }
 
-        Long courseId = video.getLesson().getCourseId().getId();
+        Long courseId = video.getLessonId().getCourseId().getId();
         if ("STATUS_UPDATE".equals(status)) {
             if (progress != null) {
                 videoProgressSseService.publish(courseId, video.getId(), VideoStatus.PROCESSING, progress);
@@ -71,7 +71,7 @@ public class VideoTranscodeCallbackService {
     }
 
     private void evictPublishedCourseDetail(Video video) {
-        Course course = video.getLesson().getCourseId();
+        Course course = video.getLessonId().getCourseId();
         if (course.getStatus() == CourseStatus.PUBLISHED) {
             cacheInvalidator.evictAfterCommit(CacheConfiguration.PUBLIC_COURSE_DETAILS, course.getSlug());
         }

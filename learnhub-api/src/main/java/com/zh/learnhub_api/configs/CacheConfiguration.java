@@ -6,7 +6,6 @@ import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.Duration;
 import java.util.Collections;
 
 @Configuration(proxyBeanMethods = false)
@@ -33,15 +32,11 @@ public class CacheConfiguration {
     }
 
     private void register(CaffeineCacheManager manager, String name, AppProperties.CacheSpec spec) {
-        register(manager, name, spec.maximumSize(), spec.expireAfterWrite());
-    }
-
-    private void register(CaffeineCacheManager manager, String name, long maximumSize, Duration ttl) {
         manager.registerCustomCache(
                 name,
                 Caffeine.newBuilder()
-                        .maximumSize(maximumSize)
-                        .expireAfterWrite(ttl)
+                        .maximumSize(spec.maximumSize())
+                        .expireAfterWrite(spec.expireAfterWrite())
                         .build());
     }
 }

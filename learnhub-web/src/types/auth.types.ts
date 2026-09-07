@@ -13,6 +13,7 @@ export interface LoginResponse {
 }
 
 export interface AuthenticatedUser {
+  id?: number;
   fullName: string;
   avatar: string | null;
 }

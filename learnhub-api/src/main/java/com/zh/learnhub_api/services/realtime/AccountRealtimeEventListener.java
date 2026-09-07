@@ -1,6 +1,7 @@
 package com.zh.learnhub_api.services.realtime;
 
 import com.zh.learnhub_api.services.notification.NotificationSseService;
+import com.zh.learnhub_api.services.account.AccountLocked;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -17,5 +18,4 @@ public class AccountRealtimeEventListener {
         notificationSseService.publishAccountLocked(event.userId());
     }
 
-    public record AccountLocked(Long userId) {}
 }

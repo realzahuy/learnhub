@@ -1,5 +1,3 @@
-import { useLayoutEffect } from 'react';
-import { suppressNetworkProgress } from '../../services/networkActivity';
 import './PageSkeleton.css';
 
 export type PageSkeletonVariant = 'cards' | 'table' | 'detail' | 'stats' | 'form' | 'list';
@@ -24,8 +22,6 @@ const PageSkeleton = ({
   className = '',
 }: PageSkeletonProps) => {
   const itemCount = count ?? (variant === 'cards' ? 6 : 5);
-
-  useLayoutEffect(() => suppressNetworkProgress(), []);
 
   return (
     <div

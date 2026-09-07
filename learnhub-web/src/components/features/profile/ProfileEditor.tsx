@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useProfileForm } from './useProfileForm';
 import { useNavigate } from 'react-router-dom';
 import { UserAvatar, ConfirmDialog, PageSkeleton } from '../../common';
 import EmailVerificationPanel from './EmailVerificationPanel';
@@ -6,25 +7,14 @@ import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { authService } from '../../../services/api/auth.service';
 import { userService } from '../../../services/api/user.service';
-import { User, ROLE_INSTRUCTOR } from '../../../types/auth.types';
+import { ROLE_INSTRUCTOR } from '../../../types/auth.types';
 import {
   ALLOWED_IMAGE_TYPES,
   formatDateTime,
   getApiErrorMessage,
-  validateImageFile,
 } from '../../../utils';
 import './ProfileEditor.css';
 import { ROUTE_PATHS } from '../../../routes/paths';
-
-interface ProfileForm {
-  fullName: string;
-  bio: string;
-}
-
-const toForm = (user: User): ProfileForm => ({
-  fullName: user.fullName ?? '',
-  bio: user.bio ?? '',
-});
 
 interface EditButtonProps {
   label: string;
@@ -55,127 +45,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   showInstructorUpgrade = false,
   changePasswordPath = ROUTE_PATHS.profileChangePassword,
 }) => {
-  const { user: cachedUser, isAuthenticated, updateUser, roles, syncRoles } = useAuth();
+  const { roles, syncRoles } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState<User | null>(null);
-  const [form, setForm] = useState<ProfileForm>(
-    cachedUser ? { fullName: cachedUser.fullName, bio: '' } : { fullName: '', bio: '' }
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [editingField, setEditingField] = useState<'fullName' | null>(null);
-
-  const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
-  const [isSaving, setIsSaving] = useState(false);
+  const {
+    profile, setProfile, form, error, editingField, setEditingField,
+    pendingAvatar, avatarPreview, isSaving, fileInputRef,
+    handleFieldChange, handlePickAvatar, handleSave, isDirty,
+  } = useProfileForm();
 
   const [isUpgradeConfirmOpen, setIsUpgradeConfirmOpen] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isLogoutOthersConfirmOpen, setIsLogoutOthersConfirmOpen] = useState(false);
   const [isLoggingOutOthers, setIsLoggingOutOthers] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const isDirtyRef = useRef(false);
-
-  const handleFieldChange = useCallback((field: keyof ProfileForm, value: string) => {
-    isDirtyRef.current = true;
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const handlePickAvatar = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-
-      e.target.value = '';
-      if (!file) return;
-
-      const invalidReason = validateImageFile(file);
-      if (invalidReason) {
-        showToast(invalidReason, 'error');
-        return;
-      }
-
-      isDirtyRef.current = true;
-      setPendingAvatar(file);
-      setAvatarPreview((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(file);
-      });
-    },
-    [showToast]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    };
-  }, [avatarPreview]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const controller = new AbortController();
-
-    const fetchProfile = async () => {
-      try {
-        setError(null);
-        const fresh = await authService.getCurrentUser(controller.signal);
-        if (controller.signal.aborted) return;
-        setProfile(fresh);
-        if (!isDirtyRef.current) {
-          setForm(toForm(fresh));
-        }
-        updateUser(fresh);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setError('Không thể tải thông tin cá nhân. Vui lòng thử lại sau.');
-      }
-    };
-
-    fetchProfile();
-
-    return () => controller.abort();
-
-  }, [isAuthenticated]);
-
-  const handleSave = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setEditingField(null);
-      setIsSaving(true);
-
-      try {
-        const updated = await userService.updateProfile({
-          fullName: form.fullName.trim(),
-          bio: form.bio,
-          avatar: pendingAvatar,
-        });
-
-        setProfile(updated);
-        setForm(toForm(updated));
-        updateUser(updated);
-
-        isDirtyRef.current = false;
-        setPendingAvatar(null);
-        setAvatarPreview((prev) => {
-          if (prev) URL.revokeObjectURL(prev);
-          return null;
-        });
-        showToast('Đã lưu thông tin cá nhân', 'success');
-      } catch (err) {
-        showToast(getApiErrorMessage(err, 'Không thể lưu thông tin. Vui lòng thử lại sau.'), 'error');
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [form, pendingAvatar, updateUser, showToast]
-  );
-
   const handleUpgradeToInstructor = useCallback(async () => {
-    setIsUpgradeConfirmOpen(false);
+    if (isUpgrading) return;
     setIsUpgrading(true);
 
     try {
@@ -183,19 +69,21 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
       await authService.refreshTokens();
       syncRoles();
+      setIsUpgradeConfirmOpen(false);
       showToast('Đã nâng cấp lên tài khoản giảng viên', 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Không thể nâng cấp tài khoản. Vui lòng thử lại sau.'), 'error');
     } finally {
       setIsUpgrading(false);
     }
-  }, [syncRoles, showToast]);
+  }, [isUpgrading, syncRoles, showToast]);
 
   const handleLogoutOtherDevices = useCallback(async () => {
-    setIsLogoutOthersConfirmOpen(false);
+    if (isLoggingOutOthers) return;
     setIsLoggingOutOthers(true);
     try {
       const count = await authService.logoutOtherDevices();
+      setIsLogoutOthersConfirmOpen(false);
       showToast(
         count > 0
           ? `Đã đăng xuất ${count} phiên trên thiết bị khác`
@@ -210,15 +98,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     } finally {
       setIsLoggingOutOthers(false);
     }
-  }, [showToast]);
+  }, [isLoggingOutOthers, showToast]);
 
   const isInstructor = roles.includes(ROLE_INSTRUCTOR);
   const lastLogin = profile ? formatDateTime(profile.lastLogin) : null;
-  const isDirty =
-    !!profile &&
-    (form.fullName !== (profile.fullName ?? '') ||
-      form.bio !== (profile.bio ?? '') ||
-      pendingAvatar !== null);
 
   return (
     <>
@@ -387,6 +270,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           message="Sau khi nâng cấp, bạn có thể tạo và quản lý khóa học của riêng mình."
           confirmLabel="Nâng cấp"
           variant="primary"
+          pending={isUpgrading}
           onConfirm={handleUpgradeToInstructor}
           onCancel={() => setIsUpgradeConfirmOpen(false)}
         />
@@ -398,6 +282,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         message="Phiên trên thiết bị hiện tại vẫn được giữ. Tất cả trình duyệt và thiết bị khác sẽ phải đăng nhập lại."
         confirmLabel="Đăng xuất thiết bị khác"
         variant="danger"
+        pending={isLoggingOutOthers}
         onConfirm={handleLogoutOtherDevices}
         onCancel={() => setIsLogoutOthersConfirmOpen(false)}
       />

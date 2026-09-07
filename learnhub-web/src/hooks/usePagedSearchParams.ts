@@ -51,12 +51,13 @@ export const usePagedSearchParams = () => {
   const setPage = useCallback(
     (nextPage: number) => {
       cancelPendingSearch();
+      setSearchInput(search);
       setParam('page', Math.max(0, nextPage).toString(), {
         resetPage: false,
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [cancelPendingSearch, setParam]
+    [cancelPendingSearch, search, setParam]
   );
 
   useEffect(() => {

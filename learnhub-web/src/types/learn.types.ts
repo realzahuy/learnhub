@@ -1,4 +1,4 @@
-import { Question } from './question.types';
+import type { VideoStatus } from './lesson.types';
 
 export interface LearnVideo {
   id: number;
@@ -6,31 +6,16 @@ export interface LearnVideo {
   durationSeconds: number | null;
 
   playbackUrl: string | null;
-  status: string;
+  status: VideoStatus;
 }
 
-interface LearnLesson {
+export interface LearnLesson {
   id: number;
   title: string;
   position: number;
   isPreview: boolean;
   videos: LearnVideo[];
   questionCount: number;
-}
-
-export interface AdminLessonContent {
-  id: number;
-  title: string;
-  position: number;
-  isPreview: boolean;
-  videos: LearnVideo[];
-  questions: Question[];
-}
-
-export interface AdminCourseContent {
-  courseId: number;
-  courseTitle: string;
-  lessons: AdminLessonContent[];
 }
 
 export interface LearnCourse {
@@ -43,3 +28,7 @@ export interface LearnCourse {
 
   quizPassPercent: number;
 }
+
+export type Viewing =
+  | { kind: 'video'; lessonId: number; video: LearnVideo }
+  | { kind: 'quiz'; lessonId: number };

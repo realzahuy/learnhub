@@ -74,18 +74,9 @@ const Header: React.FC = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setSearchQuery(
-      location.pathname === ROUTE_PATHS.courses
-        ? new URLSearchParams(location.search).get('search') ?? ''
-        : ''
-    );
-    setShowDropdown(false);
-    setShowMobileUserMenu(false);
-  }, [location.pathname, location.search]);
 
   const goToSearch = useCallback(
     (value: string) => {
@@ -111,6 +102,17 @@ const Header: React.FC = () => {
     goToSearch,
     uiConfig.timing.searchDebounceMs
   );
+
+  useEffect(() => {
+    cancelPendingSearch();
+    setSearchQuery(
+      location.pathname === ROUTE_PATHS.courses
+        ? new URLSearchParams(location.search).get('search') ?? ''
+        : ''
+    );
+    setShowDropdown(false);
+    setShowMobileUserMenu(false);
+  }, [cancelPendingSearch, location.pathname, location.search]);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,9 +147,12 @@ const Header: React.FC = () => {
   }, []);
 
   const handleLogout = useCallback(async () => {
-    setConfirmLogout(false);
+    if (loggingOut) return;
+    setLoggingOut(true);
     await logout();
-  }, [logout]);
+    setConfirmLogout(false);
+    setLoggingOut(false);
+  }, [loggingOut, logout]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -352,8 +357,11 @@ const Header: React.FC = () => {
 
       <LogoutConfirmDialog
         isOpen={confirmLogout}
+        pending={loggingOut}
         onConfirm={handleLogout}
-        onCancel={() => setConfirmLogout(false)}
+        onCancel={() => {
+          if (!loggingOut) setConfirmLogout(false);
+        }}
       />
     </nav>
   );

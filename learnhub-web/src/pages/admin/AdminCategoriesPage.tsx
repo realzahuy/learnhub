@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ConfirmDialog, LoadingScreen } from '../../components/common';
 import { useToast } from '../../context/ToastContext';
+import { useCategories } from '../../hooks/useCategories';
+import { queryKeys } from '../../query/queryKeys';
 import { categoryService } from '../../services/api/category.service';
 import { Category } from '../../types/course.types';
 import { getApiErrorMessage } from '../../utils';
@@ -10,46 +13,14 @@ const NAME_MAX_LENGTH = 100;
 
 const AdminCategoriesPage: React.FC = () => {
   const { showToast } = useToast();
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { categories, loading, error } = useCategories();
 
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingName, setEditingName] = useState('');
-  const [savingId, setSavingId] = useState<number | null>(null);
-  const editInputRef = useRef<HTMLInputElement>(null);
-
   const [pendingDelete, setPendingDelete] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    categoryService
-      .getAll()
-      .then((data) => {
-        if (!cancelled) setCategories(data);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(getApiErrorMessage(err, 'Không tải được danh sách danh mục.'));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (editingId !== null) editInputRef.current?.select();
-  }, [editingId]);
 
   const handleCreate = useCallback(
     async (e: React.FormEvent) => {
@@ -60,8 +31,12 @@ const AdminCategoriesPage: React.FC = () => {
       setCreating(true);
       try {
         const created = await categoryService.create(name);
-
-        setCategories((prev) => [...prev, created]);
+        await queryClient.cancelQueries({ queryKey: queryKeys.categories.all });
+        queryClient.setQueryData<Category[]>(queryKeys.categories.all, (current = []) => [
+          ...current,
+          created,
+        ]);
+        void queryClient.invalidateQueries({ queryKey: queryKeys.categories.all });
         setNewName('');
         showToast(`Đã thêm danh mục "${created.name}"`, 'success');
       } catch (err) {
@@ -70,52 +45,20 @@ const AdminCategoriesPage: React.FC = () => {
         setCreating(false);
       }
     },
-    [newName, creating, showToast]
+    [newName, creating, queryClient, showToast]
   );
 
-  const startEdit = useCallback((category: Category) => {
-    setEditingId(category.id);
-    setEditingName(category.name);
-  }, []);
-
-  const cancelEdit = useCallback(() => {
-    setEditingId(null);
-    setEditingName('');
-  }, []);
-
-  const handleRename = useCallback(async () => {
-    if (editingId === null) return;
-
-    const name = editingName.trim();
-    const current = categories.find((category) => category.id === editingId);
-
-    if (!name || name === current?.name) {
-      cancelEdit();
-      return;
-    }
-
-    setSavingId(editingId);
-    try {
-      const updated = await categoryService.update(editingId, name);
-      setCategories((prev) =>
-        prev.map((category) => (category.id === updated.id ? updated : category))
-      );
-      cancelEdit();
-      showToast('Đã đổi tên danh mục', 'success');
-    } catch (err) {
-      showToast(getApiErrorMessage(err, 'Không đổi được tên danh mục.'), 'error');
-    } finally {
-      setSavingId(null);
-    }
-  }, [editingId, editingName, categories, cancelEdit, showToast]);
-
   const handleDelete = useCallback(async () => {
-    if (!pendingDelete) return;
+    if (!pendingDelete || deleting) return;
 
     setDeleting(true);
     try {
       await categoryService.remove(pendingDelete.id);
-      setCategories((prev) => prev.filter((category) => category.id !== pendingDelete.id));
+      await queryClient.cancelQueries({ queryKey: queryKeys.categories.all });
+      queryClient.setQueryData<Category[]>(queryKeys.categories.all, (current = []) =>
+        current.filter((category) => category.id !== pendingDelete.id)
+      );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.categories.all });
       showToast(`Đã xóa danh mục "${pendingDelete.name}"`, 'success');
       setPendingDelete(null);
     } catch (err) {
@@ -124,7 +67,7 @@ const AdminCategoriesPage: React.FC = () => {
     } finally {
       setDeleting(false);
     }
-  }, [pendingDelete, showToast]);
+  }, [deleting, pendingDelete, queryClient, showToast]);
 
   return (
     <>
@@ -155,86 +98,23 @@ const AdminCategoriesPage: React.FC = () => {
           </div>
         ) : (
           <ul className="admin-category-list motion-stagger">
-            {categories.map((category) => {
-              const isEditing = editingId === category.id;
-              const isSaving = savingId === category.id;
+            {categories.map((category) => (
+              <li key={category.id} className="admin-category-row">
+                <span className="admin-category-name">{category.name}</span>
 
-              return (
-                <li key={category.id} className="admin-category-row">
-                  {isEditing ? (
-                    <input
-                      ref={editInputRef}
-                      type="text"
-                      className="admin-category-input"
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleRename();
-                        } else if (e.key === 'Escape') {
-                          cancelEdit();
-                        }
-                      }}
-                      maxLength={NAME_MAX_LENGTH}
-                      disabled={isSaving}
-                      aria-label={`Tên danh mục ${category.name}`}
-                    />
-                  ) : (
-                    <span className="admin-category-name">{category.name}</span>
-                  )}
-
-                  <div className="admin-category-actions">
-                    {isEditing ? (
-                      <>
-                        <button
-                          type="button"
-                          className="btn-admin-icon btn-admin-icon-confirm"
-                          onClick={handleRename}
-                          disabled={isSaving}
-                          title="Lưu"
-                          aria-label={`Lưu tên danh mục ${category.name}`}
-                        >
-                          <i className="bi bi-check-lg"></i>
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-admin-icon"
-                          onClick={cancelEdit}
-                          disabled={isSaving}
-                          title="Hủy"
-                          aria-label="Hủy đổi tên"
-                        >
-                          <i className="bi bi-x-lg"></i>
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className="btn-admin-icon"
-                          onClick={() => startEdit(category)}
-                          title="Đổi tên"
-                          aria-label={`Đổi tên danh mục ${category.name}`}
-                        >
-                          <i className="bi bi-pencil"></i>
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-admin-icon btn-admin-icon-danger"
-                          onClick={() => setPendingDelete(category)}
-                          title="Xóa"
-                          aria-label={`Xóa danh mục ${category.name}`}
-                        >
-                          Xóa
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
+                <div className="admin-category-actions">
+                  <button
+                    type="button"
+                    className="btn-admin-icon btn-admin-icon-danger"
+                    onClick={() => setPendingDelete(category)}
+                    title="Xóa"
+                    aria-label={`Xóa danh mục ${category.name}`}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
@@ -246,6 +126,7 @@ const AdminCategoriesPage: React.FC = () => {
         confirmLabel={deleting ? 'Đang xóa...' : 'Xóa danh mục'}
         cancelLabel="Giữ lại"
         variant="danger"
+        pending={deleting}
         onConfirm={handleDelete}
         onCancel={() => {
           if (!deleting) setPendingDelete(null);

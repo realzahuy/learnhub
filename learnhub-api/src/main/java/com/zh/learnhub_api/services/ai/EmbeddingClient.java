@@ -6,5 +6,5 @@ public interface EmbeddingClient {
 
     List<Float> embedDocument(String text, String title);
 
-    List<Float> embedQuery(String text);
+    List<List<Float>> embedQueries(List<String> texts);
 }

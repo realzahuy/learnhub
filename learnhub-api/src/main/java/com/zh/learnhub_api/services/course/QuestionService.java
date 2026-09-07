@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,9 +45,8 @@ public class QuestionService {
         question.setPosition(questionRepository.findMaxPositionByLessonId(lessonId) + 1);
         Question saved = questionRepository.save(question);
 
-        replaceAnswers(saved, request.getAnswers());
-
-        return mapToDTO(saved);
+        List<Answer> answers = replaceAnswers(saved, request.getAnswers());
+        return questionMapper.toDTO(saved, answers);
     }
 
     @Transactional
@@ -58,9 +58,8 @@ public class QuestionService {
         answerRepository.deleteByQuestionId_Id(questionId);
         answerRepository.flush();
 
-        replaceAnswers(question, request.getAnswers());
-
-        return mapToDTO(question);
+        List<Answer> answers = replaceAnswers(question, request.getAnswers());
+        return questionMapper.toDTO(question, answers);
     }
 
     @Transactional
@@ -80,13 +79,16 @@ public class QuestionService {
         if (requests.size() != questions.size()) {
             throw new IllegalArgumentException("Thiếu câu hỏi");
         }
-        for (PositionReorderRequestDTO request : requests) {
-            Question question = byId.get(request.getId());
-            if (question == null) {
-                throw new ResourceNotFoundException("Không tìm thấy câu hỏi");
-            }
-            question.setPosition(request.getPosition());
+        Set<Long> requestedIds = requests.stream()
+                .map(PositionReorderRequestDTO::getId)
+                .collect(Collectors.toSet());
+        if (requestedIds.size() != requests.size()) {
+            throw new IllegalArgumentException("Trùng ID câu hỏi");
         }
+        if (!requestedIds.equals(byId.keySet())) {
+            throw new ResourceNotFoundException("Không tìm thấy câu hỏi");
+        }
+        requests.forEach(request -> byId.get(request.getId()).setPosition(request.getPosition()));
 
         return questionRepository.saveAllAndFlush(questions).stream()
                 .sorted(java.util.Comparator.comparingInt(Question::getPosition))
@@ -100,7 +102,7 @@ public class QuestionService {
         questionRepository.delete(question);
     }
 
-    private void replaceAnswers(Question question, List<AnswerRequestDTO> requests) {
+    private List<Answer> replaceAnswers(Question question, List<AnswerRequestDTO> requests) {
         List<Answer> answers = new ArrayList<>();
         for (AnswerRequestDTO dto : requests) {
             Answer answer = new Answer();
@@ -109,7 +111,7 @@ public class QuestionService {
             answer.setQuestionId(question);
             answers.add(answer);
         }
-        answerRepository.saveAll(answers);
+        return answerRepository.saveAll(answers);
     }
 
     private void validateAnswers(List<AnswerRequestDTO> answers) {
@@ -133,8 +135,4 @@ public class QuestionService {
         return question;
     }
 
-    private QuestionResponseDTO mapToDTO(Question question) {
-        return questionMapper.toDTO(
-                question, answerRepository.findByQuestionId_IdOrderByIdAsc(question.getId()));
-    }
 }

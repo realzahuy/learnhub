@@ -23,7 +23,7 @@ public class CourseEmbeddingTextBuilder {
 
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
-    private final AppProperties.EmbeddingText embeddingProperties;
+    private final AppProperties.Ai embeddingProperties;
 
     @Transactional(readOnly = true)
     public Optional<EmbeddingDocument> buildPublishedCourse(Long courseId) {
@@ -44,12 +44,10 @@ public class CourseEmbeddingTextBuilder {
         return Optional.of(buildPayload(course));
     }
 
-    @Transactional(readOnly = true)
     private EmbeddingDocument buildCourse(Course course) {
         Long courseId = course.getId();
         List<Lesson> lessons = lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId);
         StringBuilder text = new StringBuilder();
-        text.append("Biểu diễn khóa học để tìm các khóa học có nội dung tương tự.\n\n");
         append(text, "Tiêu đề", course.getTitle());
         if (course.getCategoryId() != null) {
             append(text, "Danh mục", course.getCategoryId().getName());
@@ -72,7 +70,8 @@ public class CourseEmbeddingTextBuilder {
             document = document.substring(0, embeddingProperties.embeddingMaxChars());
         }
         CourseVectorStore.Payload payload = buildPayload(course);
-        return new EmbeddingDocument(courseId, normalize(course.getTitle()), document, payload);
+        String category = course.getCategoryId() == null ? "" : normalize(course.getCategoryId().getName());
+        return new EmbeddingDocument(normalize(course.getTitle()), category, document, payload);
     }
 
     private CourseVectorStore.Payload buildPayload(Course course) {
@@ -102,5 +101,5 @@ public class CourseEmbeddingTextBuilder {
         return WHITESPACE.matcher(withoutTags).replaceAll(" ").trim();
     }
 
-    record EmbeddingDocument(Long courseId, String title, String text, CourseVectorStore.Payload payload) {}
+    record EmbeddingDocument(String title, String category, String text, CourseVectorStore.Payload payload) {}
 }

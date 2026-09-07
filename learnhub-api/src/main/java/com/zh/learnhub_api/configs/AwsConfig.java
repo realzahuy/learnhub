@@ -4,7 +4,6 @@ import io.awspring.cloud.autoconfigure.s3.S3ClientCustomizer;
 import io.awspring.cloud.autoconfigure.sqs.SqsAsyncClientCustomizer;
 import io.awspring.cloud.sqs.config.SqsMessageListenerContainerFactory;
 import io.awspring.cloud.sqs.listener.acknowledgement.handler.AcknowledgementMode;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -18,7 +17,6 @@ import software.amazon.awssdk.services.mediaconvert.MediaConvertClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
 @Configuration
-@ConditionalOnProperty(name = "video.storage.provider", havingValue = "s3")
 public class AwsConfig {
 
     @Bean

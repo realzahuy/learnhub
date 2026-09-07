@@ -9,6 +9,7 @@ export const instructorStatsService = {
   getOverview: async (signal?: AbortSignal): Promise<InstructorOverview> => {
     const response = await apiClient.get<InstructorOverview>('/instructor/stats/overview', {
       signal,
+      showTopProgress: false,
     });
     return response.data;
   },
@@ -27,7 +28,7 @@ export const instructorStatsService = {
 
     const response = await apiClient.get<InstructorTimeSeries>(
       `/instructor/stats/timeseries?${params.toString()}`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },

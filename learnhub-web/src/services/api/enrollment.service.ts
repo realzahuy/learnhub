@@ -22,6 +22,7 @@ export const enrollmentService = {
     const response = await apiClient.get<PageResponse<Enrollment>>('/enrollments', {
       params,
       signal,
+      showTopProgress: false,
     });
     return response.data;
   },

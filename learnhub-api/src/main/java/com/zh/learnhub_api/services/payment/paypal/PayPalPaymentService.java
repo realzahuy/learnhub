@@ -9,10 +9,16 @@ import com.zh.learnhub_api.enums.PaymentMethod;
 import com.zh.learnhub_api.enums.PaymentStatus;
 import com.zh.learnhub_api.exceptions.PaymentGatewayException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
+import com.zh.learnhub_api.mappers.PaymentMapper;
 import com.zh.learnhub_api.pojo.Payment;
+import com.zh.learnhub_api.pojo.PaymentItem;
+import com.zh.learnhub_api.repositories.account.UserRepository;
+import com.zh.learnhub_api.repositories.course.CourseRepository;
+import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
+import com.zh.learnhub_api.repositories.payment.PaymentItemRepository;
+import com.zh.learnhub_api.repositories.payment.PaymentRepository;
 import com.zh.learnhub_api.services.payment.ExchangeRateHttpClient;
 import com.zh.learnhub_api.services.payment.PaymentService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +30,6 @@ import java.math.RoundingMode;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class PayPalPaymentService extends PaymentService {
 
     private static final String REPRESENTATION_PREFERENCE = "return=representation";
@@ -32,6 +37,23 @@ public class PayPalPaymentService extends PaymentService {
     private final AppProperties.Paypal properties;
     private final PaypalServerSdkClient paypalClient;
     private final ExchangeRateHttpClient exchangeRateHttpClient;
+
+    public PayPalPaymentService(
+            UserRepository userRepository,
+            CourseRepository courseRepository,
+            EnrollmentRepository enrollmentRepository,
+            PaymentRepository paymentRepository,
+            PaymentItemRepository paymentItemRepository,
+            AppProperties.Payment paymentProperties,
+            AppProperties.Paypal properties,
+            PaypalServerSdkClient paypalClient,
+            ExchangeRateHttpClient exchangeRateHttpClient) {
+        super(userRepository, courseRepository, enrollmentRepository, paymentRepository,
+                paymentItemRepository, paymentProperties);
+        this.properties = properties;
+        this.paypalClient = paypalClient;
+        this.exchangeRateHttpClient = exchangeRateHttpClient;
+    }
 
     @Override
     public PaymentMethod getProvider() {
@@ -144,7 +166,7 @@ public class PayPalPaymentService extends PaymentService {
             failPayment(payment);
             throw new PaymentGatewayException("Capture PayPal chưa hoàn tất");
         }
-        completePayment(payment, capture.getId());
-        return toPaymentResponse(payment);
+        List<PaymentItem> items = completePayment(payment, capture.getId());
+        return PaymentMapper.toDTO(payment, items);
     }
 }

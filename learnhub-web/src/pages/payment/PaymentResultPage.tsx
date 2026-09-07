@@ -4,6 +4,9 @@ import { uiConfig } from '../../config/uiConfig';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { paymentService } from '../../services/api/payment.service';
+import { getAuthGeneration } from '../../services/api/tokenStore';
+import { queryClient } from '../../query/queryClient';
+import { queryKeys } from '../../query/queryKeys';
 import {
   PaymentMethod,
   PaymentResponse,
@@ -19,7 +22,11 @@ const parsePaymentId = (rawValue: string | null): number | null => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-const PaymentResultPageContent = () => {
+interface PaymentResultPageContentProps {
+  attemptedCaptures: Set<string>;
+}
+
+const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageContentProps) => {
   const [searchParams] = useSearchParams();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { removeManyFromCart } = useCart();
@@ -49,12 +56,21 @@ const PaymentResultPageContent = () => {
 
   const clearedPaymentsRef = useRef(new Set<number>());
   const attemptedActionsRef = useRef(new Set<string>());
+  const activeRef = useRef(true);
+
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+    };
+  }, []);
 
   const handleSuccess = useCallback(
     (successfulPaymentId: number, paidCourseIds: number[]) => {
       if (clearedPaymentsRef.current.has(successfulPaymentId)) return;
       clearedPaymentsRef.current.add(successfulPaymentId);
       removeManyFromCart(paidCourseIds);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.enrollments.all });
     },
     [removeManyFromCart]
   );
@@ -80,12 +96,14 @@ const PaymentResultPageContent = () => {
 
     setIsChecking(true);
     setHasError(false);
+    const requestGeneration = getAuthGeneration();
     try {
-      applyPayment(await paymentService.getStatus(paymentId));
+      const payment = await paymentService.getStatus(paymentId);
+      if (activeRef.current && getAuthGeneration() === requestGeneration) applyPayment(payment);
     } catch {
-      setHasError(true);
+      if (activeRef.current && getAuthGeneration() === requestGeneration) setHasError(true);
     } finally {
-      setIsChecking(false);
+      if (activeRef.current && getAuthGeneration() === requestGeneration) setIsChecking(false);
     }
   }, [applyPayment, isAuthenticated, paymentId]);
 
@@ -99,12 +117,14 @@ const PaymentResultPageContent = () => {
 
     setIsChecking(true);
     setHasError(false);
+    const requestGeneration = getAuthGeneration();
     try {
-      applyPayment(await paymentService.capturePayPal(paymentId, paypalOrderId));
+      const payment = await paymentService.capturePayPal(paymentId, paypalOrderId);
+      if (activeRef.current && getAuthGeneration() === requestGeneration) applyPayment(payment);
     } catch {
-      setHasError(true);
+      if (activeRef.current && getAuthGeneration() === requestGeneration) setHasError(true);
     } finally {
-      setIsChecking(false);
+      if (activeRef.current && getAuthGeneration() === requestGeneration) setIsChecking(false);
     }
   }, [applyPayment, isAuthenticated, paymentId, paypalCancelled, paypalOrderId]);
 
@@ -114,6 +134,13 @@ const PaymentResultPageContent = () => {
     const actionKey = isPayPal
       ? `${paypalCancelled ? 'cancel' : 'capture'}:${paymentId}:${paypalOrderId ?? ''}`
       : `status:${paymentId}`;
+    if (isPayPal && paypalOrderId && !paypalCancelled) {
+      if (attemptedCaptures.has(actionKey)) {
+        void checkPaymentStatus();
+        return;
+      }
+      attemptedCaptures.add(actionKey);
+    }
     if (attemptedActionsRef.current.has(actionKey)) return;
     attemptedActionsRef.current.add(actionKey);
 
@@ -124,6 +151,7 @@ const PaymentResultPageContent = () => {
     }
   }, [
     checkPaymentStatus,
+    attemptedCaptures,
     isAuthenticated,
     isPayPal,
     paymentId,
@@ -313,7 +341,14 @@ const PaymentResultPageContent = () => {
 
 const PaymentResultPage = () => {
   const location = useLocation();
-  return <PaymentResultPageContent key={location.search} />;
+  const { userId } = useAuth();
+  const attemptedCaptures = useRef(new Set<string>()).current;
+  return (
+    <PaymentResultPageContent
+      key={`${userId ?? 'anonymous'}:${location.search}`}
+      attemptedCaptures={attemptedCaptures}
+    />
+  );
 };
 
 export default PaymentResultPage;

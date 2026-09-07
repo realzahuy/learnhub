@@ -47,13 +47,19 @@ const CartPage: React.FC = () => {
         paymentMethod,
       });
 
-      if (payment.payUrl) {
+      if (payment.status === 'PENDING' && payment.payUrl) {
         window.location.assign(payment.payUrl);
         return;
       }
 
-      showToast(payment.message || 'Đã thêm khóa học vào tài khoản.', 'success');
-      navigate(ROUTE_PATHS.myCourses);
+      if (payment.status === 'SUCCESS') {
+        showToast(payment.message || 'Đã thêm khóa học vào tài khoản.', 'success');
+        navigate(ROUTE_PATHS.myCourses);
+        return;
+      }
+
+      showToast('Không mở được bước thanh toán. Vui lòng thử lại.', 'error');
+      setIsCheckingOut(false);
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Không tạo được đơn thanh toán. Vui lòng thử lại.'), 'error');
       setIsCheckingOut(false);

@@ -42,19 +42,20 @@ public class InstructorStatsService {
         for (var row : courseRepository.countCoursesByStatusForInstructor(instructorId)) {
             byStatus.put(row.getStatus(), row.getCourseCount());
         }
+        var revenue = paymentItemRepository.getRevenueOverview(instructorId, previousFrom, currentFrom, now);
+        var enrollments = enrollmentRepository.countEnrollmentPeriods(instructorId, previousFrom, currentFrom, now);
 
         return InstructorOverviewDTO.builder()
                 .totalStudents(enrollmentRepository.countDistinctStudents(instructorId))
-                .totalRevenue(paymentItemRepository.sumRevenue(instructorId))
+                .totalRevenue(revenue.getTotalRevenue())
                 .publishedCourses(byStatus.getOrDefault(CourseStatus.PUBLISHED, 0L))
                 .pendingCourses(byStatus.getOrDefault(CourseStatus.PENDING, 0L))
                 .draftCourses(byStatus.getOrDefault(CourseStatus.DRAFT, 0L))
                 .rejectedCourses(byStatus.getOrDefault(CourseStatus.REJECTED, 0L))
-                .enrollmentsCurrentPeriod(enrollmentRepository.countEnrollmentsBetween(instructorId, currentFrom, now))
-                .enrollmentsPreviousPeriod(
-                        enrollmentRepository.countEnrollmentsBetween(instructorId, previousFrom, currentFrom))
-                .revenueCurrentPeriod(paymentItemRepository.sumRevenueBetween(instructorId, currentFrom, now))
-                .revenuePreviousPeriod(paymentItemRepository.sumRevenueBetween(instructorId, previousFrom, currentFrom))
+                .enrollmentsCurrentPeriod(enrollments.getCurrentCount())
+                .enrollmentsPreviousPeriod(enrollments.getPreviousCount())
+                .revenueCurrentPeriod(revenue.getCurrentRevenue())
+                .revenuePreviousPeriod(revenue.getPreviousRevenue())
                 .periodDays(periodDays)
                 .build();
     }

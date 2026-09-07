@@ -13,7 +13,7 @@ public record ChatPlan(String reply, boolean recommendCourses, List<String> sear
                         .map(String::trim)
                         .filter(keyword -> keyword.length() <= 100)
                         .distinct()
-                        .limit(8)
+                        .limit(3)
                         .toList();
         if (!recommendCourses) {
             searchKeywords = List.of();

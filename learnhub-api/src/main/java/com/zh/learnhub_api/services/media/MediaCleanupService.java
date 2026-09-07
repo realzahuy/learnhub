@@ -4,9 +4,10 @@ import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.media.mediaconvert.MediaConvertTranscoder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class MediaCleanupService {
     private final VideoStorageService videoStorageService;
     private final MediaConvertTranscoder mediaConvertService;
     private final ImageStorageService imageStorageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void scheduleCourseCleanup(Long courseId, boolean deleteThumbnail) {
         List<String> runningJobs = videoRepository.findJobIdsByCourseIdAndStatus(courseId, VideoStatus.PROCESSING);
@@ -58,18 +60,15 @@ public class MediaCleanupService {
     }
 
     private void afterCommit(Runnable task) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            task.run();
-            return;
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                task.run();
-            }
-        });
+        eventPublisher.publishEvent(new CleanupRequested(task));
     }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onCleanup(CleanupRequested event) {
+        event.task().run();
+    }
+
+    public record CleanupRequested(Runnable task) {}
 
     private void runBestEffort(Runnable task) {
         try {

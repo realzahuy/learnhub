@@ -18,7 +18,11 @@ public interface CourseVectorStore {
 
     List<Match> findSimilar(Long courseId, int limit, Set<Long> excludedCourseIds, double scoreThreshold);
 
-    List<Match> findSimilar(List<Float> queryVector, int limit, Set<Long> excludedCourseIds, double scoreThreshold);
+    List<List<Match>> findSimilarBatch(
+            List<List<Float>> queryVectors,
+            int limit,
+            Set<Long> excludedCourseIds,
+            double scoreThreshold);
 
     record Payload(String slug, String title, String thumbnail, BigDecimal price) {
 

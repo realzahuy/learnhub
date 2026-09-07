@@ -4,6 +4,7 @@ import { learningService } from '../../../services/api/learning.service';
 import { Quiz, QuizResult } from '../../../types/quiz.types';
 import { getApiErrorMessage } from '../../../utils';
 import { PageSkeleton } from '../../common';
+import { queryKeys } from '../../../query/queryKeys';
 import './QuizPanel.css';
 
 interface QuizPanelProps {
@@ -14,7 +15,7 @@ type Selections = Record<number, number[]>;
 
 const QuizPanel = ({ lessonId }: QuizPanelProps) => {
   const quizQuery = useQuery<Quiz>({
-    queryKey: ['lesson-quiz', lessonId],
+    queryKey: queryKeys.quizzes.detail(lessonId),
     queryFn: ({ signal }) => learningService.getQuiz(lessonId, signal),
   });
   const quiz = quizQuery.data ?? null;
@@ -41,6 +42,7 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
 
   const toggleOption = useCallback(
     (questionId: number, optionId: number, multiple: boolean) => {
+      if (submitting || result) return;
       setSelections((prev) => {
         const current = prev[questionId] ?? [];
 
@@ -56,7 +58,7 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
         };
       });
     },
-    []
+    [result, submitting]
   );
 
   const unansweredCount = useMemo(() => {
@@ -65,7 +67,7 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
   }, [quiz, selections]);
 
   const handleSubmit = useCallback(async () => {
-    if (!quiz) return;
+    if (!quiz || submitting || result) return;
 
     setSubmitting(true);
     setSubmitError(null);
@@ -87,13 +89,14 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
     } finally {
       setSubmitting(false);
     }
-  }, [quiz, lessonId, selections]);
+  }, [quiz, lessonId, result, selections, submitting]);
 
   const handleRetry = useCallback(() => {
+    if (submitting) return;
     setSelections({});
     setResult(null);
     setSubmitError(null);
-  }, []);
+  }, [submitting]);
 
   if (loading) {
     return <PageSkeleton variant="list" count={4} className="quiz-panel" />;
@@ -164,7 +167,9 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
                       <label
                         className={`quiz-option${checked ? ' is-checked' : ''}${
                           isCorrectAnswer ? ' is-answer' : ''
-                        }${isWrongPick ? ' is-wrong-pick' : ''}${graded ? ' is-locked' : ''}`}
+                        }${isWrongPick ? ' is-wrong-pick' : ''}${
+                          submitting || graded ? ' is-locked' : ''
+                        }`}
                       >
                         <input
                           type={question.multipleCorrect ? 'checkbox' : 'radio'}
@@ -173,7 +178,7 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
                           }`}
                           name={`question-${question.id}`}
                           checked={checked}
-                          disabled={Boolean(graded)}
+                          disabled={submitting || Boolean(graded)}
                           onChange={() =>
                             toggleOption(question.id, option.id, question.multipleCorrect)
                           }

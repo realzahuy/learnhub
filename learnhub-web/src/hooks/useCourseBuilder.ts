@@ -59,9 +59,15 @@ export const useCourseBuilder = (courseId: number | null, trackVideoProgress = t
     []
   );
 
-  const changeQuestions = useCallback((lessonId: number, next: Question[]) => {
-    setQuestions((previous) => ({ ...previous, [lessonId]: next }));
-  }, []);
+  const changeQuestions = useCallback(
+    (lessonId: number, updater: (previous: Question[]) => Question[]) => {
+      setQuestions((previous) => ({
+        ...previous,
+        [lessonId]: updater(previous[lessonId] ?? []),
+      }));
+    },
+    []
+  );
 
   return {
     lessons,

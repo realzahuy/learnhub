@@ -1,8 +1,7 @@
 import apiClient from './config';
 import { InstructorCourse } from '../../types/course.types';
 import { PageResponse } from '../../types/pagination.types';
-import { AdminCourseContent } from '../../types/learn.types';
-import { AdminUser, AdminUserFilter } from '../../types/admin.types';
+import { AdminCourseContent, AdminUser, AdminUserFilter } from '../../types/admin.types';
 
 export const adminService = {
 
@@ -22,7 +21,7 @@ export const adminService = {
 
     const response = await apiClient.get<PageResponse<InstructorCourse>>(
       `/admin/courses?${query.toString()}`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },
@@ -33,7 +32,7 @@ export const adminService = {
   ): Promise<AdminCourseContent> => {
     const response = await apiClient.get<AdminCourseContent>(
       `/admin/courses/${id}/content`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },
@@ -60,7 +59,7 @@ export const adminService = {
 
     const response = await apiClient.get<PageResponse<AdminUser>>(
       `/admin/users?${query.toString()}`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },

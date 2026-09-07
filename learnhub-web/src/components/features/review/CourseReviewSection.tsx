@@ -1,11 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { uiConfig } from '../../../config/uiConfig';
 import { PageSkeleton, Pagination, StarRating, UserAvatar } from '../../common';
-import { useAuth } from '../../../context/AuthContext';
-import { useToast } from '../../../context/ToastContext';
-import { reviewService } from '../../../services/api/review.service';
-import { RatingSummary, Review } from '../../../types/review.types';
-import { formatRelativeDate, getApiErrorMessage } from '../../../utils';
+import { RatingSummary } from '../../../types/review.types';
+import { formatRelativeDate } from '../../../utils';
+import { useCourseReviews } from './useCourseReviews';
 import './CourseReviewSection.css';
 
 interface CourseReviewSectionProps {
@@ -15,146 +13,18 @@ interface CourseReviewSectionProps {
 
   isEnrolled: boolean;
 
-  onSummaryChange?: (summary: RatingSummary) => void;
 }
 
 const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
   slug,
   initialSummary,
   isEnrolled,
-  onSummaryChange,
 }) => {
-  const { isAuthenticated } = useAuth();
-  const { showToast } = useToast();
-
-  const [summary, setSummary] = useState<RatingSummary | null>(initialSummary ?? null);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [isFirst, setIsFirst] = useState(true);
-  const [isLast, setIsLast] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [myReview, setMyReview] = useState<Review | null>(null);
-
-  const [formRating, setFormRating] = useState(0);
-  const [formComment, setFormComment] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const loadReviews = useCallback(
-    async (targetPage: number) => {
-      setIsLoading(true);
-      try {
-        const data = await reviewService.getCourseReviews(
-          slug,
-          targetPage,
-          uiConfig.pagination.reviewPageSize
-        );
-        setReviews(data.content);
-        setPage(data.pageNumber);
-        setTotalPages(data.totalPages);
-        setIsFirst(data.first);
-        setIsLast(data.last);
-      } catch (error) {
-        showToast(getApiErrorMessage(error, 'Không tải được danh sách đánh giá'), 'error');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [slug, showToast]
-  );
-
-  const refreshSummary = useCallback(async () => {
-    const next = await reviewService.getCourseSummary(slug).catch(() => null);
-    if (!next) return;
-    setSummary(next);
-    onSummaryChange?.(next);
-  }, [slug, onSummaryChange]);
-
-  useEffect(() => {
-    loadReviews(0);
-    if (initialSummary) {
-      setSummary(initialSummary);
-    } else {
-      setSummary(null);
-      refreshSummary();
-    }
-  }, [initialSummary, loadReviews, refreshSummary]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setMyReview(null);
-      return;
-    }
-
-    reviewService
-      .getMyReview(slug)
-      .then((review) => {
-        setMyReview(review);
-        if (review) {
-          setFormRating(review.rating);
-          setFormComment(review.comment ?? '');
-        }
-      })
-      .catch(() => {
-
-        setMyReview(null);
-      });
-  }, [slug, isAuthenticated]);
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (formRating < 1) {
-      showToast('Vui lòng chọn số sao', 'error');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const saved = await reviewService.saveReview(slug, {
-        rating: formRating,
-        comment: formComment.trim() || undefined,
-      });
-
-      setMyReview(saved);
-      setIsEditing(false);
-      showToast(myReview ? 'Đã cập nhật đánh giá' : 'Cảm ơn bạn đã đánh giá');
-
-      await Promise.all([loadReviews(0), refreshSummary()]);
-    } catch (error) {
-      showToast(getApiErrorMessage(error, 'Không gửi được đánh giá'), 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    setIsSubmitting(true);
-    try {
-      await reviewService.deleteMyReview(slug);
-      setMyReview(null);
-      setFormRating(0);
-      setFormComment('');
-      setIsEditing(false);
-      showToast('Đã xóa đánh giá');
-
-      await Promise.all([loadReviews(0), refreshSummary()]);
-    } catch (error) {
-      showToast(getApiErrorMessage(error, 'Không xóa được đánh giá'), 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const startEditing = () => {
-    if (myReview) {
-      setFormRating(myReview.rating);
-      setFormComment(myReview.comment ?? '');
-    }
-    setIsEditing(true);
-  };
+  const {
+    isAuthenticated, page, setPage, summary, reviewPage, reviews, myReview, isLoading,
+    formRating, setFormRating, formComment, setFormComment, isEditing, setIsEditing,
+    isSubmitting, handleSubmit, handleDelete, startEditing,
+  } = useCourseReviews(slug, initialSummary);
 
   const total = summary?.totalReviews ?? 0;
 
@@ -288,10 +158,10 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
 
       <Pagination
         currentPage={page}
-        totalPages={totalPages}
-        isFirst={isFirst}
-        isLast={isLast}
-        onPageChange={loadReviews}
+        totalPages={reviewPage?.totalPages ?? 0}
+        isFirst={reviewPage?.first ?? true}
+        isLast={reviewPage?.last ?? true}
+        onPageChange={setPage}
       />
     </div>
   );

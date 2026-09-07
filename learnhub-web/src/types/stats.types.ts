@@ -16,6 +16,16 @@ export interface InstructorOverview {
 
 export type StatsGranularity = 'day' | 'month' | 'quarter';
 
+export type StatsView = 'chart' | 'table';
+
+export interface StatsFilterValue<M extends string> {
+  groupBy: StatsGranularity;
+  from: string;
+  to: string;
+  metric: M | '';
+  view: StatsView;
+}
+
 export const STATS_GRANULARITY_LABELS: Record<StatsGranularity, string> = {
   day: 'Ngày',
   month: 'Tháng',

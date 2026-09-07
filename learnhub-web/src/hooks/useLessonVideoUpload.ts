@@ -25,13 +25,14 @@ export const useLessonVideoUpload = (
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nextKeyRef = useRef(1);
   const reservedPositionRef = useRef(0);
+  const uploadingRef = useRef(false);
 
   const handlePickVideo = useCallback(async (
     event: React.ChangeEvent<HTMLInputElement>
   ): Promise<boolean> => {
     const file = event.target.files?.[0];
     event.target.value = '';
-    if (!file) return false;
+    if (!file || uploadingRef.current) return false;
 
     const title = newTitle.trim().slice(0, 255);
     if (!title) {
@@ -44,6 +45,7 @@ export const useLessonVideoUpload = (
       return false;
     }
 
+    uploadingRef.current = true;
     setError(null);
     setNewTitle('');
     const key = nextKeyRef.current++;
@@ -118,6 +120,7 @@ export const useLessonVideoUpload = (
       }
       return false;
     } finally {
+      uploadingRef.current = false;
       if (progressTimer !== undefined) window.clearTimeout(progressTimer);
       setPending((previous) => previous.filter((item) => item.key !== key));
     }

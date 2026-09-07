@@ -6,6 +6,7 @@ import com.zh.learnhub_api.dtos.course.CourseCreateResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseRejectResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseUpsertRequestDTO;
+import com.zh.learnhub_api.dtos.course.InstructorCourseListItemDTO;
 import com.zh.learnhub_api.enums.CourseStatus;
 import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
@@ -15,6 +16,7 @@ import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.CourseReject;
 import com.zh.learnhub_api.pojo.User;
 import com.zh.learnhub_api.projections.course.CourseDetailProjection;
+import com.zh.learnhub_api.projections.course.CourseListProjection;
 import com.zh.learnhub_api.repositories.account.UserRepository;
 import com.zh.learnhub_api.repositories.course.CategoryRepository;
 import com.zh.learnhub_api.repositories.course.CourseRejectRepository;
@@ -23,10 +25,10 @@ import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import com.zh.learnhub_api.services.course.SlugService;
 import com.zh.learnhub_api.services.media.ImageStorageService;
 import com.zh.learnhub_api.services.media.MediaCleanupService;
-import com.zh.learnhub_api.services.realtime.CourseRealtimeEventListener.Audience;
-import com.zh.learnhub_api.services.realtime.CourseRealtimeEventListener.StatusChanged;
-import com.zh.learnhub_api.services.vector.CourseVectorIndexer.PayloadSyncEvent;
-import com.zh.learnhub_api.services.vector.CourseVectorIndexer.SyncEvent;
+import com.zh.learnhub_api.services.course.CourseStatusChanged.Audience;
+import com.zh.learnhub_api.services.course.CourseStatusChanged;
+import com.zh.learnhub_api.services.vector.CoursePayloadSyncRequested;
+import com.zh.learnhub_api.services.vector.CourseVectorSyncRequested;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -37,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 
 @Service
@@ -108,6 +111,7 @@ public class InstructorCourseService {
         String oldTitle = course.getTitle();
         String oldShortDescription = course.getShortDescription();
         String oldDescription = course.getDescription();
+        BigDecimal oldPrice = course.getPrice();
 
         applyUpdate(course, request);
         if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
@@ -120,11 +124,12 @@ public class InstructorCourseService {
         boolean embeddingDataChanged = !Objects.equals(oldTitle, course.getTitle())
                 || !Objects.equals(oldShortDescription, course.getShortDescription())
                 || !Objects.equals(oldDescription, course.getDescription());
+        boolean priceChanged = !Objects.equals(oldPrice, course.getPrice());
         if (statusBeforeUpdate == CourseStatus.PUBLISHED) {
             if (embeddingDataChanged) {
-                eventPublisher.publishEvent(new SyncEvent(courseId));
-            } else {
-                eventPublisher.publishEvent(new PayloadSyncEvent(courseId));
+                eventPublisher.publishEvent(new CourseVectorSyncRequested(courseId));
+            } else if (priceChanged) {
+                eventPublisher.publishEvent(new CoursePayloadSyncRequested(courseId));
             }
         }
         return courseMapper.mapEntityToDTO(course);
@@ -135,14 +140,14 @@ public class InstructorCourseService {
         Course course = findOwnedCourse(courseId, instructorId);
         CourseStatus currentStatus = course.getStatus();
         if (currentStatus != CourseStatus.DRAFT && currentStatus != CourseStatus.REJECTED) {
-            throw new IllegalStateException("Không thể gửi kiểm duyệt");
+            throw new IllegalArgumentException("Không thể gửi kiểm duyệt");
         }
         String title = course.getTitle();
         String categoryName = course.getCategoryId().getName();
         course.setStatus(CourseStatus.PENDING);
 
         eventPublisher.publishEvent(
-                new StatusChanged(courseId, instructorId, CourseStatus.PENDING, title, categoryName, Audience.ADMINS));
+                new CourseStatusChanged(courseId, instructorId, CourseStatus.PENDING, title, categoryName, Audience.ADMINS));
     }
 
     public CourseRejectResponseDTO getCourseRejectReason(Long courseId, Long instructorId) {
@@ -158,14 +163,16 @@ public class InstructorCourseService {
                 latestReject.getId(), latestReject.getComment(), latestReject.getCreatedAt());
     }
 
-    public PageResponseDTO<CourseResponseDTO> getInstructorCourses(
+    public PageResponseDTO<InstructorCourseListItemDTO> getInstructorCourses(
             Long instructorId, CourseStatus status, String category, String search, Pageable requestedPage) {
         Pageable pageable = PageRequest.of(
-                requestedPage.getPageNumber(), requestedPage.getPageSize(), Sort.by(Sort.Direction.DESC, "updatedAt"));
+                requestedPage.getPageNumber(),
+                requestedPage.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "updatedAt").and(Sort.by(Sort.Direction.DESC, "id")));
 
-        Page<CourseDetailProjection> coursePage = courseRepository.findFilteredCourseDetails(
+        Page<CourseListProjection> coursePage = courseRepository.findFilteredCourses(
                 instructorId, status, normalizeFilter(category), normalizeFilter(search), pageable);
-        return PageResponseDTO.from(coursePage.map(courseMapper::mapDetailProjectionToDTO));
+        return PageResponseDTO.from(coursePage.map(courseMapper::mapInstructorListProjectionToDTO));
     }
 
     public CourseResponseDTO getInstructorCourseDetail(Long courseId, Long instructorId) {
@@ -190,7 +197,7 @@ public class InstructorCourseService {
     }
 
     private void updatePublishedFields(Course course, CourseUpsertRequestDTO request) {
-        Category currentCategory = requireCurrentCategory(course);
+        Category currentCategory = course.getCategoryId();
 
         if (request.getSlug() != null && !request.getSlug().isEmpty()) {
             String requestedSlug = request.getSlug().trim().toLowerCase();
@@ -226,20 +233,13 @@ public class InstructorCourseService {
     }
 
     private void updateCategoryIfChanged(Course course, CourseUpsertRequestDTO request) {
-        Category currentCategory = requireCurrentCategory(course);
+        Category currentCategory = course.getCategoryId();
         if (!request.getCategoryId().equals(currentCategory.getId())) {
             Category newCategory = categoryRepository
                     .findById(request.getCategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh mục"));
             course.setCategoryId(newCategory);
         }
-    }
-
-    private Category requireCurrentCategory(Course course) {
-        if (course.getCategoryId() == null) {
-            throw new IllegalStateException("Không có danh mục");
-        }
-        return course.getCategoryId();
     }
 
     private Course findOwnedCourse(Long courseId, Long instructorId) {

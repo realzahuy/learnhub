@@ -5,11 +5,11 @@
 }
 
 .motion-content-enter {
-  animation: motion-content-enter var(--motion-normal) var(--motion-ease-out) both;
+  animation: motion-content-enter var(--motion-normal) var(--motion-ease-out);
 }
 
 .motion-stagger > * {
-  animation: motion-content-enter var(--motion-normal) var(--motion-ease-out) both;
+  animation: motion-content-enter var(--motion-normal) var(--motion-ease-out) backwards;
 }
 
 .motion-stagger > :nth-child(2) { animation-delay: 20ms; }
@@ -29,7 +29,6 @@
 
 .motion-loading-region.is-updating > * {
   opacity: 0.52;
-  pointer-events: none;
 }
 
 :is(.btn, .page-link, .app-dropdown-toggle, .confirm-dialog-btn):not(:disabled):active {

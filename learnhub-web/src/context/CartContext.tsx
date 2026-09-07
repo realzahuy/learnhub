@@ -55,9 +55,9 @@ const loadCart = (): CartItem[] => {
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated } = useAuth();
+  const { userId } = useAuth();
   const [items, setItems] = useState<CartItem[]>(loadCart);
-  const reconciledAuthenticationRef = useRef(false);
+  const reconciledUserIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -76,13 +76,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      reconciledAuthenticationRef.current = false;
+    if (userId === null) {
+      reconciledUserIdRef.current = null;
       return;
     }
-    if (reconciledAuthenticationRef.current || items.length === 0) return;
+    if (reconciledUserIdRef.current === userId || items.length === 0) return;
 
-    reconciledAuthenticationRef.current = true;
+    reconciledUserIdRef.current = userId;
     const controller = new AbortController();
     const courseIds = items.map((item) => item.id);
 
@@ -95,7 +95,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       .catch(() => {});
 
     return () => controller.abort();
-  }, [isAuthenticated]);
+  }, [userId]);
 
   const isInCart = useCallback(
     (courseId: number) => items.some((item) => item.id === courseId),

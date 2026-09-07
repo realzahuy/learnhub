@@ -7,10 +7,11 @@ import com.zh.learnhub_api.exceptions.ForbiddenException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.repositories.course.CourseRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ public class VideoProgressSseService {
 
     private final CourseRepository courseRepository;
     private final AppProperties.Sse sseProperties;
+    private final ApplicationEventPublisher eventPublisher;
     private final Map<Long, CopyOnWriteArrayList<SseEmitter>> emittersByCourse = new ConcurrentHashMap<>();
     private final Map<Long, Map<Long, VideoProgressEventDTO>> latestByCourse = new ConcurrentHashMap<>();
 
@@ -45,14 +47,10 @@ public class VideoProgressSseService {
         emitter.onTimeout(remove);
         emitter.onError(ignored -> remove.run());
 
-        try {
-            emitter.send(SseEmitter.event().name("connected").data(Map.of("courseId", courseId)));
-            for (VideoProgressEventDTO event :
-                    latestByCourse.getOrDefault(courseId, Map.of()).values()) {
-                send(emitter, event);
-            }
-        } catch (IOException | IllegalStateException ignored) {
-            remove.run();
+        send(courseId, emitter, SseEmitter.event().name("connected").data(Map.of("courseId", courseId)));
+        for (VideoProgressEventDTO event :
+                latestByCourse.getOrDefault(courseId, Map.of()).values()) {
+            sendProgress(courseId, emitter, event);
         }
 
         return emitter;
@@ -69,11 +67,7 @@ public class VideoProgressSseService {
         });
 
         for (SseEmitter emitter : emittersByCourse.getOrDefault(courseId, new CopyOnWriteArrayList<>())) {
-            try {
-                send(emitter, event);
-            } catch (IOException | IllegalStateException ignored) {
-                removeEmitter(courseId, emitter);
-            }
+            sendProgress(courseId, emitter, event);
         }
 
         if (status == VideoStatus.READY || status == VideoStatus.FAILED) {
@@ -83,37 +77,39 @@ public class VideoProgressSseService {
     }
 
     public void publishAfterCommit(Long courseId, Long videoId, VideoStatus status, Integer progress) {
-        Runnable publish = () -> publish(courseId, videoId, status, progress);
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            publish.run();
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                publish.run();
-            }
-        });
+        eventPublisher.publishEvent(new ProgressChanged(courseId, videoId, status, progress));
     }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onProgressChanged(ProgressChanged event) {
+        publish(event.courseId(), event.videoId(), event.status(), event.progress());
+    }
+
+    public record ProgressChanged(Long courseId, Long videoId, VideoStatus status, Integer progress) {}
 
     @Scheduled(fixedRateString = "${app.sse.heartbeat-ms}")
     void heartbeat() {
         emittersByCourse.forEach((courseId, emitters) -> {
             for (SseEmitter emitter : emitters) {
-                try {
-                    emitter.send(SseEmitter.event().comment("keep-alive"));
-                } catch (IOException | IllegalStateException ignored) {
-                    removeEmitter(courseId, emitter);
-                }
+                send(courseId, emitter, SseEmitter.event().comment("keep-alive"));
             }
         });
     }
 
-    private void send(SseEmitter emitter, VideoProgressEventDTO event) throws IOException {
-        emitter.send(SseEmitter.event()
+    private void sendProgress(Long courseId, SseEmitter emitter, VideoProgressEventDTO event) {
+        send(courseId, emitter, SseEmitter.event()
                 .name("video-progress")
                 .id(event.getVideoId() + "-" + event.getProgress())
                 .data(event));
+    }
+
+    private void send(Long courseId, SseEmitter emitter, SseEmitter.SseEventBuilder event) {
+        try {
+            emitter.send(event);
+        } catch (IOException ex) {
+            removeEmitter(courseId, emitter);
+            emitter.completeWithError(ex);
+        }
     }
 
     private void removeEmitter(Long courseId, SseEmitter emitter) {

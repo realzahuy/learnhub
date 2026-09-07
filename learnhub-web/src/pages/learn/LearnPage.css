@@ -133,7 +133,7 @@
 
 .learn-tab-panel {
   min-height: 170px;
-  animation: motion-content-enter var(--motion-normal) var(--motion-ease-out) both;
+  animation: motion-content-enter var(--motion-normal) var(--motion-ease-out);
 }
 
 .learn-tab-panel > .learn-stage-info {

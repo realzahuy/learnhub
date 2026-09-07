@@ -39,7 +39,7 @@ public class Payment {
     private PaymentMethod method;
 
     @Size(max = 255)
-    @Column(name = "transaction_id")
+    @Column(name = "transaction_id", unique = true)
     private String transactionId;
 
     @NotNull

@@ -9,4 +9,3 @@ export {
   formatStatsRange,
   describeDelta,
 } from './statsFormat';
-export type { StatsFilterValue } from './statsFormat';

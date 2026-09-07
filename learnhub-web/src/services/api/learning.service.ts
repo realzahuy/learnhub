@@ -8,6 +8,7 @@ export const learningService = {
   getCourseBySlug: async (slug: string, signal?: AbortSignal): Promise<LearnCourse> => {
     const response = await apiClient.get<LearnCourse>(`/learn/courses/by-slug/${slug}`, {
       signal,
+      showTopProgress: false,
     });
     return response.data;
   },
@@ -18,7 +19,7 @@ export const learningService = {
   ): Promise<RecommendationCard[]> => {
     const response = await apiClient.get<RecommendationCard[]>(
       `/learn/courses/${courseId}/recommendations`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },
@@ -26,6 +27,7 @@ export const learningService = {
   getQuiz: async (lessonId: number, signal?: AbortSignal): Promise<Quiz> => {
     const response = await apiClient.get<Quiz>(`/learn/lessons/${lessonId}/quiz`, {
       signal,
+      showTopProgress: false,
     });
     return response.data;
   },

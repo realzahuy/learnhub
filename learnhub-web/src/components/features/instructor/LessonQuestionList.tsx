@@ -8,7 +8,6 @@ import {
 } from '../../../types/question.types';
 import { questionService } from '../../../services/api/question.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
-import { useDeferredSave } from '../../../hooks/useDeferredSave';
 import { getApiErrorMessage } from '../../../utils';
 
 interface LessonQuestionListProps {
@@ -16,8 +15,9 @@ interface LessonQuestionListProps {
   questions: Question[];
   disabled: boolean;
   isAdding: boolean;
-  onQuestionsChange: (lessonId: number, questions: Question[]) => void;
+  onQuestionsChange: (lessonId: number, updater: (previous: Question[]) => Question[]) => void;
   onAddFinished: () => void;
+  onBusyChange: (busy: boolean) => void;
 }
 
 interface DraftAnswer {
@@ -72,10 +72,21 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
   isAdding,
   onQuestionsChange,
   onAddFinished,
+  onBusyChange,
 }) => {
   const [draft, setDraft] = useState<DraftQuestion | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const operationRef = useRef(false);
+  const ownBusy = saving || savingOrder || deleting;
+
+  useEffect(() => {
+    onBusyChange(ownBusy);
+  }, [onBusyChange, ownBusy]);
+
+  useEffect(() => () => onBusyChange(false), [onBusyChange]);
 
   useEffect(() => {
     if (isAdding && draft === null) {
@@ -93,30 +104,46 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
           lesson.id,
           order.map((question) => ({ id: question.id, position: question.position }))
         );
+        const positions = new Map(saved.map((question) => [question.id, question.position]));
+        onQuestionsChange(lesson.id, (current) => current
+          .map((question) => positions.has(question.id)
+            ? { ...question, position: positions.get(question.id) as number }
+            : question)
+          .sort((first, second) => first.position - second.position));
         rollbackRef.current = null;
-        onQuestionsChange(lesson.id, saved);
       } catch (err) {
         const rollback = rollbackRef.current;
         rollbackRef.current = null;
-        if (rollback) onQuestionsChange(lesson.id, rollback);
+        if (rollback) {
+          const positions = new Map(rollback.map((question) => [question.id, question.position]));
+          onQuestionsChange(lesson.id, (current) => current
+            .map((question) => positions.has(question.id)
+              ? { ...question, position: positions.get(question.id) as number }
+              : question)
+            .sort((first, second) => first.position - second.position));
+        }
         setError(getApiErrorMessage(err, 'Không đổi được thứ tự câu hỏi. Vui lòng thử lại.'));
+      } finally {
+        operationRef.current = false;
+        setSavingOrder(false);
       }
     },
     [lesson.id, onQuestionsChange]
   );
 
-  const scheduleSaveOrder = useDeferredSave(saveOrder);
-
   const applyOrder = useCallback(
     (next: Question[]) => {
-      if (!rollbackRef.current) rollbackRef.current = questions;
+      if (disabled || operationRef.current) return;
+      operationRef.current = true;
+      setSavingOrder(true);
+      rollbackRef.current = questions;
 
       const renumbered = next.map((question, index) => ({ ...question, position: index + 1 }));
       setError(null);
-      onQuestionsChange(lesson.id, renumbered);
-      scheduleSaveOrder(renumbered);
+      onQuestionsChange(lesson.id, () => renumbered);
+      void saveOrder(renumbered);
     },
-    [lesson.id, questions, onQuestionsChange, scheduleSaveOrder]
+    [disabled, lesson.id, questions, onQuestionsChange, saveOrder]
   );
 
   const drag = useDragReorder(questions, applyOrder);
@@ -136,7 +163,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!draft) return;
+    if (!draft || disabled || operationRef.current) return;
 
     const validationError = validateDraft(draft);
     if (validationError) {
@@ -151,45 +178,51 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
         .map((a) => ({ answer: a.answer.trim(), isCorrect: a.isCorrect })),
     };
 
+    operationRef.current = true;
     setSaving(true);
     setError(null);
     try {
       if (draft.id === null) {
         const created = await questionService.create(lesson.id, payload);
-        onQuestionsChange(lesson.id, [...questions, created]);
+        onQuestionsChange(lesson.id, (previous) => [...previous, created]);
         onAddFinished();
       } else {
         const updated = await questionService.update(draft.id, payload);
-        onQuestionsChange(
-          lesson.id,
-          questions.map((q) => (q.id === updated.id ? updated : q))
+        onQuestionsChange(lesson.id, (previous) =>
+          previous.map((question) => (question.id === updated.id ? updated : question))
         );
       }
       setDraft(null);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Không lưu được câu hỏi. Vui lòng thử lại.'));
     } finally {
+      operationRef.current = false;
       setSaving(false);
     }
-  }, [draft, lesson.id, questions, onQuestionsChange, onAddFinished]);
+  }, [disabled, draft, lesson.id, onQuestionsChange, onAddFinished]);
 
   const handleDelete = useCallback(
     async (question: Question) => {
+      if (disabled || operationRef.current) return;
+      operationRef.current = true;
+      setDeleting(true);
       setError(null);
       try {
         await questionService.remove(question.id);
-        onQuestionsChange(
-          lesson.id,
-          questions.filter((q) => q.id !== question.id)
+        onQuestionsChange(lesson.id, (previous) =>
+          previous.filter((current) => current.id !== question.id)
         );
       } catch (err) {
         setError(getApiErrorMessage(err, 'Không xóa được câu hỏi. Vui lòng thử lại.'));
+      } finally {
+        operationRef.current = false;
+        setDeleting(false);
       }
     },
-    [lesson.id, questions, onQuestionsChange]
+    [disabled, lesson.id, onQuestionsChange]
   );
 
-  const busy = disabled || saving;
+  const busy = disabled || ownBusy;
 
   return (
     <div className="lesson-media">
@@ -268,7 +301,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
             value={draft.question}
             onChange={(e) => updateDraft({ question: e.target.value })}
             maxLength={1000}
-            disabled={saving}
+            disabled={busy}
           />
 
           <ul className="question-draft-answers">
@@ -280,7 +313,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                     type="checkbox"
                     checked={answer.isCorrect}
                     onChange={(e) => updateAnswer(index, { isCorrect: e.target.checked })}
-                    disabled={saving}
+                    disabled={busy}
                   />
                 </label>
 
@@ -291,7 +324,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                   value={answer.answer}
                   onChange={(e) => updateAnswer(index, { answer: e.target.value })}
                   maxLength={500}
-                  disabled={saving}
+                  disabled={busy}
                 />
 
                 {draft.answers.length > MIN_ANSWERS && (
@@ -301,7 +334,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                     onClick={() =>
                       updateDraft({ answers: draft.answers.filter((_, i) => i !== index) })
                     }
-                    disabled={saving}
+                    disabled={busy}
                     aria-label={`Xóa đáp án ${index + 1}`}
                   >
                     Xóa
@@ -318,7 +351,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
               onClick={() =>
                 updateDraft({ answers: [...draft.answers, newDraftAnswer()] })
               }
-              disabled={saving || draft.answers.length >= MAX_ANSWERS}
+              disabled={busy || draft.answers.length >= MAX_ANSWERS}
               title={
                 draft.answers.length >= MAX_ANSWERS
                   ? `Tối đa ${MAX_ANSWERS} đáp án`
@@ -339,7 +372,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                   setDraft(null);
                   if (wasCreating) onAddFinished();
                 }}
-                disabled={saving}
+                disabled={busy}
               >
                 Hủy
               </button>
@@ -347,7 +380,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                 type="button"
                 className="btn-lesson-add"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={busy}
               >
                 {saving ? 'Đang lưu...' : 'Lưu câu hỏi'}
               </button>

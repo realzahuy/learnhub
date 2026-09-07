@@ -1,10 +1,9 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Lesson, Video } from '../../../types/lesson.types';
 import { videoService } from '../../../services/api/video.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
 import VideoPreviewModal from './VideoPreviewModal';
 import LessonVideoItem from './LessonVideoItem';
-import { useDeferredSave } from '../../../hooks/useDeferredSave';
 import { useLessonVideoUpload } from '../../../hooks/useLessonVideoUpload';
 import { useToast } from '../../../context/ToastContext';
 import {
@@ -23,6 +22,7 @@ interface LessonVideoListProps {
 
   onVideosChange: (lessonId: number, updater: (prev: Video[]) => Video[]) => void;
   onAddFinished: () => void;
+  onBusyChange: (busy: boolean) => void;
 }
 
 const LessonVideoList: React.FC<LessonVideoListProps> = ({
@@ -33,6 +33,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
   processingProgressByVideoId,
   onVideosChange,
   onAddFinished,
+  onBusyChange,
 }) => {
   const { showToast } = useToast();
   const {
@@ -50,6 +51,17 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
   const [deletingVideoIds, setDeletingVideoIds] = useState<Set<number>>(() => new Set());
 
   const rollbackRef = useRef<Video[] | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [mutating, setMutating] = useState(false);
+  const operationRef = useRef(false);
+  const uploading = pending.length > 0;
+  const ownBusy = uploading || savingOrder || mutating;
+
+  useEffect(() => {
+    onBusyChange(ownBusy);
+  }, [onBusyChange, ownBusy]);
+
+  useEffect(() => () => onBusyChange(false), [onBusyChange]);
 
   const saveOrder = useCallback(
     async (order: Video[]) => {
@@ -58,40 +70,56 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
           lesson.id,
           order.map((video) => ({ id: video.id, position: video.position }))
         );
+        const positions = new Map(saved.map((video) => [video.id, video.position]));
+        onVideosChange(lesson.id, (current) => current
+          .map((video) => positions.has(video.id)
+            ? { ...video, position: positions.get(video.id) as number }
+            : video)
+          .sort((first, second) => first.position - second.position));
         rollbackRef.current = null;
-
-        const shown = new Set(order.map((video) => video.id));
-        onVideosChange(lesson.id, () => saved.filter((video) => shown.has(video.id)));
       } catch (err) {
         const rollback = rollbackRef.current;
         rollbackRef.current = null;
-        if (rollback) onVideosChange(lesson.id, () => rollback);
+        if (rollback) {
+          const positions = new Map(rollback.map((video) => [video.id, video.position]));
+          onVideosChange(lesson.id, (current) => current
+            .map((video) => positions.has(video.id)
+              ? { ...video, position: positions.get(video.id) as number }
+              : video)
+            .sort((first, second) => first.position - second.position));
+        }
         setError(getApiErrorMessage(err, 'Không đổi được thứ tự video. Vui lòng thử lại.'));
+      } finally {
+        operationRef.current = false;
+        setSavingOrder(false);
       }
     },
     [lesson.id, onVideosChange, setError]
   );
 
-  const scheduleSaveOrder = useDeferredSave(saveOrder);
-
   const applyOrder = useCallback(
     (next: Video[]) => {
-      if (!rollbackRef.current) rollbackRef.current = videos;
+      if (disabled || uploading || operationRef.current) return;
+      operationRef.current = true;
+      setSavingOrder(true);
+      rollbackRef.current = videos;
 
       const renumbered = next.map((video, index) => ({ ...video, position: index + 1 }));
       setError(null);
       onVideosChange(lesson.id, () => renumbered);
-      scheduleSaveOrder(renumbered);
+      void saveOrder(renumbered);
     },
-    [lesson.id, videos, onVideosChange, scheduleSaveOrder, setError]
+    [disabled, lesson.id, onVideosChange, saveOrder, setError, uploading, videos]
   );
 
   const drag = useDragReorder(videos, applyOrder);
 
   const handleDelete = useCallback(
     async (video: Video) => {
-      if (deletingVideoIdsRef.current.has(video.id)) return;
+      if (disabled || uploading || operationRef.current || deletingVideoIdsRef.current.has(video.id)) return;
 
+      operationRef.current = true;
+      setMutating(true);
       deletingVideoIdsRef.current.add(video.id);
       setDeletingVideoIds((previous) => new Set(previous).add(video.id));
       setError(null);
@@ -108,6 +136,8 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
           setError(getApiErrorMessage(err, 'Không xóa được video. Vui lòng thử lại.'));
         }
       } finally {
+        operationRef.current = false;
+        setMutating(false);
         deletingVideoIdsRef.current.delete(video.id);
         setDeletingVideoIds((previous) => {
           const next = new Set(previous);
@@ -116,10 +146,13 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
         });
       }
     },
-    [lesson.id, onVideosChange, setError, showToast]
+    [disabled, lesson.id, onVideosChange, setError, showToast, uploading]
   );
 
   const handleRename = useCallback(async (video: Video, title: string): Promise<boolean> => {
+    if (disabled || uploading || operationRef.current) return false;
+    operationRef.current = true;
+    setMutating(true);
     setError(null);
     try {
       const updated = await videoService.updateTitle(video.id, title);
@@ -128,11 +161,13 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
     } catch (err) {
       setError(getApiErrorMessage(err, 'Không đổi được tên video. Vui lòng thử lại.'));
       return false;
+    } finally {
+      operationRef.current = false;
+      setMutating(false);
     }
-  }, [lesson.id, onVideosChange, setError]);
+  }, [disabled, lesson.id, onVideosChange, setError, uploading]);
 
-  const uploading = pending.length > 0;
-  const canPick = isAdding && !disabled && !uploading && newTitle.trim() !== '';
+  const canPick = isAdding && !disabled && !ownBusy && newTitle.trim() !== '';
 
   const handleVideoFileChange = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,7 +191,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
               key={video.id}
               video={video}
               processingProgress={processingProgressByVideoId[video.id] ?? 0}
-              disabled={disabled}
+              disabled={disabled || ownBusy}
               deleting={deletingVideoIds.has(video.id)}
               isDragging={drag.isDragging(video.id)}
               isDropTarget={drag.isDropTarget(video.id)}
@@ -211,7 +246,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
                 }
               }}
               maxLength={255}
-              disabled={disabled || uploading}
+              disabled={disabled || ownBusy}
               aria-label={`Tên video của bài giảng ${lesson.title}`}
               autoFocus
             />
@@ -235,7 +270,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
                 setError(null);
                 onAddFinished();
               }}
-              disabled={disabled || uploading}
+              disabled={disabled || ownBusy}
             >
               Hủy
             </button>
@@ -249,6 +284,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
         className="d-none"
         accept={ALLOWED_VIDEO_EXTENSIONS.join(',')}
         onChange={handleVideoFileChange}
+        disabled={disabled || ownBusy}
       />
 
       {previewVideo && (
@@ -267,7 +303,8 @@ const areLessonVideoListPropsEqual = (
       || previous.disabled !== next.disabled
       || previous.isAdding !== next.isAdding
       || previous.onVideosChange !== next.onVideosChange
-      || previous.onAddFinished !== next.onAddFinished) {
+      || previous.onAddFinished !== next.onAddFinished
+      || previous.onBusyChange !== next.onBusyChange) {
     return false;
   }
 

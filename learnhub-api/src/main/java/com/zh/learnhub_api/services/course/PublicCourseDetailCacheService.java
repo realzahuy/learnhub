@@ -48,7 +48,7 @@ public class PublicCourseDetailCacheService {
     private List<PublicLessonDTO> getPublicLessons(Long courseId) {
         Map<Long, List<Video>> videosByLesson = videoRepository.findPublicByCourseId(courseId).stream()
                 .collect(Collectors.groupingBy(
-                        video -> video.getLesson().getId(), LinkedHashMap::new, Collectors.toList()));
+                        video -> video.getLessonId().getId(), LinkedHashMap::new, Collectors.toList()));
 
         Map<Long, Integer> questionCountByLesson = questionRepository.countByCourseGroupedByLesson(courseId).stream()
                 .collect(Collectors.toMap(

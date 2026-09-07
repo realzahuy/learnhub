@@ -28,6 +28,7 @@ export const apiClient = axios.create({
 
 type RetryableRequest = InternalAxiosRequestConfig & {
   _retry?: boolean;
+  _authGeneration?: number;
   _finishLoading?: () => void;
 };
 
@@ -135,6 +136,10 @@ export const authenticatedFetch = async (
 apiClient.interceptors.request.use(
   (config) => {
     const request = config as RetryableRequest;
+    request._authGeneration ??= getAuthGeneration();
+    if (request._authGeneration !== getAuthGeneration()) {
+      return Promise.reject(new axios.CanceledError('Phiên đăng nhập đã thay đổi', config));
+    }
     if (request.method?.toLowerCase() === 'get' && request.showTopProgress !== false) {
       request._finishLoading = beginNetworkActivity();
     }
@@ -169,17 +174,22 @@ apiClient.interceptors.response.use(
       error.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
+      originalRequest._authGeneration === getAuthGeneration() &&
       !isAuthRequest
     ) {
       originalRequest._retry = true;
 
       try {
         const newAccessToken = await refreshAccessToken();
+        if (originalRequest._authGeneration !== getAuthGeneration()) {
+          return Promise.reject(error);
+        }
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
         if (
-          isRefreshSessionRejected(refreshError)
+          originalRequest._authGeneration === getAuthGeneration()
+          && isRefreshSessionRejected(refreshError)
           && !isAccountLockedError(refreshError)
         ) {
           clearSessionAndRedirect();

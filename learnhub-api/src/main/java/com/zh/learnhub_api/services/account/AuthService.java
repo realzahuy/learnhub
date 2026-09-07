@@ -132,7 +132,7 @@ public class AuthService {
     }
 
     public int logoutOtherDevices(Long userId, Long currentSessionId) {
-        if (!sessionRepository.existsByIdAndUser_Id(currentSessionId, userId)) {
+        if (!sessionRepository.existsByIdAndUserId_Id(currentSessionId, userId)) {
             throw new InvalidCredentialsException("Phiên đăng nhập không còn hiệu lực");
         }
         return sessionRepository.deleteOtherSessions(userId, currentSessionId);

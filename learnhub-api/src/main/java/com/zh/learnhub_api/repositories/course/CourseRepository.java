@@ -48,19 +48,6 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
            "LEFT JOIN c.instructorId i " +
            "LEFT JOIN c.categoryId cat ";
 
-    String RATED_LIST_PROJECTION = "SELECT c.id as courseId, c.title as title, c.slug as slug, " +
-           "c.shortDescription as shortDescription, " +
-           "c.thumbnail as thumbnail, c.price as price, c.status as status, " +
-           "c.createdAt as createdAt, c.updatedAt as updatedAt, " +
-           "i.id as instructorId, i.fullName as instructorName, " +
-           "cat.id as categoryId, cat.name as categoryName, " +
-           "ROUND(COALESCE(AVG(cr.rating), 0.0), 1) as averageRating, " +
-           "COUNT(cr.id) as reviewCount " +
-           "FROM Course c " +
-           "LEFT JOIN c.instructorId i " +
-           "LEFT JOIN c.categoryId cat " +
-           "LEFT JOIN CourseReview cr ON cr.courseId = c ";
-
     @Query(value = DETAIL_PROJECTION + """
             WHERE (:instructorId IS NULL OR c.instructorId.id = :instructorId)
             AND (:status IS NULL OR c.status = :status)
@@ -76,6 +63,27 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
             AND (:keyword IS NULL OR c.title LIKE CONCAT('%', :keyword, '%'))
             """)
     Page<CourseDetailProjection> findFilteredCourseDetails(
+            @Param("instructorId") Long instructorId,
+            @Param("status") CourseStatus status,
+            @Param("categoryName") String categoryName,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
+    @Query(value = LIST_PROJECTION + """
+            WHERE (:instructorId IS NULL OR c.instructorId.id = :instructorId)
+            AND (:status IS NULL OR c.status = :status)
+            AND (:categoryName IS NULL OR cat.name = :categoryName)
+            AND (:keyword IS NULL OR c.title LIKE CONCAT('%', :keyword, '%'))
+            """,
+           countQuery = """
+            SELECT COUNT(c) FROM Course c
+            LEFT JOIN c.categoryId cat
+            WHERE (:instructorId IS NULL OR c.instructorId.id = :instructorId)
+            AND (:status IS NULL OR c.status = :status)
+            AND (:categoryName IS NULL OR cat.name = :categoryName)
+            AND (:keyword IS NULL OR c.title LIKE CONCAT('%', :keyword, '%'))
+            """)
+    Page<CourseListProjection> findFilteredCourses(
             @Param("instructorId") Long instructorId,
             @Param("status") CourseStatus status,
             @Param("categoryName") String categoryName,
@@ -103,7 +111,44 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
             @Param("keyword") String keyword,
             Pageable pageable);
 
-    @Query(value = RATED_LIST_PROJECTION + """
+    @Query(value = """
+            SELECT c.id AS courseId, c.title AS title, c.slug AS slug,
+                   c.short_description AS shortDescription,
+                   c.thumbnail AS thumbnail, c.price AS price, c.status AS status,
+                   c.created_at AS createdAt, c.updated_at AS updatedAt,
+                   i.id AS instructorId, i.full_name AS instructorName,
+                   cat.id AS categoryId, cat.name AS categoryName,
+                   ROUND(COALESCE(r.average_rating, 0.0), 1) AS averageRating,
+                   COALESCE(r.review_count, 0) AS reviewCount
+            FROM course c
+            LEFT JOIN user i ON i.id = c.instructor_id
+            LEFT JOIN category cat ON cat.id = c.category_id
+            LEFT JOIN (
+                SELECT course_id, AVG(rating) AS average_rating, COUNT(id) AS review_count
+                FROM course_review
+                GROUP BY course_id
+            ) r ON r.course_id = c.id
+            WHERE c.status = 'PUBLISHED'
+            ORDER BY COALESCE(r.average_rating, 0.0) DESC,
+                     COALESCE(r.review_count, 0) DESC, c.created_at DESC, c.id DESC
+            """,
+           countQuery = "SELECT COUNT(*) FROM course WHERE status = 'PUBLISHED'",
+           nativeQuery = true)
+    Page<RatedCourseListProjection> findAllPublishedCoursesOrderByRating(Pageable pageable);
+
+    @Query(value = """
+            SELECT c.id AS courseId, c.title AS title, c.slug AS slug,
+                   c.shortDescription AS shortDescription,
+                   c.thumbnail AS thumbnail, c.price AS price, c.status AS status,
+                   c.createdAt AS createdAt, c.updatedAt AS updatedAt,
+                   i.id AS instructorId, i.fullName AS instructorName,
+                   cat.id AS categoryId, cat.name AS categoryName,
+                   ROUND(COALESCE(AVG(cr.rating), 0.0), 1) AS averageRating,
+                   COUNT(cr.id) AS reviewCount
+            FROM Course c
+            LEFT JOIN c.instructorId i
+            LEFT JOIN c.categoryId cat
+            LEFT JOIN CourseReview cr ON cr.courseId = c
             WHERE c.status = com.zh.learnhub_api.enums.CourseStatus.PUBLISHED
             AND (:categoryName IS NULL OR cat.name = :categoryName)
             AND (:keyword IS NULL
@@ -158,6 +203,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
             SELECT c.id AS courseId, c.price AS price
             FROM Course c
             WHERE c.id IN :courseIds
+            AND c.status = com.zh.learnhub_api.enums.CourseStatus.PUBLISHED
             AND NOT EXISTS (
                 SELECT e.id
                 FROM Enrollment e
@@ -176,7 +222,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query(value = LIST_PROJECTION
                  + "WHERE c.instructorId.id = :instructorId "
                  + "AND c.status = com.zh.learnhub_api.enums.CourseStatus.PUBLISHED "
-                 + "ORDER BY c.createdAt DESC",
+                 + "ORDER BY c.createdAt DESC, c.id DESC",
            countQuery = "SELECT COUNT(c) FROM Course c "
                  + "WHERE c.instructorId.id = :instructorId "
                  + "AND c.status = com.zh.learnhub_api.enums.CourseStatus.PUBLISHED")

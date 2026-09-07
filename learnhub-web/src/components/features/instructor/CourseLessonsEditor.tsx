@@ -1,11 +1,10 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ConfirmDialog } from '../../common';
 import LessonRow from './LessonRow';
 import { Lesson, Video } from '../../../types/lesson.types';
 import { Question } from '../../../types/question.types';
 import { lessonService } from '../../../services/api/lesson.service';
 import { useDragReorder } from '../../../hooks/useDragReorder';
-import { useDeferredSave } from '../../../hooks/useDeferredSave';
 import { getApiErrorMessage } from '../../../utils';
 import './CourseLessonsEditor.css';
 
@@ -20,16 +19,19 @@ interface CourseLessonsEditorProps {
   onLessonAdd: (lesson: Lesson) => void;
   onLessonUpdate: (lesson: Lesson) => void;
 
-  onLessonsReorder: (lessons: Lesson[]) => void;
+  onLessonsReorder: React.Dispatch<React.SetStateAction<Lesson[]>>;
   onLessonRemove: (lessonId: number) => void;
   onVideosChange: (lessonId: number, updater: (prev: Video[]) => Video[]) => void;
-  onQuestionsChange: (lessonId: number, questions: Question[]) => void;
+  onQuestionsChange: (lessonId: number, updater: (previous: Question[]) => Question[]) => void;
+  onBusyChange: (busy: boolean) => void;
 }
 
 interface NewLessonFormProps {
   courseId: number;
   onLessonAdd: (lesson: Lesson) => void;
   onError: React.Dispatch<React.SetStateAction<string | null>>;
+  disabled: boolean;
+  onBusyChange: (busy: boolean) => void;
 }
 
 const EMPTY_VIDEOS: Video[] = [];
@@ -39,18 +41,29 @@ const NewLessonForm = React.memo(({
   courseId,
   onLessonAdd,
   onError,
+  disabled,
+  onBusyChange,
 }: NewLessonFormProps) => {
   const [newTitle, setNewTitle] = useState('');
   const [newIsPreview, setNewIsPreview] = useState(false);
   const [adding, setAdding] = useState(false);
+  const addingRef = useRef(false);
+
+  useEffect(() => {
+    onBusyChange(adding);
+  }, [adding, onBusyChange]);
+
+  useEffect(() => () => onBusyChange(false), [onBusyChange]);
 
   const handleAdd = useCallback(async () => {
+    if (disabled || addingRef.current) return;
     const title = newTitle.trim();
     if (!title) {
       onError('Vui lòng nhập tên bài giảng');
       return;
     }
 
+    addingRef.current = true;
     setAdding(true);
     onError(null);
     try {
@@ -61,9 +74,10 @@ const NewLessonForm = React.memo(({
     } catch (err) {
       onError(getApiErrorMessage(err, 'Không thêm được bài giảng. Vui lòng thử lại.'));
     } finally {
+      addingRef.current = false;
       setAdding(false);
     }
-  }, [courseId, newIsPreview, newTitle, onError, onLessonAdd]);
+  }, [courseId, disabled, newIsPreview, newTitle, onError, onLessonAdd]);
 
   return (
     <div className="lessons-add">
@@ -88,7 +102,7 @@ const NewLessonForm = React.memo(({
             }
           }}
           maxLength={255}
-          disabled={adding}
+          disabled={disabled || adding}
         />
       </div>
 
@@ -100,7 +114,7 @@ const NewLessonForm = React.memo(({
               type="checkbox"
               checked={newIsPreview}
               onChange={(event) => setNewIsPreview(event.target.checked)}
-              disabled={adding}
+              disabled={disabled || adding}
             />
             Cho xem thử video của bài này
           </label>
@@ -110,7 +124,7 @@ const NewLessonForm = React.memo(({
           type="button"
           className="btn-lesson-add lessons-add-submit"
           onClick={() => void handleAdd()}
-          disabled={adding || newTitle.trim() === ''}
+          disabled={disabled || adding || newTitle.trim() === ''}
           title={newTitle.trim() === '' ? 'Nhập tên bài giảng trước đã' : undefined}
         >
           <i className="bi bi-plus-lg"></i>
@@ -133,14 +147,40 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
   onLessonRemove,
   onVideosChange,
   onQuestionsChange,
+  onBusyChange,
 }) => {
   const [error, setError] = useState<string | null>(null);
 
   const [pendingDelete, setPendingDelete] = useState<Lesson | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [addingLesson, setAddingLesson] = useState(false);
+  const [savingLesson, setSavingLesson] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [busyLessonIds, setBusyLessonIds] = useState<Set<number>>(() => new Set());
+  const lessonOperationRef = useRef(false);
+  const orderOperationRef = useRef(false);
+  const editorBusy = addingLesson || savingLesson || savingOrder || deleting || busyLessonIds.size > 0;
+
+  useEffect(() => {
+    onBusyChange(editorBusy);
+  }, [editorBusy, onBusyChange]);
+
+  useEffect(() => () => onBusyChange(false), [onBusyChange]);
+
+  const handleLessonBusyChange = useCallback((lessonId: number, busy: boolean) => {
+    setBusyLessonIds((previous) => {
+      const next = new Set(previous);
+      if (busy) next.add(lessonId);
+      else next.delete(lessonId);
+      return next;
+    });
+  }, []);
 
   const handleRename = useCallback(
     async (lesson: Lesson, title: string): Promise<boolean> => {
+      if (editorBusy || lessonOperationRef.current) return false;
+      lessonOperationRef.current = true;
+      setSavingLesson(true);
       setError(null);
       try {
         const updated = await lessonService.update(courseId, lesson.id, {
@@ -153,13 +193,19 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
       } catch (err) {
         setError(getApiErrorMessage(err, 'Không đổi được tên bài giảng. Vui lòng thử lại.'));
         return false;
+      } finally {
+        lessonOperationRef.current = false;
+        setSavingLesson(false);
       }
     },
-    [courseId, onLessonUpdate]
+    [courseId, editorBusy, onLessonUpdate]
   );
 
   const handleTogglePreview = useCallback(
     async (lesson: Lesson): Promise<boolean> => {
+      if (editorBusy || lessonOperationRef.current) return false;
+      lessonOperationRef.current = true;
+      setSavingLesson(true);
       setError(null);
       try {
         const updated = await lessonService.update(courseId, lesson.id, {
@@ -172,9 +218,12 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
       } catch (err) {
         setError(getApiErrorMessage(err, 'Không đổi được chế độ xem thử. Vui lòng thử lại.'));
         return false;
+      } finally {
+        lessonOperationRef.current = false;
+        setSavingLesson(false);
       }
     },
-    [courseId, onLessonUpdate]
+    [courseId, editorBusy, onLessonUpdate]
   );
 
   const rollbackRef = useRef<Lesson[] | null>(null);
@@ -186,36 +235,54 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
           courseId,
           order.map((lesson) => ({ id: lesson.id, position: lesson.position }))
         );
+        const positions = new Map(saved.map((lesson) => [lesson.id, lesson.position]));
+        onLessonsReorder((current) => current
+          .map((lesson) => positions.has(lesson.id)
+            ? { ...lesson, position: positions.get(lesson.id) as number }
+            : lesson)
+          .sort((first, second) => first.position - second.position));
         rollbackRef.current = null;
-        onLessonsReorder(saved);
       } catch (err) {
-        if (rollbackRef.current) onLessonsReorder(rollbackRef.current);
+        const rollback = rollbackRef.current;
+        if (rollback) {
+          const positions = new Map(rollback.map((lesson) => [lesson.id, lesson.position]));
+          onLessonsReorder((current) => current
+            .map((lesson) => positions.has(lesson.id)
+              ? { ...lesson, position: positions.get(lesson.id) as number }
+              : lesson)
+            .sort((first, second) => first.position - second.position));
+        }
         rollbackRef.current = null;
         setError(getApiErrorMessage(err, 'Không đổi được thứ tự bài giảng. Vui lòng thử lại.'));
+      } finally {
+        orderOperationRef.current = false;
+        setSavingOrder(false);
       }
     },
     [courseId, onLessonsReorder]
   );
 
-  const scheduleSaveOrder = useDeferredSave(saveOrder);
-
   const applyOrder = useCallback(
     (next: Lesson[]) => {
-      if (!rollbackRef.current) rollbackRef.current = lessons;
+      if (editorBusy || orderOperationRef.current) return;
+      orderOperationRef.current = true;
+      setSavingOrder(true);
+      rollbackRef.current = lessons;
 
       const renumbered = next.map((lesson, index) => ({ ...lesson, position: index + 1 }));
       setError(null);
       onLessonsReorder(renumbered);
-      scheduleSaveOrder(renumbered);
+      void saveOrder(renumbered);
     },
-    [lessons, onLessonsReorder, scheduleSaveOrder]
+    [editorBusy, lessons, onLessonsReorder, saveOrder]
   );
 
   const drag = useDragReorder(lessons, applyOrder);
 
   const handleDelete = useCallback(async () => {
-    if (!pendingDelete || deleting) return;
+    if (!pendingDelete || editorBusy || lessonOperationRef.current) return;
 
+    lessonOperationRef.current = true;
     setDeleting(true);
     setError(null);
     try {
@@ -225,9 +292,10 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
     } catch (err) {
       setError(getApiErrorMessage(err, 'Không xóa được bài giảng. Vui lòng thử lại.'));
     } finally {
+      lessonOperationRef.current = false;
       setDeleting(false);
     }
-  }, [courseId, pendingDelete, deleting, onLessonRemove]);
+  }, [courseId, pendingDelete, editorBusy, onLessonRemove]);
 
   return (
     <div className="lessons-editor">
@@ -240,7 +308,13 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <NewLessonForm courseId={courseId} onLessonAdd={onLessonAdd} onError={setError} />
+      <NewLessonForm
+        courseId={courseId}
+        onLessonAdd={onLessonAdd}
+        onError={setError}
+        disabled={editorBusy}
+        onBusyChange={setAddingLesson}
+      />
 
       {lessons.length === 0 ? (
         <p className="lessons-empty">
@@ -257,12 +331,11 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
             return (
               <LessonRow
                 key={lesson.id}
-                courseId={courseId}
                 lesson={lesson}
                 videos={lessonVideos}
                 processingProgressByVideoId={lessonProgress}
                 questions={questions[lesson.id] ?? EMPTY_QUESTIONS}
-                disabled={deleting}
+                disabled={editorBusy}
                 isDragging={drag.isDragging(lesson.id)}
                 isDropTarget={drag.isDropTarget(lesson.id)}
                 getDragItemProps={drag.itemProps}
@@ -272,6 +345,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
                 onVideosChange={onVideosChange}
                 onQuestionsChange={onQuestionsChange}
                 onDelete={setPendingDelete}
+                onBusyChange={handleLessonBusyChange}
               />
             );
           })}
@@ -285,6 +359,7 @@ const CourseLessonsEditor: React.FC<CourseLessonsEditorProps> = ({
         confirmLabel={deleting ? 'Đang xóa...' : 'Xóa bài giảng'}
         cancelLabel="Giữ lại"
         variant="danger"
+        pending={deleting}
         onConfirm={handleDelete}
         onCancel={() => {
           if (!deleting) setPendingDelete(null);

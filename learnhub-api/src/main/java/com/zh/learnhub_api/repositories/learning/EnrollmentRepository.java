@@ -55,11 +55,23 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     @Query("SELECT COUNT(DISTINCT e.userId.id) FROM Enrollment e " + "WHERE e.courseId.instructorId.id = :instructorId")
     long countDistinctStudents(@Param("instructorId") Long instructorId);
 
-    @Query("SELECT COUNT(e) FROM Enrollment e "
-            + "WHERE e.courseId.instructorId.id = :instructorId "
-            + "AND e.enrolledAt >= :from AND e.enrolledAt < :to")
-    long countEnrollmentsBetween(
-            @Param("instructorId") Long instructorId, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+    @Query("""
+            SELECT COALESCE(SUM(CASE WHEN e.enrolledAt >= :currentFrom THEN 1 ELSE 0 END), 0) AS currentCount,
+                   COALESCE(SUM(CASE WHEN e.enrolledAt < :currentFrom THEN 1 ELSE 0 END), 0) AS previousCount
+            FROM Enrollment e
+            WHERE e.courseId.instructorId.id = :instructorId
+            AND e.enrolledAt >= :previousFrom AND e.enrolledAt < :to
+            """)
+    EnrollmentPeriodsProjection countEnrollmentPeriods(
+            @Param("instructorId") Long instructorId,
+            @Param("previousFrom") LocalDateTime previousFrom,
+            @Param("currentFrom") LocalDateTime currentFrom,
+            @Param("to") LocalDateTime to);
+
+    interface EnrollmentPeriodsProjection {
+        Long getCurrentCount();
+        Long getPreviousCount();
+    }
 
     @Query(
             value = "SELECT CASE "

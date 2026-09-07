@@ -21,7 +21,7 @@ public class UserSession {
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private User userId;
 
     @Column(name = "refresh_token_hash", nullable = false, length = 64, unique = true)
     private String refreshTokenHash;
@@ -30,7 +30,7 @@ public class UserSession {
     private LocalDateTime expiresAt;
 
     public UserSession(User user, String refreshTokenHash, LocalDateTime expiresAt) {
-        this.user = user;
+        this.userId = user;
         this.refreshTokenHash = refreshTokenHash;
         this.expiresAt = expiresAt;
     }

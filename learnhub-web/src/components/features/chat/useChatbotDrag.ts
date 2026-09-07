@@ -78,25 +78,58 @@ export const useChatbotDrag = (isOpen: boolean) => {
   };
 
   useEffect(() => {
-    if (!isOpen) return;
-    const frame = window.requestAnimationFrame(() => {
-      const widget = widgetRef.current;
-      const panel = panelRef.current;
-      if (!widget || !panel) return;
-      const rect = widget.getBoundingClientRect();
-      const layout = calculateChatbotPanelLayout({
-        buttonLeft: rect.left,
-        buttonTop: rect.top,
-        buttonWidth: rect.width,
-        buttonHeight: rect.height,
-        panelWidth: panel.offsetWidth,
-        panelHeight: panel.offsetHeight,
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
+    let frame: number | undefined;
+
+    const syncToViewport = () => {
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        frame = undefined;
+        const widget = widgetRef.current;
+        if (!widget) return;
+
+        const rect = widget.getBoundingClientRect();
+        const buttonLeft = Math.min(
+          Math.max(rect.left, 8),
+          Math.max(8, window.innerWidth - rect.width - 8)
+        );
+        const buttonTop = Math.min(
+          Math.max(rect.top, 8),
+          Math.max(8, window.innerHeight - rect.height - 8)
+        );
+        const correctionX = buttonLeft - rect.left;
+        const correctionY = buttonTop - rect.top;
+
+        if (correctionX !== 0 || correctionY !== 0) {
+          const next = {
+            x: positionRef.current.x + correctionX,
+            y: positionRef.current.y + correctionY,
+          };
+          positionRef.current = next;
+          setDragPosition(next);
+          localStorage.setItem(POSITION_KEY, JSON.stringify(next));
+        }
+
+        const panel = panelRef.current;
+        if (!isOpen || !panel) return;
+        setPanelLayout(calculateChatbotPanelLayout({
+          buttonLeft,
+          buttonTop,
+          buttonWidth: rect.width,
+          buttonHeight: rect.height,
+          panelWidth: panel.offsetWidth,
+          panelHeight: panel.offsetHeight,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        }));
       });
-      setPanelLayout(layout);
-    });
-    return () => window.cancelAnimationFrame(frame);
+    };
+
+    syncToViewport();
+    window.addEventListener('resize', syncToViewport);
+    return () => {
+      window.removeEventListener('resize', syncToViewport);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+    };
   }, [isOpen]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {

@@ -80,17 +80,8 @@ public class QdrantCourseVectorStore implements CourseVectorStore {
 
     @Override
     public List<CourseVectorStore.Match> findSimilar(Long courseId, int limit, Set<Long> excludedCourseIds, double scoreThreshold) {
-        return querySimilar(courseId, limit, excludedCourseIds, scoreThreshold);
-    }
-
-    @Override
-    public List<CourseVectorStore.Match> findSimilar(List<Float> queryVector, int limit, Set<Long> excludedCourseIds, double scoreThreshold) {
-        return querySimilar(queryVector, limit, excludedCourseIds, scoreThreshold);
-    }
-
-    private List<CourseVectorStore.Match> querySimilar(Object query, int limit, Set<Long> excludedCourseIds, double scoreThreshold) {
         Map<String, Object> body = new HashMap<>();
-        body.put("query", query);
+        body.put("query", courseId);
         body.put("limit", limit);
         body.put("with_payload", List.of("slug", "title", "thumbnail", "price"));
         body.put("with_vector", false);
@@ -105,11 +96,46 @@ public class QdrantCourseVectorStore implements CourseVectorStore {
                 .body(body)
                 .retrieve()
                 .body(Map.class);
-        return parseMatches(response);
+        return parseMatches((Map<?, ?>) response.get("result"));
     }
 
-    private List<CourseVectorStore.Match> parseMatches(Map<?, ?> response) {
-        Map<?, ?> result = (Map<?, ?>) response.get("result");
+    @Override
+    public List<List<CourseVectorStore.Match>> findSimilarBatch(
+            List<List<Float>> queryVectors,
+            int limit,
+            Set<Long> excludedCourseIds,
+            double scoreThreshold) {
+        List<Map<String, Object>> searches = new ArrayList<>(queryVectors.size());
+        for (List<Float> queryVector : queryVectors) {
+            Map<String, Object> search = new HashMap<>();
+            search.put("query", queryVector);
+            search.put("limit", limit);
+            search.put("with_payload", List.of("slug", "title", "thumbnail", "price"));
+            search.put("with_vector", false);
+            search.put("score_threshold", scoreThreshold);
+            if (!excludedCourseIds.isEmpty()) {
+                search.put("filter", Map.of(
+                        "must_not",
+                        List.of(Map.of("has_id", List.copyOf(excludedCourseIds)))));
+            }
+            searches.add(search);
+        }
+
+        Map<?, ?> response = restClient.post()
+                .uri("/collections/{collection}/points/query/batch", collection)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("searches", searches))
+                .retrieve()
+                .body(Map.class);
+        List<?> results = (List<?>) response.get("result");
+        List<List<CourseVectorStore.Match>> matches = new ArrayList<>(results.size());
+        for (Object resultValue : results) {
+            matches.add(parseMatches((Map<?, ?>) resultValue));
+        }
+        return List.copyOf(matches);
+    }
+
+    private List<CourseVectorStore.Match> parseMatches(Map<?, ?> result) {
         List<?> points = (List<?>) result.get("points");
         List<CourseVectorStore.Match> matches = new ArrayList<>(points.size());
         for (Object pointValue : points) {

@@ -61,15 +61,3 @@ export const describeDelta = (current: number, previous: number): StatsDelta | n
   if (percent === 0) return null;
   return { text: `${percent > 0 ? '+' : ''}${percent}%`, up: percent > 0 };
 };
-
-export type StatsView = 'chart' | 'table';
-
-export interface StatsFilterValue<M extends string> {
-  groupBy: StatsGranularity;
-
-  from: string;
-  to: string;
-
-  metric: M | '';
-  view: StatsView;
-}

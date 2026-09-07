@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import AdminCourseDialogs from './AdminCourseDialogs';
 import AdminCourseTable from './AdminCourseTable';
 import { Dropdown, DropdownOption, Pagination, LoadingScreen } from '../../components/common';
@@ -8,11 +9,12 @@ import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigg
 import { useCategories } from '../../hooks/useCategories';
 import { usePagedSearchParams } from '../../hooks/usePagedSearchParams';
 import { adminService } from '../../services/api/admin.service';
+import { queryKeys } from '../../query/queryKeys';
+import { queryClient } from '../../query/queryClient';
 import {
   InstructorCourse,
   COURSE_STATUS_LABELS,
 } from '../../types/course.types';
-import { PageResponse } from '../../types/pagination.types';
 import { getApiErrorMessage } from '../../utils';
 import { shouldRefreshAdminCourseList } from '../../utils/courseRealtime';
 import './AdminCoursesPage.css';
@@ -39,10 +41,6 @@ const AdminCoursesPage: React.FC = () => {
   const statusFilter = searchParams.get('status') || 'PENDING';
   const categoryFilter = searchParams.get('category') || '';
 
-  const [pageData, setPageData] = useState<PageResponse<InstructorCourse> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const { categories } = useCategories();
 
   const categoryOptions = useMemo<DropdownOption[]>(
@@ -64,11 +62,33 @@ const AdminCoursesPage: React.FC = () => {
   const { refreshVersion, scheduleRefresh } = useCoalescedRefreshTrigger();
   const filtersRef = useRef({ status: statusFilter, category: categoryFilter, search: searchQuery });
   const seenReconnectVersion = useRef(realtimeReconnectVersion);
+  const seenRefreshVersion = useRef(refreshVersion);
   filtersRef.current = { status: statusFilter, category: categoryFilter, search: searchQuery };
 
+  const courseFilters = {
+    page: currentPage,
+    status: statusFilter,
+    category: categoryFilter || undefined,
+    search: searchQuery || undefined,
+  };
+  const courseQuery = useQuery({
+    queryKey: queryKeys.adminCourses.list(courseFilters),
+    queryFn: ({ signal }) => adminService.listCourses(courseFilters, signal),
+    placeholderData: keepPreviousData,
+  });
+  const pageData = courseQuery.data ?? null;
+  const loading = courseQuery.isFetching;
+  const error = courseQuery.error
+    ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
+    : null;
+
   useEffect(() => {
-    if (lastCourseStatusEvent
-        && shouldRefreshAdminCourseList(lastCourseStatusEvent, filtersRef.current)) {
+    if (!lastCourseStatusEvent) return;
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.adminCourses.all,
+      refetchType: 'none',
+    });
+    if (shouldRefreshAdminCourseList(lastCourseStatusEvent, filtersRef.current)) {
       scheduleRefresh();
     }
   }, [lastCourseStatusEvent, scheduleRefresh]);
@@ -76,44 +96,18 @@ const AdminCoursesPage: React.FC = () => {
   useEffect(() => {
     if (realtimeReconnectVersion === seenReconnectVersion.current) return;
     seenReconnectVersion.current = realtimeReconnectVersion;
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.adminCourses.all,
+      refetchType: 'none',
+    });
     scheduleRefresh();
   }, [realtimeReconnectVersion, scheduleRefresh]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await adminService.listCourses(
-          {
-            status: statusFilter,
-            category: categoryFilter || undefined,
-            search: searchQuery || undefined,
-            page: currentPage,
-          },
-          controller.signal
-        );
-        if (!controller.signal.aborted) setPageData(data);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    };
-
-    fetchCourses();
-    return () => {
-      controller.abort();
-    };
-  }, [
-    statusFilter,
-    categoryFilter,
-    searchQuery,
-    currentPage,
-    refreshVersion,
-  ]);
+    if (seenRefreshVersion.current === refreshVersion) return;
+    seenRefreshVersion.current = refreshVersion;
+    void courseQuery.refetch();
+  }, [courseQuery.refetch, refreshVersion]);
 
   const handleApprove = useCallback(
     async (course: InstructorCourse) => {
@@ -122,15 +116,20 @@ const AdminCoursesPage: React.FC = () => {
         await adminService.approveCourse(course.id);
         showToast('Đã duyệt khóa học', 'success');
         setDetailCourse(null);
-
-        scheduleRefresh();
+        void Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.adminCourses.all }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.instructorCourses.all }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.courseDetails.all }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.publishedCourses.all }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.publicInstructors.all }),
+        ]);
       } catch (err) {
         showToast(getApiErrorMessage(err, 'Không thể duyệt khóa học. Vui lòng thử lại.'), 'error');
       } finally {
         setProcessingId(null);
       }
     },
-    [scheduleRefresh, showToast]
+    [showToast]
   );
 
   const openReject = useCallback((course: InstructorCourse) => {
@@ -153,13 +152,19 @@ const AdminCoursesPage: React.FC = () => {
       showToast('Đã từ chối khóa học', 'success');
       setRejectingCourse(null);
       setDetailCourse(null);
-      scheduleRefresh();
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.adminCourses.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.instructorCourses.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.courseDetails.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.publishedCourses.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.publicInstructors.all }),
+      ]);
     } catch (err) {
       setRejectError(getApiErrorMessage(err, 'Không thể từ chối khóa học. Vui lòng thử lại.'));
     } finally {
       setProcessingId(null);
     }
-  }, [rejectingCourse, rejectComment, scheduleRefresh, showToast]);
+  }, [rejectingCourse, rejectComment, showToast]);
 
   const courses = pageData?.content ?? [];
 

@@ -4,6 +4,7 @@ import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.dtos.common.PositionReorderRequestDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
+import com.zh.learnhub_api.mappers.VideoMapper;
 import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.pojo.Lesson;
 import com.zh.learnhub_api.pojo.Video;
@@ -34,8 +35,8 @@ public class VideoManagementService {
     public VideoResponseDTO getVideo(Long videoId, Long instructorId) {
         Video video = videoRepository.findByIdWithLessonAndCourse(videoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
-        courseEditPolicy.requireOwner(video.getLesson().getCourseId(), instructorId);
-        return toResponse(video);
+        courseEditPolicy.requireOwner(video.getLessonId().getCourseId(), instructorId);
+        return VideoMapper.toDTO(video);
     }
 
     @Transactional(readOnly = true)
@@ -56,8 +57,8 @@ public class VideoManagementService {
             throw new ResourceNotFoundException("Một hoặc nhiều video không thuộc khóa học này");
         }
 
-        courseEditPolicy.requireOwner(videos.get(0).getLesson().getCourseId(), instructorId);
-        return videos.stream().map(this::toResponse).toList();
+        courseEditPolicy.requireOwner(videos.get(0).getLessonId().getCourseId(), instructorId);
+        return videos.stream().map(VideoMapper::toDTO).toList();
     }
 
     @Transactional
@@ -76,13 +77,20 @@ public class VideoManagementService {
             throw new IllegalArgumentException("Các video không được trùng vị trí");
         }
 
-        List<Video> videos = videoRepository.findByLesson_IdOrderByPositionAsc(lessonId);
+        List<Video> videos = videoRepository.findByLessonId_IdOrderByPositionAsc(lessonId);
+        if (requests.size() != videos.size()) {
+            throw new IllegalArgumentException("Phải gửi đủ danh sách video");
+        }
         Map<Long, Video> byId = videos.stream()
                 .collect(Collectors.toMap(Video::getId, video -> video));
-        for (PositionReorderRequestDTO request : requests) {
-            if (!byId.containsKey(request.getId())) {
-                throw new ResourceNotFoundException("Không tìm thấy video trong bài giảng");
-            }
+        Set<Long> requestedIds = requests.stream()
+                .map(PositionReorderRequestDTO::getId)
+                .collect(Collectors.toSet());
+        if (requestedIds.size() != requests.size()) {
+            throw new IllegalArgumentException("Các video không được trùng ID");
+        }
+        if (!requestedIds.equals(byId.keySet())) {
+            throw new ResourceNotFoundException("Không tìm thấy video trong bài giảng");
         }
 
         List<Video> saved = positionReorderer.reorder(
@@ -90,11 +98,11 @@ public class VideoManagementService {
                 Video::getPosition,
                 Video::setPosition,
                 videoRepository::saveAllAndFlush,
-                () -> assignRequestedPositions(videos, byId, requests));
+                () -> requests.forEach(request -> byId.get(request.getId()).setPosition(request.getPosition())));
 
         return saved.stream()
                 .sorted(Comparator.comparingInt(Video::getPosition))
-                .map(this::toResponse)
+                .map(VideoMapper::toDTO)
                 .toList();
     }
 
@@ -102,9 +110,9 @@ public class VideoManagementService {
     public VideoResponseDTO updateTitle(Long videoId, String title, Long instructorId) {
         Video video = videoRepository.findByIdWithLessonAndCourse(videoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
-        courseEditPolicy.requireOwnerAndEditable(video.getLesson().getCourseId(), instructorId);
+        courseEditPolicy.requireOwnerAndEditable(video.getLessonId().getCourseId(), instructorId);
         video.setTitle(title.trim());
-        return toResponse(video);
+        return VideoMapper.toDTO(video);
     }
 
     @Transactional
@@ -112,7 +120,7 @@ public class VideoManagementService {
         Video video = videoRepository.findByIdWithLessonAndCourse(videoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy video"));
 
-        Course course = video.getLesson().getCourseId();
+        Course course = video.getLessonId().getCourseId();
         courseEditPolicy.requireOwnerAndEditable(course, instructorId);
         videoLifecycle.requireDeletable(video);
 
@@ -120,34 +128,4 @@ public class VideoManagementService {
         videoRepository.delete(video);
     }
 
-    private VideoResponseDTO toResponse(Video video) {
-        return VideoResponseDTO.builder()
-                .id(video.getId())
-                .title(video.getTitle())
-                .status(video.getStatus())
-                .position(video.getPosition())
-                .durationSeconds(video.getDurationSeconds())
-                .playbackUrl(VideoPlaybackUrls.instructor(video))
-                .build();
-    }
-
-    private void assignRequestedPositions(
-            List<Video> videos,
-            Map<Long, Video> byId,
-            List<PositionReorderRequestDTO> requests) {
-        Set<Long> mentioned = new HashSet<>();
-        int maxRequested = 0;
-        for (PositionReorderRequestDTO request : requests) {
-            byId.get(request.getId()).setPosition(request.getPosition());
-            mentioned.add(request.getId());
-            maxRequested = Math.max(maxRequested, request.getPosition());
-        }
-
-        int tail = maxRequested;
-        for (Video video : videos) {
-            if (!mentioned.contains(video.getId())) {
-                video.setPosition(++tail);
-            }
-        }
-    }
 }

@@ -16,7 +16,7 @@ import { usePagedSearchParams } from '../../hooks/usePagedSearchParams';
 import { queryKeys } from '../../query/queryKeys';
 import { instructorService } from '../../services/api/instructor.service';
 import {
-  InstructorCourse,
+  InstructorCourseListItem,
   COURSE_STATUS_LABELS,
 } from '../../types/course.types';
 import { formatPrice, formatLongDate } from '../../utils';
@@ -92,7 +92,7 @@ const InstructorCoursesPage: React.FC = () => {
     placeholderData: keepPreviousData,
   });
   const pageData = courseQuery.data ?? null;
-  const courses: InstructorCourse[] = pageData?.content ?? [];
+  const courses: InstructorCourseListItem[] = pageData?.content ?? [];
   const loading = courseQuery.isFetching;
   const error = courseQuery.error
     ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
@@ -105,7 +105,7 @@ const InstructorCoursesPage: React.FC = () => {
   }, [courseQuery.refetch, refreshVersion]);
 
   const openCourse = useCallback(
-    (course: InstructorCourse) => {
+    (course: InstructorCourseListItem) => {
       const destination =
         course.status === 'DRAFT' || course.status === 'REJECTED'
           ? routeTo.instructorCourseBuild(course.id)

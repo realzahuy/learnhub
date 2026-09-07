@@ -6,11 +6,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 public class LearningAccessService {
 
     private final EnrollmentRepository enrollmentRepository;
+
+    @Transactional(readOnly = true)
+    public Set<Long> getEnrolledCourseIds(Long userId) {
+        return enrollmentRepository.findCourseIdsByUserId(userId);
+    }
 
     @Transactional(readOnly = true)
     public void requireEnrollment(Long userId, Long courseId) {

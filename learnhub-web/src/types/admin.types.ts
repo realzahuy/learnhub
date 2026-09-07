@@ -25,3 +25,20 @@ export interface AdminUser {
 
   totalStudents: number;
 }
+
+export interface AdminLessonContent {
+  id: number;
+  title: string;
+  position: number;
+  isPreview: boolean;
+  videos: LearnVideo[];
+  questions: Question[];
+}
+
+export interface AdminCourseContent {
+  courseId: number;
+  courseTitle: string;
+  lessons: AdminLessonContent[];
+}
+import type { LearnVideo } from './learn.types';
+import type { Question } from './question.types';

@@ -1,6 +1,7 @@
 import apiClient from './config';
 import {
   InstructorCourse,
+  InstructorCourseListItem,
   InstructorCourseQueryParams,
   CourseRejectReason,
   CourseUpdatePayload,
@@ -15,7 +16,7 @@ export const instructorService = {
   getMyCourses: async (
     params: InstructorCourseQueryParams = {},
     signal?: AbortSignal
-  ): Promise<PageResponse<InstructorCourse>> => {
+  ): Promise<PageResponse<InstructorCourseListItem>> => {
     const queryParams = new URLSearchParams();
 
     if (params.page !== undefined) queryParams.append('page', params.page.toString());
@@ -24,9 +25,9 @@ export const instructorService = {
     if (params.category) queryParams.append('category', params.category);
     if (params.search) queryParams.append('search', params.search);
 
-    const response = await apiClient.get<PageResponse<InstructorCourse>>(
+    const response = await apiClient.get<PageResponse<InstructorCourseListItem>>(
       `/instructor/courses?${queryParams.toString()}`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },
@@ -54,7 +55,10 @@ export const instructorService = {
   },
 
   getCourseDetail: async (id: number, signal?: AbortSignal): Promise<InstructorCourse> => {
-    const response = await apiClient.get<InstructorCourse>(`/instructor/courses/${id}`, { signal });
+    const response = await apiClient.get<InstructorCourse>(`/instructor/courses/${id}`, {
+      signal,
+      showTopProgress: false,
+    });
     return response.data;
   },
 
@@ -64,7 +68,7 @@ export const instructorService = {
   ): Promise<InstructorCourseContent> => {
     const response = await apiClient.get<InstructorCourseContent>(
       `/instructor/courses/${id}/content`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },
@@ -72,7 +76,7 @@ export const instructorService = {
   getRejectReason: async (id: number, signal?: AbortSignal): Promise<CourseRejectReason> => {
     const response = await apiClient.get<CourseRejectReason>(
       `/instructor/courses/${id}/reject-reason`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },

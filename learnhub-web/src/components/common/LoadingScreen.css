@@ -6,7 +6,7 @@
   min-height: 60vh;
   width: 100%;
   padding: 2rem max(1rem, calc((100% - 1320px) / 2));
-  animation: loading-screen-enter 180ms ease-out both;
+  animation: loading-screen-enter 180ms ease-out;
 }
 
 @keyframes loading-screen-enter {

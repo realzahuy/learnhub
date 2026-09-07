@@ -53,7 +53,7 @@
   color: #374151;
 }
 
-.confirm-dialog-btn-cancel:hover {
+.confirm-dialog-btn-cancel:hover:not(:disabled) {
   background-color: #e5e7eb;
 }
 
@@ -62,7 +62,7 @@
   color: #fff;
 }
 
-.confirm-dialog-btn-danger:hover {
+.confirm-dialog-btn-danger:hover:not(:disabled) {
   background-color: #b91c1c;
   transform: translateY(-1px);
 }
@@ -72,9 +72,14 @@
   color: #fff;
 }
 
-.confirm-dialog-btn-primary:hover {
+.confirm-dialog-btn-primary:hover:not(:disabled) {
   background-color: var(--notion-blue-hover);
   transform: translateY(-1px);
+}
+
+.confirm-dialog-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 @keyframes confirm-dialog-fade {

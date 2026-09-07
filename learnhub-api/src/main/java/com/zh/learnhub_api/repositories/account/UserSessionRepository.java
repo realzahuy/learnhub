@@ -28,7 +28,7 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
             nativeQuery = true)
     Optional<SessionRefreshProjection> findRefreshSessionById(@Param("sessionId") Long sessionId);
 
-    @Query("SELECT s.user.id AS userId, s.user.accountStatus AS accountStatus, "
+    @Query("SELECT s.userId.id AS userId, s.userId.accountStatus AS accountStatus, "
             + "s.expiresAt AS expiresAt FROM UserSession s WHERE s.id = :sessionId")
     Optional<SessionAuthenticationProjection> findAuthenticationById(@Param("sessionId") Long sessionId);
 
@@ -43,20 +43,20 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     int deleteMatchingSession(@Param("sessionId") Long sessionId, @Param("tokenHash") String tokenHash);
 
     @Modifying
-    @Query("DELETE FROM UserSession s WHERE s.id = :sessionId AND s.user.id = :userId")
+    @Query("DELETE FROM UserSession s WHERE s.id = :sessionId AND s.userId.id = :userId")
     int deleteCurrentSession(@Param("sessionId") Long sessionId, @Param("userId") Long userId);
 
     @Modifying
-    @Query("DELETE FROM UserSession s WHERE s.user.id = :userId AND s.id <> :currentSessionId")
+    @Query("DELETE FROM UserSession s WHERE s.userId.id = :userId AND s.id <> :currentSessionId")
     int deleteOtherSessions(@Param("userId") Long userId, @Param("currentSessionId") Long currentSessionId);
 
     @Modifying
-    @Query("DELETE FROM UserSession s WHERE s.user.id = :userId")
+    @Query("DELETE FROM UserSession s WHERE s.userId.id = :userId")
     int deleteAllByUserId(@Param("userId") Long userId);
 
     @Modifying
     @Query("DELETE FROM UserSession s WHERE s.expiresAt <= :now")
     int deleteExpired(@Param("now") LocalDateTime now);
 
-    boolean existsByIdAndUser_Id(Long sessionId, Long userId);
+    boolean existsByIdAndUserId_Id(Long sessionId, Long userId);
 }

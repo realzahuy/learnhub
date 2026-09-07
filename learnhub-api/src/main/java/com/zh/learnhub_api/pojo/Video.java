@@ -10,7 +10,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "video")
+@Table(name = "video", uniqueConstraints = @UniqueConstraint(columnNames = {"lesson_id", "position"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -59,5 +59,5 @@ public class Video {
 
     @JoinColumn(name = "lesson_id", referencedColumnName = "id", nullable = false)
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    private Lesson lesson;
+    private Lesson lessonId;
 }

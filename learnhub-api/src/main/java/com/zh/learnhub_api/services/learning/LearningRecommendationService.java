@@ -6,7 +6,6 @@ import com.zh.learnhub_api.services.vector.CourseVectorStore;
 import com.zh.learnhub_api.services.vector.CourseVectorStore.Match;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -15,7 +14,6 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class LearningRecommendationService {
 
     private final CourseVectorStore courseVectorStore;
@@ -25,11 +23,7 @@ public class LearningRecommendationService {
         if (!courseVectorStore.isEnabled()) {
             return List.of();
         }
-        try {
-            return loadVectorRecommendations(currentCourseId, enrolledCourseIds);
-        } catch (Exception ex) {
-            return List.of();
-        }
+        return loadVectorRecommendations(currentCourseId, enrolledCourseIds);
     }
 
     private List<RecommendationCardDTO> loadVectorRecommendations(Long currentCourseId, Set<Long> enrolledCourseIds) {

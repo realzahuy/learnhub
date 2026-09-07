@@ -2,6 +2,7 @@ package com.zh.learnhub_api.mappers;
 
 import com.zh.learnhub_api.dtos.course.CourseListItemDTO;
 import com.zh.learnhub_api.dtos.course.CourseResponseDTO;
+import com.zh.learnhub_api.dtos.course.InstructorCourseListItemDTO;
 import com.zh.learnhub_api.dtos.course.PublicCourseDetailDTO;
 import com.zh.learnhub_api.pojo.Course;
 import com.zh.learnhub_api.projections.course.CourseDetailProjection;
@@ -26,6 +27,9 @@ public interface CourseMapper {
 
     @Mapping(target = "id", source = "courseId")
     CourseResponseDTO mapDetailProjectionToDTO(CourseDetailProjection projection);
+
+    @Mapping(target = "id", source = "courseId")
+    InstructorCourseListItemDTO mapInstructorListProjectionToDTO(CourseListProjection projection);
 
     @Mapping(target = "id", source = "courseId")
     @Mapping(target = "averageRating", constant = "0")

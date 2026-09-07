@@ -3,7 +3,10 @@ import { AdminOverview, AdminTimeSeries, StatsGranularity } from '../../types/st
 
 export const adminStatsService = {
   getOverview: async (signal?: AbortSignal): Promise<AdminOverview> => {
-    const response = await apiClient.get<AdminOverview>('/admin/stats/overview', { signal });
+    const response = await apiClient.get<AdminOverview>('/admin/stats/overview', {
+      signal,
+      showTopProgress: false,
+    });
     return response.data;
   },
 
@@ -21,7 +24,7 @@ export const adminStatsService = {
 
     const response = await apiClient.get<AdminTimeSeries>(
       `/admin/stats/timeseries?${params.toString()}`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },

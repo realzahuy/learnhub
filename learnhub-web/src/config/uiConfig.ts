@@ -15,6 +15,12 @@ export const uiConfig = {
     sseReconnectMaxMs: 15_000,
     progressFlushMs: 300,
     uploadProgressUpdateMs: 200,
+    statusBatchSize: 50,
+  },
+  stats: {
+    maxDayBuckets: 90,
+    maxMonthBuckets: 120,
+    maxQuarterBuckets: 40,
   },
   payment: {
     momoPollMs: 2_000,
@@ -29,7 +35,6 @@ export const uiConfig = {
   timing: {
     searchDebounceMs: 500,
     realtimeRefreshCoalesceMs: 150,
-    reorderSaveDelayMs: 1_500,
     toastDurationMs: 3_000,
     topLoadingShowDelayMs: 90,
     topLoadingCompleteMs: 180,

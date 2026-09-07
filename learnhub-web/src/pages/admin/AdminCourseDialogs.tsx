@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { InstructorCourse, COURSE_STATUS_LABELS } from '../../types/course.types';
 import { formatLongDate, formatPrice } from '../../utils';
 import AdminCourseContentPanel from './AdminCourseContentPanel';
@@ -28,7 +29,7 @@ const AdminCourseDialogs = ({
   onRejectCommentChange,
   onCloseReject,
   onSubmitReject,
-}: AdminCourseDialogsProps) => (
+}: AdminCourseDialogsProps) => createPortal(
   <>
     {detailCourse && (
       <div
@@ -134,7 +135,8 @@ const AdminCourseDialogs = ({
         </div>
       </div>
     )}
-  </>
+  </>,
+  document.body
 );
 
 export default AdminCourseDialogs;

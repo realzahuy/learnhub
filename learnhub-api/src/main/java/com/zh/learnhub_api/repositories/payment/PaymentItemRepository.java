@@ -15,17 +15,27 @@ public interface PaymentItemRepository extends JpaRepository<PaymentItem, Long> 
 
     List<PaymentItem> findByPaymentId(Payment payment);
 
-    @Query("SELECT COALESCE(SUM(pi.price), 0) FROM PaymentItem pi "
-            + "WHERE pi.courseId.instructorId.id = :instructorId "
-            + "AND pi.paymentId.status = com.zh.learnhub_api.enums.PaymentStatus.SUCCESS")
-    BigDecimal sumRevenue(@Param("instructorId") Long instructorId);
+    @Query("""
+            SELECT COALESCE(SUM(pi.price), 0) AS totalRevenue,
+                   COALESCE(SUM(CASE WHEN pi.paymentId.createdAt >= :currentFrom
+                                     AND pi.paymentId.createdAt < :to THEN pi.price ELSE 0 END), 0) AS currentRevenue,
+                   COALESCE(SUM(CASE WHEN pi.paymentId.createdAt >= :previousFrom
+                                     AND pi.paymentId.createdAt < :currentFrom THEN pi.price ELSE 0 END), 0) AS previousRevenue
+            FROM PaymentItem pi
+            WHERE pi.courseId.instructorId.id = :instructorId
+            AND pi.paymentId.status = com.zh.learnhub_api.enums.PaymentStatus.SUCCESS
+            """)
+    RevenueOverviewProjection getRevenueOverview(
+            @Param("instructorId") Long instructorId,
+            @Param("previousFrom") LocalDateTime previousFrom,
+            @Param("currentFrom") LocalDateTime currentFrom,
+            @Param("to") LocalDateTime to);
 
-    @Query("SELECT COALESCE(SUM(pi.price), 0) FROM PaymentItem pi "
-            + "WHERE pi.courseId.instructorId.id = :instructorId "
-            + "AND pi.paymentId.status = com.zh.learnhub_api.enums.PaymentStatus.SUCCESS "
-            + "AND pi.paymentId.createdAt >= :from AND pi.paymentId.createdAt < :to")
-    BigDecimal sumRevenueBetween(
-            @Param("instructorId") Long instructorId, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+    interface RevenueOverviewProjection {
+        BigDecimal getTotalRevenue();
+        BigDecimal getCurrentRevenue();
+        BigDecimal getPreviousRevenue();
+    }
 
     @Query(
             value = "SELECT CASE "

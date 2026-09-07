@@ -36,34 +36,43 @@ public class SpringAiEmbeddingClient implements EmbeddingClient {
 
     @Override
     public List<Float> embedDocument(String text, String title) {
+        String normalizedTitle = normalizeInput(title);
+        String input = "title: " + (normalizedTitle.isEmpty() ? "none" : normalizedTitle)
+                + " | text: " + normalizeInput(text);
         EmbedContentConfig config = EmbedContentConfig.builder()
-                .taskType("RETRIEVAL_DOCUMENT")
-                .title(normalizeInput(title))
                 .outputDimensionality(dimension)
                 .build();
-        return embed(normalizeInput(text), config);
-    }
-
-    @Override
-    public List<Float> embedQuery(String text) {
-        EmbedContentConfig config = EmbedContentConfig.builder()
-                .taskType("RETRIEVAL_QUERY")
-                .outputDimensionality(dimension)
-                .build();
-        return embed(normalizeInput(text), config);
-    }
-
-    private String normalizeInput(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private List<Float> embed(String text, EmbedContentConfig config) {
-        EmbedContentResponse response = models.embedContent(modelEndpointName, text, config);
+        EmbedContentResponse response = models.embedContent(modelEndpointName, input, config);
         List<ContentEmbedding> embeddings = response.embeddings().orElse(List.of());
         if (embeddings.isEmpty()) {
             throw new IllegalStateException("Thiếu embedding");
         }
 
         return embeddings.getFirst().values().orElse(List.of());
+    }
+
+    @Override
+    public List<List<Float>> embedQueries(List<String> texts) {
+        EmbedContentConfig config = EmbedContentConfig.builder()
+                .outputDimensionality(dimension)
+                .build();
+        EmbedContentResponse response = models.embedContent(
+                modelEndpointName,
+                texts.stream()
+                        .map(text -> "task: search result | query: " + normalizeInput(text))
+                        .toList(),
+                config);
+        List<ContentEmbedding> embeddings = response.embeddings().orElse(List.of());
+        if (embeddings.isEmpty()) {
+            throw new IllegalStateException("Thiếu embedding");
+        }
+
+        return embeddings.stream()
+                .map(embedding -> embedding.values().orElse(List.of()))
+                .toList();
+    }
+
+    private String normalizeInput(String value) {
+        return value == null ? "" : value.trim();
     }
 }

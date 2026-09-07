@@ -15,7 +15,7 @@ import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.services.notification.email.AccountEmailEventListener.Locked;
 import com.zh.learnhub_api.services.notification.email.AccountEmailEventListener.Unlocked;
-import com.zh.learnhub_api.services.realtime.AccountRealtimeEventListener.AccountLocked;
+import com.zh.learnhub_api.services.account.AccountLocked;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -49,7 +49,7 @@ public class AdminUserService {
         Pageable pageable = PageRequest.of(
                 requestedPage.getPageNumber(),
                 requestedPage.getPageSize(),
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+                Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id")));
         String keyword = normalizeSearch(search);
         boolean instructorsOnly = filter == AdminUserFilter.INSTRUCTOR;
         boolean lockedOnly = filter == AdminUserFilter.LOCKED;

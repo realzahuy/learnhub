@@ -1,31 +1,16 @@
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { learningService } from '../services/api/learning.service';
-import { LearnCourse } from '../types/learn.types';
-import { Viewing } from '../components/features/learn';
+import { LearnCourse, Viewing } from '../types/learn.types';
 import { getApiErrorMessage } from '../utils';
+import { queryKeys } from '../query/queryKeys';
 
 interface LearningCourseState {
   course: LearnCourse | null;
   viewing: Viewing | null;
-  setViewing: Dispatch<SetStateAction<Viewing | null>>;
   loading: boolean;
   error: string | null;
 }
-
-const sameViewing = (current: Viewing | null, next: Viewing | null) => {
-  if (current === next) return true;
-  if (!current || !next || current.kind !== next.kind) return false;
-
-  if (current.kind === 'quiz' && next.kind === 'quiz') {
-    return current.lessonId === next.lessonId;
-  }
-
-  return current.kind === 'video'
-    && next.kind === 'video'
-    && current.lessonId === next.lessonId
-    && current.video.id === next.video.id;
-};
 
 export const useLearningCourse = (
   enabled: boolean,
@@ -33,20 +18,15 @@ export const useLearningCourse = (
   videoId?: string,
   quizLessonId?: string
 ): LearningCourseState => {
-  const [viewing, setViewing] = useState<Viewing | null>(null);
   const courseQuery = useQuery<LearnCourse>({
-    queryKey: ['learning-course', slug],
+    queryKey: queryKeys.learningCourses.detail(slug),
     enabled: enabled && Boolean(slug),
     queryFn: ({ signal }) => learningService.getCourseBySlug(slug!, signal),
   });
   const course = enabled ? courseQuery.data ?? null : null;
 
-  useEffect(() => {
-    setViewing(null);
-  }, [enabled, slug]);
-
-  useEffect(() => {
-    if (!enabled || !course || !slug) return;
+  const viewing = useMemo<Viewing | null>(() => {
+    if (!enabled || !course || !slug) return null;
 
     const wantedQuiz = quizLessonId ? Number(quizLessonId) : null;
     const quizLesson = Number.isFinite(wantedQuiz)
@@ -55,9 +35,7 @@ export const useLearningCourse = (
         )
       : null;
     if (quizLesson) {
-      const next: Viewing = { kind: 'quiz', lessonId: quizLesson.id };
-      setViewing((current) => (sameViewing(current, next) ? current : next));
-      return;
+      return { kind: 'quiz', lessonId: quizLesson.id };
     }
 
     const wantedVideo = videoId ? Number(videoId) : null;
@@ -67,15 +45,12 @@ export const useLearningCourse = (
           (item) => item.id === wantedVideo && item.playbackUrl
         );
         if (video) {
-          const next: Viewing = { kind: 'video', lessonId: lesson.id, video };
-          setViewing((current) => (sameViewing(current, next) ? current : next));
-          return;
+          return { kind: 'video', lessonId: lesson.id, video };
         }
       }
     }
 
-    setViewing(null);
-
+    return null;
   }, [course, enabled, quizLessonId, slug, videoId]);
 
   const loading = enabled && Boolean(slug) && courseQuery.isPending;
@@ -83,5 +58,5 @@ export const useLearningCourse = (
     ? getApiErrorMessage(courseQuery.error, 'Không mở được khóa học này.')
     : null;
 
-  return { course, viewing, setViewing, loading, error };
+  return { course, viewing, loading, error };
 };

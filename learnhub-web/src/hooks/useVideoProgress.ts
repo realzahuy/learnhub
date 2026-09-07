@@ -91,8 +91,12 @@ export const useVideoProgress = (
 
       let succeeded = false;
       try {
-        const freshVideos = await videoService.getStatuses(courseId, refreshIds);
-        if (stopped) return true;
+        const freshVideos: Video[] = [];
+        for (let index = 0; index < refreshIds.length; index += uiConfig.video.statusBatchSize) {
+          const batch = refreshIds.slice(index, index + uiConfig.video.statusBatchSize);
+          freshVideos.push(...await videoService.getStatuses(courseId, batch));
+          if (stopped) return true;
+        }
 
         const freshById = new Map(freshVideos.map((video) => [video.id, video]));
         setVideosByLesson((previous) => {

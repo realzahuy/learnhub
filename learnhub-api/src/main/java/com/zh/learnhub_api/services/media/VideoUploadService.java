@@ -45,7 +45,7 @@ public class VideoUploadService {
         requireWithinSizeLimit(request.getFileSize());
 
         Video video = videoRepository
-                .findByLessonAndPosition(lesson, request.getPosition())
+                .findByLessonIdAndPosition(lesson, request.getPosition())
                 .orElse(null);
         if (video != null) {
             videoLifecycle.requireUploading(video);
@@ -55,7 +55,7 @@ public class VideoUploadService {
             video = new Video();
             video.setTitle(request.getTitle());
             video.setPosition(request.getPosition());
-            video.setLesson(lesson);
+            video.setLessonId(lesson);
             LocalDateTime now = LocalDateTime.now();
             video.setCreatedAt(now);
             videoLifecycle.initializeUploading(video, now);
@@ -100,7 +100,7 @@ public class VideoUploadService {
                 objectKey, outputPath, mediaConvertClientToken(videoId, objectKey));
         video.setMediaconvertJobId(jobId);
 
-        Long courseId = video.getLesson().getCourseId().getId();
+        Long courseId = video.getLessonId().getCourseId().getId();
         videoProgressSseService.publishAfterCommit(courseId, videoId, VideoStatus.PROCESSING, 0);
     }
 

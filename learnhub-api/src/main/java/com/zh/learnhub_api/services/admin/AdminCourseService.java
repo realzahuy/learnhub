@@ -20,9 +20,9 @@ import com.zh.learnhub_api.repositories.course.QuestionRepository;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.learning.VideoPlaybackService;
 import com.zh.learnhub_api.services.notification.NotificationService;
-import com.zh.learnhub_api.services.realtime.CourseRealtimeEventListener.Audience;
-import com.zh.learnhub_api.services.realtime.CourseRealtimeEventListener.StatusChanged;
-import com.zh.learnhub_api.services.vector.CourseVectorIndexer.SyncEvent;
+import com.zh.learnhub_api.services.course.CourseStatusChanged.Audience;
+import com.zh.learnhub_api.services.course.CourseStatusChanged;
+import com.zh.learnhub_api.services.vector.CourseVectorSyncRequested;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -62,9 +62,9 @@ public class AdminCourseService {
 
         List<Lesson> lessons = lessonRepository.findByCourseId_IdOrderByPositionAsc(courseId);
 
-        Map<Long, List<Video>> videosByLesson = videoRepository.findPublicByCourseId(courseId)
+        Map<Long, List<Video>> videosByLesson = videoRepository.findAllByCourseIdOrdered(courseId)
                 .stream()
-                .collect(Collectors.groupingBy(video -> video.getLesson().getId()));
+                .collect(Collectors.groupingBy(video -> video.getLessonId().getId()));
 
         Map<Long, List<Question>> questionsByLesson = questionRepository
                 .findByCourseIdWithAnswers(courseId).stream()
@@ -97,7 +97,7 @@ public class AdminCourseService {
         Pageable pageable = PageRequest.of(
                 requestedPage.getPageNumber(),
                 requestedPage.getPageSize(),
-                Sort.by(Sort.Direction.DESC, "updatedAt"));
+                Sort.by(Sort.Direction.DESC, "updatedAt").and(Sort.by(Sort.Direction.DESC, "id")));
 
         Page<CourseDetailProjection> coursePage = courseRepository.findFilteredCourseDetails(
             null,
@@ -127,7 +127,7 @@ public class AdminCourseService {
             courseRepository.findById(courseId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-            throw new IllegalStateException("Không thể duyệt khóa học");
+            throw new IllegalArgumentException("Không thể duyệt khóa học");
         }
 
         Course course = courseRepository.findByIdWithCategory(courseId)
@@ -139,7 +139,7 @@ public class AdminCourseService {
             "Khóa học đã được duyệt",
             "Khóa học \"%s\" đã được duyệt.".formatted(course.getTitle())
         );
-        eventPublisher.publishEvent(new StatusChanged(
+        eventPublisher.publishEvent(new CourseStatusChanged(
             courseId,
             course.getInstructorId().getId(),
             CourseStatus.PUBLISHED,
@@ -148,7 +148,7 @@ public class AdminCourseService {
             Audience.INSTRUCTOR
         ));
 
-        eventPublisher.publishEvent(new SyncEvent(courseId));
+        eventPublisher.publishEvent(new CourseVectorSyncRequested(courseId));
     }
 
     @Transactional
@@ -165,7 +165,7 @@ public class AdminCourseService {
             courseRepository.findById(courseId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học"));
 
-            throw new IllegalStateException("Không thể từ chối khóa học");
+            throw new IllegalArgumentException("Không thể từ chối khóa học");
         }
 
         Course course = courseRepository.findByIdWithCategory(courseId).orElseThrow();
@@ -182,7 +182,7 @@ public class AdminCourseService {
             "Khóa học chưa được duyệt",
             "Khóa học \"%s\" đã bị từ chối.".formatted(course.getTitle())
         );
-        eventPublisher.publishEvent(new StatusChanged(
+        eventPublisher.publishEvent(new CourseStatusChanged(
             courseId,
             course.getInstructorId().getId(),
             CourseStatus.REJECTED,

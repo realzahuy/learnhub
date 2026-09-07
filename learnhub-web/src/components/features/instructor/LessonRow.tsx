@@ -15,7 +15,6 @@ const ADD_CONTENT_OPTIONS: DropdownOption[] = [
 ];
 
 interface LessonRowProps {
-  courseId: number;
   lesson: Lesson;
 
   videos: Video[];
@@ -35,12 +34,12 @@ interface LessonRowProps {
 
   onTogglePreview: (lesson: Lesson) => Promise<boolean>;
   onVideosChange: (lessonId: number, updater: (prev: Video[]) => Video[]) => void;
-  onQuestionsChange: (lessonId: number, questions: Question[]) => void;
+  onQuestionsChange: (lessonId: number, updater: (previous: Question[]) => Question[]) => void;
   onDelete: (lesson: Lesson) => void;
+  onBusyChange: (lessonId: number, busy: boolean) => void;
 }
 
 const LessonRow: React.FC<LessonRowProps> = ({
-  courseId,
   lesson,
   videos,
   processingProgressByVideoId,
@@ -55,6 +54,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
   onVideosChange,
   onQuestionsChange,
   onDelete,
+  onBusyChange,
 }) => {
   const [expanded, setExpanded] = useState(true);
   const [addingContent, setAddingContent] = useState<AddContentKind | null>(null);
@@ -62,6 +62,8 @@ const LessonRow: React.FC<LessonRowProps> = ({
   const [editing, setEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState(lesson.title);
   const [savingTitle, setSavingTitle] = useState(false);
+  const [videoBusy, setVideoBusy] = useState(false);
+  const [questionBusy, setQuestionBusy] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const cancelRef = useRef(false);
@@ -75,6 +77,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
   }, [lesson.title]);
 
   const finishEditing = async () => {
+    if (disabled || savingTitle) return;
     if (cancelRef.current) {
       cancelRef.current = false;
       setTitleDraft(lesson.title);
@@ -97,6 +100,12 @@ const LessonRow: React.FC<LessonRowProps> = ({
   };
 
   const [savingPreview, setSavingPreview] = useState(false);
+
+  useEffect(() => {
+    onBusyChange(lesson.id, savingTitle || savingPreview || videoBusy || questionBusy);
+  }, [lesson.id, onBusyChange, questionBusy, savingPreview, savingTitle, videoBusy]);
+
+  useEffect(() => () => onBusyChange(lesson.id, false), [lesson.id, onBusyChange]);
 
   const finishAddingContent = useCallback(() => setAddingContent(null), []);
 
@@ -157,7 +166,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
                 }
               }}
               maxLength={255}
-              disabled={savingTitle}
+              disabled={disabled || savingTitle}
               aria-label="Tên bài giảng"
             />
           ) : (
@@ -243,6 +252,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
               isAdding={addingContent === 'VIDEO'}
               onVideosChange={onVideosChange}
               onAddFinished={finishAddingContent}
+              onBusyChange={setVideoBusy}
             />
           </section>
         )}
@@ -257,6 +267,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
               isAdding={addingContent === 'QUESTION'}
               onQuestionsChange={onQuestionsChange}
               onAddFinished={finishAddingContent}
+              onBusyChange={setQuestionBusy}
             />
           </section>
         )}
@@ -267,8 +278,7 @@ const LessonRow: React.FC<LessonRowProps> = ({
 };
 
 const areLessonRowPropsEqual = (previous: LessonRowProps, next: LessonRowProps) => {
-  if (previous.courseId !== next.courseId
-      || previous.lesson !== next.lesson
+  if (previous.lesson !== next.lesson
       || previous.videos !== next.videos
       || previous.questions !== next.questions
       || previous.disabled !== next.disabled
@@ -280,7 +290,8 @@ const areLessonRowPropsEqual = (previous: LessonRowProps, next: LessonRowProps) 
       || previous.onTogglePreview !== next.onTogglePreview
       || previous.onVideosChange !== next.onVideosChange
       || previous.onQuestionsChange !== next.onQuestionsChange
-      || previous.onDelete !== next.onDelete) {
+      || previous.onDelete !== next.onDelete
+      || previous.onBusyChange !== next.onBusyChange) {
     return false;
   }
 

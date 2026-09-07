@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -105,10 +106,14 @@ public class LessonService {
         if (requests.size() != lessons.size()) {
             throw new IllegalArgumentException("Phải gửi đủ bài giảng");
         }
-        for (PositionReorderRequestDTO request : requests) {
-            if (!byId.containsKey(request.getId())) {
-                throw new ResourceNotFoundException("Không tìm thấy bài giảng trong khóa học");
-            }
+        Set<Long> requestedIds = requests.stream()
+                .map(PositionReorderRequestDTO::getId)
+                .collect(Collectors.toSet());
+        if (requestedIds.size() != requests.size()) {
+            throw new IllegalArgumentException("Các bài giảng không được trùng ID");
+        }
+        if (!requestedIds.equals(byId.keySet())) {
+            throw new ResourceNotFoundException("Không tìm thấy bài giảng trong khóa học");
         }
 
         List<Lesson> saved = positionReorderer.reorder(

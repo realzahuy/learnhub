@@ -5,6 +5,7 @@ import com.zh.learnhub_api.dtos.course.CourseCreateResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseRejectResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseResponseDTO;
 import com.zh.learnhub_api.dtos.course.CourseUpsertRequestDTO;
+import com.zh.learnhub_api.dtos.course.InstructorCourseListItemDTO;
 import com.zh.learnhub_api.dtos.instructor.InstructorCourseContentDTO;
 import com.zh.learnhub_api.dtos.media.VideoResponseDTO;
 import com.zh.learnhub_api.enums.CourseStatus;
@@ -37,7 +38,7 @@ public class InstructorCourseController {
     private final VideoProgressSseService videoProgressSseService;
 
     @GetMapping
-    public PageResponseDTO<CourseResponseDTO> listInstructorCourses(
+    public PageResponseDTO<InstructorCourseListItemDTO> listInstructorCourses(
             @RequestParam(required = false) CourseStatus status,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,

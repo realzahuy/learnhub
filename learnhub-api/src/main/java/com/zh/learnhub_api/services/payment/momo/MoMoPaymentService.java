@@ -6,10 +6,14 @@ import com.zh.learnhub_api.enums.PaymentStatus;
 import com.zh.learnhub_api.exceptions.PaymentGatewayException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
 import com.zh.learnhub_api.pojo.Payment;
+import com.zh.learnhub_api.repositories.account.UserRepository;
+import com.zh.learnhub_api.repositories.course.CourseRepository;
+import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
+import com.zh.learnhub_api.repositories.payment.PaymentItemRepository;
+import com.zh.learnhub_api.repositories.payment.PaymentRepository;
 import com.zh.learnhub_api.services.payment.PaymentService;
 import com.zh.learnhub_api.services.payment.momo.MoMoHttpClient.CreatePaymentRequest;
 import com.zh.learnhub_api.services.payment.momo.MoMoHttpClient.CreatePaymentResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,13 +27,27 @@ import java.util.HexFormat;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class MoMoPaymentService extends PaymentService {
 
     private static final int MOMO_SUCCESS_RESULT_CODE = 0;
 
     private final AppProperties.Momo momoConfig;
     private final MoMoHttpClient momoHttpClient;
+
+    public MoMoPaymentService(
+            UserRepository userRepository,
+            CourseRepository courseRepository,
+            EnrollmentRepository enrollmentRepository,
+            PaymentRepository paymentRepository,
+            PaymentItemRepository paymentItemRepository,
+            AppProperties.Payment paymentProperties,
+            AppProperties.Momo momoConfig,
+            MoMoHttpClient momoHttpClient) {
+        super(userRepository, courseRepository, enrollmentRepository, paymentRepository,
+                paymentItemRepository, paymentProperties);
+        this.momoConfig = momoConfig;
+        this.momoHttpClient = momoHttpClient;
+    }
 
     @Override
     public PaymentMethod getProvider() {

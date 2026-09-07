@@ -18,13 +18,16 @@ export const courseService = {
 
     const response = await apiClient.get<PageResponse<Course>>(
       `/courses?${queryParams.toString()}`,
-      { signal }
+      { signal, showTopProgress: false }
     );
     return response.data;
   },
 
   getCourseBySlug: async (slug: string, signal?: AbortSignal): Promise<CourseDetail> => {
-    const response = await apiClient.get<CourseDetail>(`/courses/${slug}`, { signal });
+    const response = await apiClient.get<CourseDetail>(`/courses/${slug}`, {
+      signal,
+      showTopProgress: false,
+    });
     return response.data;
   }
 };

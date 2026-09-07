@@ -7,10 +7,11 @@ import { useCourseThumbnail } from '../../hooks/useCourseThumbnail';
 import CourseInfoForm from '../../components/features/instructor/CourseInfoForm';
 import { DropdownOption, PageSkeleton } from '../../components/common';
 import { instructorService } from '../../services/api/instructor.service';
+import { queryClient } from '../../query/queryClient';
+import { queryKeys } from '../../query/queryKeys';
 import {
   InstructorCourse,
   CourseStatus,
-  CourseRejectReason,
   COURSE_STATUS_LABELS,
 } from '../../types/course.types';
 import { getApiErrorMessage } from '../../utils';
@@ -33,7 +34,6 @@ const InstructorCourseEditPage: React.FC = () => {
   const { lastCourseStatusEvent, realtimeReconnectVersion } = useCourseRealtime();
 
   const [course, setCourse] = useState<InstructorCourse | null>(null);
-  const [rejectReason, setRejectReason] = useState<CourseRejectReason | null>(null);
 
   const [form, setForm] = useState<CourseFormState>(EMPTY_COURSE_FORM);
 
@@ -80,7 +80,6 @@ const InstructorCourseEditPage: React.FC = () => {
     (location.state as { from?: string } | null)?.from ?? ROUTE_PATHS.instructorCourses;
 
   const status = course?.status;
-  const canEditAll = status ? EDITABLE_ALL.includes(status) : false;
   const isReadOnly = status === 'PENDING';
   const categoryOptions = useMemo<DropdownOption[]>(
     () => categories.map((category) => ({ value: String(category.id), label: category.name })),
@@ -102,16 +101,6 @@ const InstructorCourseEditPage: React.FC = () => {
 
         setCourse(detail);
         setForm(toCourseForm(detail));
-        setRejectReason(null);
-
-        if (detail.status === 'REJECTED') {
-          const reason = await instructorService
-            .getRejectReason(courseId, controller.signal)
-            .catch(() => null);
-          if (!controller.signal.aborted) setRejectReason(reason);
-        } else {
-          setRejectReason(null);
-        }
       } catch (err) {
         if (controller.signal.aborted) return;
         setLoadError('Không thể tải thông tin khóa học. Vui lòng thử lại sau.');
@@ -156,12 +145,17 @@ const InstructorCourseEditPage: React.FC = () => {
       await instructorService.updateCourse(
         course.id,
         toCourseUpdatePayload(form, {
-          slug: canEditAll ? form.slug : '',
+          slug: '',
           thumbnail: course.thumbnail,
           thumbnailFile,
         })
       );
 
+      void queryClient.invalidateQueries({ queryKey: queryKeys.instructorCourses.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.courseDetails.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.publishedCourses.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.publicInstructors.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.enrollments.all });
       navigate(destination, { replace: true });
     } catch (err) {
       setSaveError(getApiErrorMessage(err, 'Không thể lưu khóa học. Vui lòng thử lại sau.'));
@@ -214,12 +208,6 @@ const InstructorCourseEditPage: React.FC = () => {
                 </div>
               )}
 
-              {rejectReason && (
-                <div className="alert alert-danger">
-                  <strong>Lý do bị từ chối:</strong> {rejectReason.comment}
-                </div>
-              )}
-
               {saveError && <div className="alert alert-danger">{saveError}</div>}
 
               <CourseInfoForm
@@ -232,7 +220,7 @@ const InstructorCourseEditPage: React.FC = () => {
                 onChange={handleChange}
                 onSubmit={() => save()}
                 disabled={isReadOnly || saving}
-                identityDisabled={!canEditAll}
+                identityDisabled
                 slugHint={
                   <small className="text-muted">
                     Để trống sẽ giữ nguyên đường dẫn hiện tại.

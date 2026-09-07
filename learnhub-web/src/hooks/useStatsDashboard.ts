@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { StatsFilterValue } from '../components/features/stats';
-import { StatsGranularity } from '../types/stats.types';
+import { StatsFilterValue, StatsGranularity } from '../types/stats.types';
 import { getApiErrorMessage } from '../utils';
+import { queryKeys } from '../query/queryKeys';
 
 interface StatsDataSource<Overview, TimeSeries> {
   getOverview: (signal?: AbortSignal) => Promise<Overview>;
@@ -34,12 +34,12 @@ export const useStatsDashboard = <
   const to = applied?.to || undefined;
 
   const overviewQuery = useQuery<Overview>({
-    queryKey: ['stats-dashboard', queryScope, 'overview'],
+    queryKey: queryKeys.stats.overview(queryScope),
     queryFn: ({ signal }) => dataSource.getOverview(signal),
   });
 
   const seriesQuery = useQuery<TimeSeries>({
-    queryKey: ['stats-dashboard', queryScope, 'timeseries', groupBy, from, to],
+    queryKey: queryKeys.stats.timeSeries(queryScope, groupBy, from, to),
     enabled: hasAppliedFilter,
     queryFn: ({ signal }) => dataSource.getTimeSeries(groupBy, from, to, signal),
   });

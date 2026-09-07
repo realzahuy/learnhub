@@ -29,6 +29,7 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(() =>
     typeof window === 'undefined' ? true : window.matchMedia(DESKTOP_NAV_QUERY).matches
   );
@@ -46,8 +47,11 @@ const AdminLayout: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    setConfirmLogout(false);
+    if (loggingOut) return;
+    setLoggingOut(true);
     await logout();
+    setConfirmLogout(false);
+    setLoggingOut(false);
     navigate(ROUTE_PATHS.adminLogin, { replace: true });
   };
 
@@ -133,8 +137,11 @@ const AdminLayout: React.FC = () => {
 
       <LogoutConfirmDialog
         isOpen={confirmLogout}
+        pending={loggingOut}
         onConfirm={handleLogout}
-        onCancel={() => setConfirmLogout(false)}
+        onCancel={() => {
+          if (!loggingOut) setConfirmLogout(false);
+        }}
       />
     </div>
   );

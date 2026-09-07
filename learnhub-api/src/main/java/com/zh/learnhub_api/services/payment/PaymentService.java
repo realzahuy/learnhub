@@ -7,6 +7,7 @@ import com.zh.learnhub_api.enums.PaymentMethod;
 import com.zh.learnhub_api.enums.PaymentStatus;
 import com.zh.learnhub_api.exceptions.PaymentGatewayException;
 import com.zh.learnhub_api.exceptions.ResourceNotFoundException;
+import com.zh.learnhub_api.mappers.PaymentMapper;
 import com.zh.learnhub_api.pojo.Enrollment;
 import com.zh.learnhub_api.pojo.Payment;
 import com.zh.learnhub_api.pojo.PaymentItem;
@@ -17,7 +18,8 @@ import com.zh.learnhub_api.repositories.course.CourseRepository;
 import com.zh.learnhub_api.repositories.learning.EnrollmentRepository;
 import com.zh.learnhub_api.repositories.payment.PaymentItemRepository;
 import com.zh.learnhub_api.repositories.payment.PaymentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 
@@ -26,28 +28,20 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class PaymentService {
 
-    @Autowired
-    protected UserRepository userRepository;
+    protected final UserRepository userRepository;
 
-    @Autowired
-    protected CourseRepository courseRepository;
+    protected final CourseRepository courseRepository;
 
-    @Autowired
-    protected EnrollmentRepository enrollmentRepository;
+    protected final EnrollmentRepository enrollmentRepository;
 
-    @Autowired
-    protected PaymentRepository paymentRepository;
+    protected final PaymentRepository paymentRepository;
 
-    @Autowired
-    protected PaymentItemRepository paymentItemRepository;
+    protected final PaymentItemRepository paymentItemRepository;
 
-    @Autowired
-    protected PaymentExpirationService expirationService;
-
-    @Autowired
-    protected AppProperties.Payment paymentProperties;
+    protected final AppProperties.Payment paymentProperties;
 
     public abstract PaymentMethod getProvider();
 
@@ -113,23 +107,14 @@ public abstract class PaymentService {
                 .build();
     }
 
-    @Transactional
-    public PaymentResponseDTO getPaymentStatus(Long paymentId, Long userId) {
-        Payment payment = paymentRepository
-                .findByIdAndUserId_Id(paymentId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn thanh toán"));
-        payment = expirationService.expireIfOverdue(payment, userId);
-        return toPaymentResponse(payment);
-    }
-
-    protected void completePayment(Payment payment, String transactionId) {
+    protected List<PaymentItem> completePayment(Payment payment, String transactionId) {
         LocalDateTime now = LocalDateTime.now();
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setTransactionId(transactionId);
         payment.setUpdatedAt(now);
         List<PaymentItem> items = paymentItemRepository.findByPaymentId(payment);
         if (items.isEmpty()) {
-            return;
+            return items;
         }
         List<Long> courseIds =
                 items.stream().map(item -> item.getCourseId().getId()).toList();
@@ -146,6 +131,7 @@ public abstract class PaymentService {
                 })
                 .toList();
         enrollmentRepository.saveAll(enrollments);
+        return items;
     }
 
     protected void failPayment(Payment payment) {
@@ -154,17 +140,6 @@ public abstract class PaymentService {
     }
 
     protected PaymentResponseDTO toPaymentResponse(Payment payment) {
-        List<Long> courseIds = paymentItemRepository.findByPaymentId(payment).stream()
-                .map(item -> item.getCourseId().getId())
-                .toList();
-        return PaymentResponseDTO.builder()
-                .paymentId(payment.getId())
-                .totalPrice(payment.getTotalPrice())
-                .paymentMethod(payment.getMethod())
-                .status(payment.getStatus())
-                .transactionId(payment.getTransactionId())
-                .createdAt(payment.getCreatedAt())
-                .paidCourseIds(courseIds)
-                .build();
+        return PaymentMapper.toDTO(payment, paymentItemRepository.findByPaymentId(payment));
     }
 }

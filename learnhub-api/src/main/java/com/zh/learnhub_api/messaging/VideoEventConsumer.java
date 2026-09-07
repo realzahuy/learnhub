@@ -5,7 +5,6 @@ import com.zh.learnhub_api.services.media.VideoTranscodeCallbackService;
 import com.zh.learnhub_api.services.media.VideoUploadService;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -15,7 +14,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-@ConditionalOnProperty(name = "video.storage.provider", havingValue = "s3")
 @RequiredArgsConstructor
 public class VideoEventConsumer {
 

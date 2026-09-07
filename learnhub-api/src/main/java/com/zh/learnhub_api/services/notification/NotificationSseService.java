@@ -65,7 +65,7 @@ public class NotificationSseService {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onNotificationCreated(Created event) {
+    public void onNotificationCreated(NotificationCreated event) {
         publish(event.recipientId(), event.notification());
     }
 
@@ -132,5 +132,4 @@ public class NotificationSseService {
         }
     }
 
-    public record Created(Long recipientId, NotificationResponseDTO notification) {}
 }

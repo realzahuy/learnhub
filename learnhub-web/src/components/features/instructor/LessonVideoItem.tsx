@@ -48,6 +48,7 @@ const LessonVideoItem = ({
   }, [video.title]);
 
   const finishEditing = async () => {
+    if (disabled || savingTitle) return;
     if (cancelRef.current) {
       cancelRef.current = false;
       setTitleDraft(video.title);
@@ -121,7 +122,7 @@ const LessonVideoItem = ({
               }
             }}
             maxLength={255}
-            disabled={savingTitle}
+            disabled={disabled || savingTitle}
             aria-label="Tên video"
           />
         ) : (

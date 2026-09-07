@@ -4,7 +4,7 @@ export interface Course {
   id: number;
   title: string;
   slug: string;
-  thumbnail: string;
+  thumbnail: string | null;
   price: number;
   instructorName: string;
   categoryName: string;
@@ -46,7 +46,7 @@ export interface CourseDetail {
   slug: string;
   shortDescription: string;
   description: string;
-  thumbnail: string;
+  thumbnail: string | null;
   price: number;
   instructorId: number;
   instructorName: string;
@@ -103,6 +103,8 @@ export interface CourseCreatePayload {
   categoryId: number;
   thumbnailFile?: File | null;
 }
+
+export type InstructorCourseListItem = Omit<InstructorCourse, 'description'>;
 
 export interface CourseCreatedResponse {
   id: number;

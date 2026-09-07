@@ -10,6 +10,7 @@ const NotificationBell = () => {
     unreadCount,
     isLoading,
     isLoadingMore,
+    error,
     hasMore,
     loadMore,
     markAsRead,
@@ -79,29 +80,36 @@ const NotificationBell = () => {
           <div className="notification-list">
             {isLoading && notifications.length === 0 ? (
               <div className="notification-empty">Đang tải thông báo...</div>
+            ) : error && notifications.length === 0 ? (
+              <div className="notification-empty">{error}</div>
             ) : notifications.length === 0 ? (
               <div className="notification-empty">
                 <i className="bi bi-bell-slash" />
                 <span>Bạn chưa có thông báo nào.</span>
               </div>
-            ) : visibleNotifications.map((notification) => (
-              <button
-                type="button"
-                key={notification.id}
-                className={`notification-item${notification.readAt ? '' : ' unread'}`}
-                onClick={() => void markAsRead(notification.id)}
-              >
-                <span className="notification-item-body">
-                  <span className="notification-item-heading">
-                    <strong>{notification.title}</strong>
-                  </span>
-                  <span className="notification-item-content">{notification.content}</span>
-                  <span className="notification-item-meta">
-                    {formatRelativeDate(notification.createdAt)}
-                  </span>
-                </span>
-              </button>
-            ))}
+            ) : (
+              <>
+                {error && <div className="notification-empty">{error}</div>}
+                {visibleNotifications.map((notification) => (
+                  <button
+                    type="button"
+                    key={notification.id}
+                    className={`notification-item${notification.readAt ? '' : ' unread'}`}
+                    onClick={() => void markAsRead(notification.id)}
+                  >
+                    <span className="notification-item-body">
+                      <span className="notification-item-heading">
+                        <strong>{notification.title}</strong>
+                      </span>
+                      <span className="notification-item-content">{notification.content}</span>
+                      <span className="notification-item-meta">
+                        {formatRelativeDate(notification.createdAt)}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </>
+            )}
 
             {notifications.length > 0 && canShowMore && (
               <div className="notification-show-more">
