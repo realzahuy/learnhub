@@ -362,6 +362,9 @@ ON course(status, created_at, id);
 CREATE INDEX idx_course_instructor_status_created
 ON course(instructor_id, status, created_at);
 
+CREATE INDEX idx_course_instructor_updated
+ON course(instructor_id, updated_at, id);
+
 CREATE INDEX idx_course_category
 ON course(category_id);
 
