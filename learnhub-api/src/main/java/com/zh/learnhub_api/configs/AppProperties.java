@@ -139,7 +139,9 @@ public final class AppProperties {
 
     @Validated
     @ConfigurationProperties("app.mail")
-    public record Mail(@NotBlank String fromName) {
+    public record Mail(
+            @NotBlank String fromAddress,
+            @NotBlank String fromName) {
     }
 
     @Validated

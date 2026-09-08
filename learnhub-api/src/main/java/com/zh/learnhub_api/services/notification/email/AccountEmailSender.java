@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 public class AccountEmailSender {
 
     private final JavaMailSender mailSender;
-    private final AppProperties.SpringMail springMailProperties;
     private final AppProperties.Mail mailProperties;
 
     public void sendVerificationCode(String toEmail, String code, int expireMinutes) {
@@ -57,7 +56,7 @@ public class AccountEmailSender {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
 
-            helper.setFrom(springMailProperties.username(), mailProperties.fromName());
+            helper.setFrom(mailProperties.fromAddress(), mailProperties.fromName());
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(html, true);
