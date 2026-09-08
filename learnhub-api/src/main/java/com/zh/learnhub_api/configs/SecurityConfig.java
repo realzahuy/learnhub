@@ -45,6 +45,8 @@ public class SecurityConfig {
                                 request, response, HttpStatus.FORBIDDEN, "Không có quyền truy cập")))
                 .authorizeHttpRequests(auth -> auth.dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR)
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/")
+                        .permitAll()
                         .requestMatchers("/api/auth/**")
                         .permitAll()
                         .requestMatchers("/api/chatbot/**")
@@ -69,17 +71,6 @@ public class SecurityConfig {
                         .hasRole("ADMIN")
                         .requestMatchers("/api/instructor/**")
                         .hasRole("INSTRUCTOR")
-                        .requestMatchers(
-                                "/",
-                                "/index.html",
-                                "/static/**",
-                                "/*.js",
-                                "/*.css",
-                                "/*.ico",
-                                "/*.png",
-                                "/*.jpg",
-                                "/*.json")
-                        .permitAll()
                         .requestMatchers("/api/**")
                         .authenticated()
                         .anyRequest()
