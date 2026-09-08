@@ -35,7 +35,7 @@ FROM deps as package
 
 WORKDIR /build
 
-COPY . src/
+COPY src/ src/
 RUN --mount=type=bind,source=pom.xml,target=pom.xml \
     --mount=type=cache,target=/root/.m2 \
     ./mvnw package -DskipTests && \
@@ -52,7 +52,7 @@ FROM package as extract
 
 WORKDIR /build
 
-RUN java -Djarmode=layertools -jar target/app.jar extract --destination target/extracted
+RUN java -Djarmode=tools -jar target/app.jar extract --layers --destination target/extracted
 
 ################################################################################
 
@@ -67,6 +67,7 @@ RUN java -Djarmode=layertools -jar target/app.jar extract --destination target/e
 # If reproducibility is important, consider using a specific digest SHA, like
 # eclipse-temurin@sha256:99cede493dfd88720b610eb8077c8688d3cca50003d76d1d539b0efc8cca72b4.
 FROM eclipse-temurin:21-jre-jammy AS final
+WORKDIR /application
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
@@ -89,4 +90,4 @@ COPY --from=extract build/target/extracted/application/ ./
 
 EXPOSE 8080
 
-ENTRYPOINT [ "java", "org.springframework.boot.loader.launch.JarLauncher" ]
+ENTRYPOINT ["java", "-jar", "app.jar"]
