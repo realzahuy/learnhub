@@ -174,7 +174,9 @@ public final class AppProperties {
 
     @Validated
     @ConfigurationProperties("aws.mediaconvert")
-    public record AwsMediaConvert(@NotBlank String roleArn) {
+    public record AwsMediaConvert(
+            @NotBlank String roleArn,
+            @NotBlank String queueArn) {
     }
 
     @Validated

@@ -24,6 +24,7 @@ public class MediaConvertTranscoder {
         String outputUri = videoStorageService.getHlsS3Uri(outputPath);
         JobSettings jobSettings = buildJobSettings(inputUri, outputUri);
         CreateJobRequest createJobRequest = CreateJobRequest.builder()
+                .queue(awsProperties.queueArn())
                 .role(awsProperties.roleArn())
                 .settings(jobSettings)
                 .statusUpdateInterval(StatusUpdateInterval.SECONDS_15)
