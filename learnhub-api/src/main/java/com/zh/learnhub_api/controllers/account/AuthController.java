@@ -111,6 +111,8 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(authProperties.refreshCookieSecure())
                 .sameSite(authProperties.refreshCookieSameSite())
+                .partitioned(authProperties.refreshCookieSecure()
+                        && "None".equalsIgnoreCase(authProperties.refreshCookieSameSite()))
                 .path(REFRESH_COOKIE_PATH);
     }
 }
