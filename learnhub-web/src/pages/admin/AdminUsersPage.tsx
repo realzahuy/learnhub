@@ -192,8 +192,11 @@ const AdminUsersPage: React.FC = () => {
         </div>
 
         {error && pageData && <div className="alert alert-danger">{error}</div>}
+        <div className="list-loading-status" role="status">
+          {loading && pageData ? 'Đang cập nhật…' : ''}
+        </div>
         <div
-          className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
+          className="motion-loading-region"
           aria-busy={loading}
         >
           {loading && !pageData ? (

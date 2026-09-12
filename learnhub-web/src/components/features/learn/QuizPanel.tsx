@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { learningService } from '../../../services/api/learning.service';
 import { Quiz, QuizResult } from '../../../types/quiz.types';
 import { getApiErrorMessage } from '../../../utils';
-import { PageSkeleton } from '../../common';
+import QuizSkeleton from './QuizSkeleton';
 import { queryKeys } from '../../../query/queryKeys';
 import './QuizPanel.css';
 
@@ -99,7 +99,7 @@ const QuizPanel = ({ lessonId }: QuizPanelProps) => {
   }, [submitting]);
 
   if (loading) {
-    return <PageSkeleton variant="list" count={4} className="quiz-panel" />;
+    return <QuizSkeleton />;
   }
 
   if (error || !quiz) {

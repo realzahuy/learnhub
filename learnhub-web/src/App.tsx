@@ -3,7 +3,6 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import { NotificationProvider } from './context/NotificationContext';
 import AppRoutes from './routes/AppRoutes';
@@ -21,15 +20,13 @@ function App() {
         <ToastProvider>
           <AuthProvider>
             <NotificationProvider>
-              <CartProvider>
-                <div className="App">
-                  <TopLoadingBar />
-                  <RouteTransition>
-                    <AppRoutes />
-                  </RouteTransition>
-                  <ScrollToTop />
-                </div>
-              </CartProvider>
+              <div className="App">
+                <TopLoadingBar />
+                <RouteTransition>
+                  <AppRoutes />
+                </RouteTransition>
+                <ScrollToTop />
+              </div>
             </NotificationProvider>
           </AuthProvider>
         </ToastProvider>

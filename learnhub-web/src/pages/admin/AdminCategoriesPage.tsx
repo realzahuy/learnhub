@@ -97,7 +97,7 @@ const AdminCategoriesPage: React.FC = () => {
             <p className="mb-0">Chưa có danh mục nào. Thêm danh mục đầu tiên ở ô phía trên.</p>
           </div>
         ) : (
-          <ul className="admin-category-list motion-stagger">
+          <ul className="admin-category-list">
             {categories.map((category) => (
               <li key={category.id} className="admin-category-row">
                 <span className="admin-category-name">{category.name}</span>

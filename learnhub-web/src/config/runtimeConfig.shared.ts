@@ -52,8 +52,6 @@ export const resolveConfiguredUrl = (
   try {
     resolved = new URL(value);
   } catch {
-    // Backend hiện trả đường dẫn bắt đầu bằng /api. Xem nó là đường dẫn
-    // tương đối với base đã cấu hình để không làm mất prefix của gateway.
     resolved = new URL(value.replace(/^\/+/, ''), baseUrl);
   }
 

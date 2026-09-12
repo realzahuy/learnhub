@@ -1,17 +1,14 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, ReactNode, useState, useCallback, useEffect, useRef } from 'react';
 import { Link, matchPath, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { uiConfig } from '../../config/uiConfig';
 import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
 import { ROLE_INSTRUCTOR } from '../../types/auth.types';
-import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
 import LogoutConfirmDialog from '../common/LogoutConfirmDialog';
-import HeaderSearch from './HeaderSearch';
 import { DesktopAccountMenu } from './HeaderAccountMenu';
 import HeaderMobileMenu from './HeaderMobileMenu';
-import NotificationBell from './NotificationBell';
 import { ROUTE_MATCH_PATTERNS, ROUTE_PATHS } from '../../routes/paths';
 import './Header.css';
+
+const NotificationBell = lazy(() => import('./NotificationBell'));
 
 const CartIcon: React.FC = () => (
   <i className="bi bi-bag cart-icon" aria-hidden="true" />
@@ -43,9 +40,13 @@ const useIsDesktopViewport = () => {
   return isDesktop;
 };
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  cartCount?: number;
+  renderSearch?: (mobile?: boolean) => ReactNode;
+}
+
+const Header = ({ cartCount = 0, renderSearch }: HeaderProps) => {
   const { user, isAuthenticated, logout, roles } = useAuth();
-  const { cartCount } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -65,11 +66,6 @@ const Header: React.FC = () => {
   const isCatalogMode = Boolean(
     matchPath(ROUTE_MATCH_PATTERNS.coursesArea, location.pathname)
   ) && !isLearningMode;
-  const [searchQuery, setSearchQuery] = useState(
-    () => location.pathname === ROUTE_PATHS.courses
-      ? new URLSearchParams(location.search).get('search') ?? ''
-      : ''
-  );
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
@@ -78,61 +74,10 @@ const Header: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
-  const goToSearch = useCallback(
-    (value: string) => {
-      const keyword = value.trim();
-      if (location.pathname === ROUTE_PATHS.courses) {
-        const next = new URLSearchParams(location.search);
-        if (keyword) next.set('search', keyword);
-        else next.delete('search');
-        next.set('page', '0');
-        navigate(`${ROUTE_PATHS.courses}?${next.toString()}`);
-        return;
-      }
-      navigate(
-        keyword
-          ? `${ROUTE_PATHS.courses}?search=${encodeURIComponent(keyword)}`
-          : ROUTE_PATHS.courses
-      );
-    },
-    [location.pathname, location.search, navigate]
-  );
-
-  const [debouncedGoToSearch, cancelPendingSearch] = useDebouncedCallback(
-    goToSearch,
-    uiConfig.timing.searchDebounceMs
-  );
-
   useEffect(() => {
-    cancelPendingSearch();
-    setSearchQuery(
-      location.pathname === ROUTE_PATHS.courses
-        ? new URLSearchParams(location.search).get('search') ?? ''
-        : ''
-    );
     setShowDropdown(false);
     setShowMobileUserMenu(false);
-  }, [cancelPendingSearch, location.pathname, location.search]);
-
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setSearchQuery(value);
-
-      debouncedGoToSearch(value);
-    },
-    [debouncedGoToSearch]
-  );
-
-  const handleSearchSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-
-      cancelPendingSearch();
-      goToSearch(searchQuery);
-    },
-    [cancelPendingSearch, goToSearch, searchQuery]
-  );
+  }, [location.pathname, location.search]);
 
   const requestLogout = useCallback(() => {
     setShowDropdown(false);
@@ -203,7 +148,7 @@ const Header: React.FC = () => {
         </Link>
 
         <div className="d-flex d-lg-none align-items-center gap-2 ms-auto">
-          {isAuthenticated && isInstructorMode && !isDesktopViewport && <NotificationBell />}
+          {isAuthenticated && isInstructorMode && !isDesktopViewport && <Suspense fallback={null}><NotificationBell /></Suspense>}
           <button
             className={`navbar-toggler user-menu-toggle${showMobileMenu ? ' is-open' : ''}`}
             type="button"
@@ -247,13 +192,7 @@ const Header: React.FC = () => {
           )}
         </div>
 
-        {!isInstructorMode && (
-          <HeaderSearch
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onSubmit={handleSearchSubmit}
-          />
-        )}
+        {renderSearch?.()}
 
         <div
           className={`header-actions d-none d-lg-flex align-items-center ${
@@ -286,7 +225,7 @@ const Header: React.FC = () => {
               </>
             ))}
 
-          {isAuthenticated && isInstructorMode && isDesktopViewport && <NotificationBell />}
+          {isAuthenticated && isInstructorMode && isDesktopViewport && <Suspense fallback={null}><NotificationBell /></Suspense>}
 
           {!isInstructorMode && (
             <NavLink
@@ -338,10 +277,8 @@ const Header: React.FC = () => {
           isInstructor={isInstructor}
           user={user}
           cartCount={cartCount}
-          searchQuery={searchQuery}
+          search={renderSearch?.(true)}
           isUserMenuOpen={showMobileUserMenu}
-          onSearchChange={handleSearchChange}
-          onSearchSubmit={handleSearchSubmit}
           onClose={() => {
             setShowMobileMenu(false);
             setShowMobileUserMenu(false);

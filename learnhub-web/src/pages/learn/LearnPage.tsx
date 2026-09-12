@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HlsPlayer, LoadingScreen, PageSkeleton } from '../../components/common';
-import {
-  LearnCourseSidebar,
-  LearnCourseTabs,
-  LearnTab,
-  QuizPanel,
-} from '../../components/features/learn';
+import LearnCourseSidebar from '../../components/features/learn/LearnCourseSidebar';
+import LearnCourseTabs from '../../components/features/learn/LearnCourseTabs';
+import QuizSkeleton from '../../components/features/learn/QuizSkeleton';
+import type { LearnTab } from '../../components/features/learn/learnView.types';
 import { useAuth } from '../../context/AuthContext';
 import { useLearningCourse } from '../../hooks/useLearningCourse';
 import { learningService } from '../../services/api/learning.service';
@@ -14,6 +12,8 @@ import { RecommendationCard } from '../../types/course.types';
 import { LearnVideo } from '../../types/learn.types';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './LearnPage.css';
+
+const QuizPanel = lazy(() => import('../../components/features/learn/QuizPanel'));
 
 const LearnPage = () => {
   const { slug, videoId, quizLessonId } = useParams<{
@@ -151,10 +151,12 @@ const LearnPage = () => {
           <main className="learn-main">
             <section className="learn-stage">
               {viewing?.kind === 'quiz' ? (
-                <QuizPanel
-                  key={viewing.lessonId}
-                  lessonId={viewing.lessonId}
-                />
+                <Suspense fallback={<QuizSkeleton />}>
+                  <QuizPanel
+                    key={viewing.lessonId}
+                    lessonId={viewing.lessonId}
+                  />
+                </Suspense>
               ) : (
                 <div className={`learn-video-frame${
                   viewing?.video.playbackUrl ? '' : ' is-empty'

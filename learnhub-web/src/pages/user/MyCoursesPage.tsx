@@ -107,8 +107,11 @@ const MyCoursesPage = () => {
             </div>
           </div>
 
+          <div className="list-loading-status" role="status">
+            {loading && pageData ? 'Đang cập nhật…' : ''}
+          </div>
           <div
-            className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
+            className="motion-loading-region"
             aria-busy={loading}
           >
           {loading && !pageData ? (
@@ -130,7 +133,7 @@ const MyCoursesPage = () => {
             </div>
           ) : (
             <>
-            <div className="row g-4 motion-stagger">
+            <div className="row g-4">
               {enrollments.map((enrollment) => {
                 const enrolled = formatLongDate(enrollment.enrolledAt);
 

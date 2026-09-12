@@ -23,12 +23,12 @@
   position: relative;
 }
 
-.motion-loading-region > * {
-  transition: opacity var(--motion-fast) ease;
-}
-
-.motion-loading-region.is-updating > * {
-  opacity: 0.52;
+.list-loading-status {
+  min-height: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+  text-align: right;
 }
 
 :is(.btn, .page-link, .app-dropdown-toggle, .confirm-dialog-btn):not(:disabled):active {

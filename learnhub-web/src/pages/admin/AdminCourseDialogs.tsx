@@ -1,7 +1,10 @@
+import { lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { InstructorCourse, COURSE_STATUS_LABELS } from '../../types/course.types';
 import { formatLongDate, formatPrice } from '../../utils';
-import AdminCourseContentPanel from './AdminCourseContentPanel';
+import PageSkeleton from '../../components/common/PageSkeleton';
+
+const AdminCourseContentPanel = lazy(() => import('./AdminCourseContentPanel'));
 
 interface AdminCourseDialogsProps {
   detailCourse: InstructorCourse | null;
@@ -74,7 +77,9 @@ const AdminCourseDialogs = ({
               )}
               <div className="admin-detail-section">
                 <h6>Nội dung khóa học</h6>
-                <AdminCourseContentPanel courseId={detailCourse.id} />
+                <Suspense fallback={<PageSkeleton variant="list" count={4} />}>
+                  <AdminCourseContentPanel courseId={detailCourse.id} />
+                </Suspense>
               </div>
             </div>
             {detailCourse.status === 'PENDING' && (

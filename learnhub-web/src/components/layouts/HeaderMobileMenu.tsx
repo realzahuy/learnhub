@@ -1,8 +1,7 @@
-import { ChangeEventHandler, FormEventHandler, RefObject } from 'react';
+import { ReactNode, RefObject } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { AuthenticatedUser } from '../../types/auth.types';
 import { MobileAccountMenu } from './HeaderAccountMenu';
-import HeaderSearch from './HeaderSearch';
 import { ROUTE_PATHS } from '../../routes/paths';
 
 interface HeaderMobileMenuProps {
@@ -13,10 +12,8 @@ interface HeaderMobileMenuProps {
   isInstructor: boolean;
   user: AuthenticatedUser | null;
   cartCount: number;
-  searchQuery: string;
+  search?: ReactNode;
   isUserMenuOpen: boolean;
-  onSearchChange: ChangeEventHandler<HTMLInputElement>;
-  onSearchSubmit: FormEventHandler<HTMLFormElement>;
   onClose: () => void;
   onToggleUserMenu: () => void;
   onLogin: () => void;
@@ -31,10 +28,8 @@ const HeaderMobileMenu = ({
   isInstructor,
   user,
   cartCount,
-  searchQuery,
+  search,
   isUserMenuOpen,
-  onSearchChange,
-  onSearchSubmit,
   onClose,
   onToggleUserMenu,
   onLogin,
@@ -59,9 +54,7 @@ const HeaderMobileMenu = ({
       </button>
     </div>
     <div className="mobile-menu-content">
-      {!isInstructorMode && (
-        <HeaderSearch mobile value={searchQuery} onChange={onSearchChange} onSubmit={onSearchSubmit} />
-      )}
+      {search}
       {isInstructorMode ? (
         <>
           <NavLink to={ROUTE_PATHS.instructorCourses} className="mobile-menu-item" onClick={onClose}>Quản lý khóa học</NavLink>

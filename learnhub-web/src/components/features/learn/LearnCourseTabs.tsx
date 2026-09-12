@@ -1,11 +1,13 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { RecommendationCard } from '../../../types/course.types';
 import { LearnCourse } from '../../../types/learn.types';
 import { CourseThumbnail, PageSkeleton } from '../../common';
-import CourseReviewSection from '../review/CourseReviewSection';
 import { formatPrice } from '../../../utils';
 import { LearnTab } from './learnView.types';
 import { routeTo } from '../../../routes/paths';
+
+const CourseReviewSection = lazy(() => import('../review/CourseReviewSection'));
 
 interface LearnCourseTabsProps {
   course: LearnCourse;
@@ -60,7 +62,7 @@ const LearnCourseTabs = ({
             Không có khóa học đề xuất
           </p>
         ) : (
-          <div className="learn-recommendation-grid motion-stagger">
+          <div className="learn-recommendation-grid">
             {recommendations.map((recommendation) => (
               <Link
                 key={recommendation.slug}
@@ -87,7 +89,9 @@ const LearnCourseTabs = ({
 
     {reviewsActivated && course.slug === slug && (
       <div className="learn-tab-panel learn-review-panel" hidden={activeTab !== 'reviews'}>
-        <CourseReviewSection slug={slug} isEnrolled />
+        <Suspense fallback={<PageSkeleton variant="list" count={3} />}>
+          <CourseReviewSection slug={slug} isEnrolled />
+        </Suspense>
       </div>
     )}
   </div>

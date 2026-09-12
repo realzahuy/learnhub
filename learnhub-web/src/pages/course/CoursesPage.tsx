@@ -138,8 +138,11 @@ const CoursesPage = () => {
             </div>
           </div>
 
+          <div className="list-loading-status" role="status">
+            {loading && pageData ? 'Đang cập nhật…' : ''}
+          </div>
           <div
-            className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
+            className="motion-loading-region"
             aria-busy={loading}
           >
           {loading && !pageData ? (
@@ -154,7 +157,7 @@ const CoursesPage = () => {
             </div>
           ) : (
             <>
-              <div className="row g-4 motion-stagger">
+              <div className="row g-4">
                 {courses.map((course) => {
                   const categoryColor = getCategoryColor(course.categoryName);
                   return <div key={course.id} className="col-12 col-sm-6 col-md-4 col-lg-3">

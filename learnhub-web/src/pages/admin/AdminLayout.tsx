@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogoutConfirmDialog, UserAvatar } from '../../components/common';
-import { Footer } from '../../components/layouts';
+import Footer from '../../components/layouts/Footer';
 
 import './adminShared.css';
 import './AdminLayout.css';

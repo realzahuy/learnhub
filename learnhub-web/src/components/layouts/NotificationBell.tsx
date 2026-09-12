@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { uiConfig } from '../../config/uiConfig';
-import { useNotificationHistory } from '../../context/NotificationContext';
+import { useNotificationHistory } from '../../context/InstructorNotificationContext';
 import { formatRelativeDate } from '../../utils';
 import './NotificationBell.css';
 

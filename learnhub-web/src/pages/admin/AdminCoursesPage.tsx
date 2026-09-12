@@ -199,8 +199,11 @@ const AdminCoursesPage: React.FC = () => {
         </div>
 
         {error && pageData && <div className="alert alert-danger">{error}</div>}
+        <div className="list-loading-status" role="status">
+          {loading && pageData ? 'Đang cập nhật…' : ''}
+        </div>
         <div
-          className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
+          className="motion-loading-region"
           aria-busy={loading}
         >
           {loading && !pageData ? (
@@ -229,19 +232,21 @@ const AdminCoursesPage: React.FC = () => {
         </div>
       </div>
 
-      <AdminCourseDialogs
-        detailCourse={detailCourse}
-        rejectingCourse={rejectingCourse}
-        processingId={processingId}
-        rejectComment={rejectComment}
-        rejectError={rejectError}
-        onCloseDetail={() => setDetailCourse(null)}
-        onApprove={handleApprove}
-        onOpenReject={openReject}
-        onRejectCommentChange={setRejectComment}
-        onCloseReject={() => setRejectingCourse(null)}
-        onSubmitReject={submitReject}
-      />
+      {(detailCourse || rejectingCourse) && (
+        <AdminCourseDialogs
+          detailCourse={detailCourse}
+          rejectingCourse={rejectingCourse}
+          processingId={processingId}
+          rejectComment={rejectComment}
+          rejectError={rejectError}
+          onCloseDetail={() => setDetailCourse(null)}
+          onApprove={handleApprove}
+          onOpenReject={openReject}
+          onRejectCommentChange={setRejectComment}
+          onCloseReject={() => setRejectingCourse(null)}
+          onSubmitReject={submitReject}
+        />
+      )}
     </>
   );
 };

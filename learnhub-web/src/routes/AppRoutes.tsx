@@ -1,8 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { InstructorLayout, PublicLayout } from '../components/layouts';
 import LoadingScreen from '../components/common/LoadingScreen';
-import ChatbotWidget from '../components/features/chat/ChatbotWidget';
 import { ROLE_ADMIN, ROLE_INSTRUCTOR } from '../types/auth.types';
 import RequireRole from './RequireRole';
 import { PROFILE_ROUTE_SEGMENTS, ROUTE_PATHS } from './paths';
@@ -34,11 +32,16 @@ const AdminProfilePage = lazy(() => import('../pages/admin/AdminProfilePage'));
 const AdminChangePasswordPage = lazy(() => import('../pages/admin/AdminChangePasswordPage'));
 const AdminForgotPasswordPage = lazy(() => import('../pages/admin/AdminForgotPasswordPage'));
 const AdminLayout = lazy(() => import('../pages/admin/AdminLayout'));
+const PublicLayout = lazy(() => import('../components/layouts/PublicLayout'));
+const InstructorLayout = lazy(() => import('../components/layouts/InstructorLayout'));
+const ChatbotWidget = lazy(() => import('../components/features/chat/ChatbotWidget'));
 
 const LearnerChatbotLayout = () => (
   <>
     <Outlet />
-    <ChatbotWidget />
+    <Suspense fallback={null}>
+      <ChatbotWidget />
+    </Suspense>
   </>
 );
 

@@ -7,7 +7,7 @@ import {
 } from '../../types/realtime.types';
 import { notifyAccountLocked } from '../authSessionEvents';
 import { buildApiUrl } from '../../config/runtimeConfig';
-import apiClient, { authenticatedFetch } from './config';
+import { authenticatedFetch } from './config';
 import { consumeJsonSseEvents } from './sse';
 
 interface RealtimeStreamHandlers {
@@ -16,42 +16,7 @@ interface RealtimeStreamHandlers {
   onCourseStatusChanged?: (event: CourseStatusChangedEvent) => void;
 }
 
-interface NotificationPage {
-  content: AppNotification[];
-  last: boolean;
-  unreadCount: number;
-  nextCursorCreatedAt: string | null;
-  nextCursorId: number | null;
-}
-
-export interface NotificationCursor {
-  createdAt: string;
-  id: number;
-}
-
 export const notificationService = {
-  list: async (
-    cursor: NotificationCursor | null,
-    size: number,
-    signal?: AbortSignal
-  ): Promise<NotificationPage> => {
-    const response = await apiClient.get<NotificationPage>('/notifications', {
-      params: {
-        size,
-        cursorCreatedAt: cursor?.createdAt,
-        cursorId: cursor?.id,
-      },
-      signal,
-      showTopProgress: false,
-    });
-    return response.data;
-  },
-
-  markAsRead: async (id: number): Promise<AppNotification> => {
-    const response = await apiClient.put<AppNotification>(`/notifications/${id}/read`);
-    return response.data;
-  },
-
   stream: async (
     handlers: RealtimeStreamHandlers,
     signal: AbortSignal

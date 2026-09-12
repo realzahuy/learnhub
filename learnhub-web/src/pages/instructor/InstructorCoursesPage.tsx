@@ -162,8 +162,11 @@ const InstructorCoursesPage: React.FC = () => {
             </div>
           </div>
 
+          <div className="list-loading-status" role="status">
+            {loading && pageData ? 'Đang cập nhật…' : ''}
+          </div>
           <div
-            className={`motion-loading-region${loading && pageData ? ' is-updating' : ''}`}
+            className="motion-loading-region"
             aria-busy={loading}
           >
           {loading && !pageData ? (
@@ -182,7 +185,7 @@ const InstructorCoursesPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="row g-4 motion-stagger">
+              <div className="row g-4">
                 {courses.map((course) => {
                   const created = formatLongDate(course.createdAt);
                   return (

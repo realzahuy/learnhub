@@ -9,7 +9,7 @@ interface AdminUserTableProps {
 }
 
 const AdminUserTable = ({ users, onSelect }: AdminUserTableProps) => (
-  <div className="admin-table-wrap motion-content-enter">
+  <div className="admin-table-wrap">
     <table className="admin-table">
       <thead>
         <tr>

@@ -9,7 +9,7 @@ const AdminCourseTable = ({
   courses: InstructorCourse[];
   onSelect: (course: InstructorCourse) => void;
 }) => (
-  <div className="admin-table-wrap motion-content-enter">
+  <div className="admin-table-wrap">
     <table className="admin-table">
       <thead>
         <tr>
