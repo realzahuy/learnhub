@@ -362,6 +362,14 @@
   padding: 0.15rem 0.4rem;
 }
 
+.lesson-question-item {
+  flex-wrap: wrap;
+}
+
+.lesson-question-item > .question-draft {
+  flex-basis: 100%;
+}
+
 .lesson-question-toggle {
   display: flex;
   align-items: center;

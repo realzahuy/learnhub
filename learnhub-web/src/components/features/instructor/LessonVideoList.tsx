@@ -227,7 +227,7 @@ const LessonVideoList: React.FC<LessonVideoListProps> = ({
 
       {error && <span className="lesson-media-error">{error}</span>}
 
-      {isAdding && (
+      {isAdding && !uploading && (
         <div className="lesson-media-add-form">
           <div className="lesson-media-add">
             <input

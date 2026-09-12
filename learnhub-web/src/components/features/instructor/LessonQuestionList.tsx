@@ -74,13 +74,14 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
   onAddFinished,
   onBusyChange,
 }) => {
-  const [draft, setDraft] = useState<DraftQuestion | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [newQuestionDraft, setNewQuestionDraft] = useState<DraftQuestion | null>(null);
+  const [editingDraft, setEditingDraft] = useState<DraftQuestion | null>(null);
+  const [savingDraft, setSavingDraft] = useState<DraftQuestion | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const operationRef = useRef(false);
-  const ownBusy = saving || savingOrder || deleting;
+  const ownBusy = savingDraft !== null || savingOrder || deleting;
 
   useEffect(() => {
     onBusyChange(ownBusy);
@@ -89,11 +90,11 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
   useEffect(() => () => onBusyChange(false), [onBusyChange]);
 
   useEffect(() => {
-    if (isAdding && draft === null) {
+    if (isAdding && newQuestionDraft === null) {
       setError(null);
-      setDraft(emptyDraft());
+      setNewQuestionDraft(emptyDraft());
     }
-  }, [draft, isAdding]);
+  }, [newQuestionDraft, isAdding]);
 
   const rollbackRef = useRef<Question[] | null>(null);
 
@@ -148,13 +149,15 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
 
   const drag = useDragReorder(questions, applyOrder);
 
-  const updateDraft = useCallback((patch: Partial<DraftQuestion>) => {
+  const updateDraft = useCallback((id: number | null, patch: Partial<DraftQuestion>) => {
     setError(null);
+    const setDraft = id === null ? setNewQuestionDraft : setEditingDraft;
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
   }, []);
 
-  const updateAnswer = useCallback((index: number, patch: Partial<DraftAnswer>) => {
+  const updateAnswer = useCallback((id: number | null, index: number, patch: Partial<DraftAnswer>) => {
     setError(null);
+    const setDraft = id === null ? setNewQuestionDraft : setEditingDraft;
     setDraft((prev) => {
       if (!prev) return prev;
       const answers = prev.answers.map((a, i) => (i === index ? { ...a, ...patch } : a));
@@ -162,8 +165,8 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
     });
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!draft || disabled || operationRef.current) return;
+  const handleSave = useCallback(async (draft: DraftQuestion) => {
+    if (disabled || operationRef.current) return;
 
     const validationError = validateDraft(draft);
     if (validationError) {
@@ -179,27 +182,28 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
     };
 
     operationRef.current = true;
-    setSaving(true);
+    setSavingDraft(draft);
     setError(null);
     try {
       if (draft.id === null) {
         const created = await questionService.create(lesson.id, payload);
         onQuestionsChange(lesson.id, (previous) => [...previous, created]);
+        setNewQuestionDraft(null);
         onAddFinished();
       } else {
         const updated = await questionService.update(draft.id, payload);
         onQuestionsChange(lesson.id, (previous) =>
           previous.map((question) => (question.id === updated.id ? updated : question))
         );
+        setEditingDraft(null);
       }
-      setDraft(null);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Không lưu được câu hỏi. Vui lòng thử lại.'));
     } finally {
       operationRef.current = false;
-      setSaving(false);
+      setSavingDraft(null);
     }
-  }, [disabled, draft, lesson.id, onQuestionsChange, onAddFinished]);
+  }, [disabled, lesson.id, onQuestionsChange, onAddFinished]);
 
   const handleDelete = useCallback(
     async (question: Question) => {
@@ -212,6 +216,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
         onQuestionsChange(lesson.id, (previous) =>
           previous.filter((current) => current.id !== question.id)
         );
+        setEditingDraft((previous) => previous?.id === question.id ? null : previous);
       } catch (err) {
         setError(getApiErrorMessage(err, 'Không xóa được câu hỏi. Vui lòng thử lại.'));
       } finally {
@@ -224,9 +229,109 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
 
   const busy = disabled || ownBusy;
 
+  const renderDraft = (draft: DraftQuestion) => (
+    <div className="question-draft">
+      <input
+        type="text"
+        className="form-control"
+        placeholder="Nội dung câu hỏi"
+        value={draft.question}
+        onChange={(e) => updateDraft(draft.id, { question: e.target.value })}
+        maxLength={1000}
+        disabled={busy}
+      />
+
+      <ul className="question-draft-answers">
+        {draft.answers.map((answer, index) => (
+
+          <li className="question-draft-answer" key={answer.clientId}>
+            <label className="question-draft-correct" title="Đánh dấu đáp án đúng">
+              <input
+                type="checkbox"
+                checked={answer.isCorrect}
+                onChange={(e) => updateAnswer(draft.id, index, { isCorrect: e.target.checked })}
+                disabled={busy}
+              />
+            </label>
+
+            <input
+              type="text"
+              className="form-control"
+              placeholder={`Đáp án ${index + 1}`}
+              value={answer.answer}
+              onChange={(e) => updateAnswer(draft.id, index, { answer: e.target.value })}
+              maxLength={500}
+              disabled={busy}
+            />
+
+            {draft.answers.length > MIN_ANSWERS && (
+              <button
+                type="button"
+                className="btn-lesson-icon btn-lesson-icon-danger"
+                onClick={() =>
+                  updateDraft(draft.id, { answers: draft.answers.filter((_, i) => i !== index) })
+                }
+                disabled={busy}
+                aria-label={`Xóa đáp án ${index + 1}`}
+              >
+                Xóa
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <div className="question-draft-actions">
+        <button
+          type="button"
+          className="btn-lesson-add-inline"
+          onClick={() =>
+            updateDraft(draft.id, { answers: [...draft.answers, newDraftAnswer()] })
+          }
+          disabled={busy || draft.answers.length >= MAX_ANSWERS}
+          title={
+            draft.answers.length >= MAX_ANSWERS
+              ? `Tối đa ${MAX_ANSWERS} đáp án`
+              : undefined
+          }
+        >
+          <i className="bi bi-plus-lg"></i>
+          Thêm đáp án
+        </button>
+
+        <div className="question-draft-actions-right">
+          <button
+            type="button"
+            className="btn-lesson-ghost"
+            onClick={() => {
+              setError(null);
+              if (draft.id === null) {
+                setNewQuestionDraft(null);
+                onAddFinished();
+              } else {
+                setEditingDraft(null);
+              }
+            }}
+            disabled={busy}
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            className="btn-lesson-add"
+            onClick={() => handleSave(draft)}
+            disabled={busy}
+          >
+            {savingDraft?.id === draft.id ? 'Đang lưu...' : 'Lưu câu hỏi'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="lesson-media">
-      {questions.length === 0 && !draft ? (
+      {questions.length === 0 && !newQuestionDraft ? (
         <p className="lesson-media-empty">
           <i className="bi bi-patch-question"></i>
           Chưa có câu hỏi
@@ -238,7 +343,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
 
             return (
               <li
-                className={`lesson-media-item${drag.isDragging(question.id) ? ' is-dragging' : ''}${
+                className={`lesson-media-item lesson-question-item${drag.isDragging(question.id) ? ' is-dragging' : ''}${
                   drag.isDropTarget(question.id) ? ' is-drop-target' : ''
                 }`}
                 key={question.id}
@@ -261,11 +366,11 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                   className="lesson-media-body lesson-question-toggle"
                   onClick={() => {
                     setError(null);
-                    setDraft(toDraft(question));
+                    setEditingDraft((previous) => previous?.id === question.id ? null : toDraft(question));
                   }}
                   disabled={busy}
-                  aria-expanded={draft?.id === question.id}
-                  title="Bấm để mở và sửa câu hỏi"
+                  aria-expanded={editingDraft?.id === question.id}
+                  title={editingDraft?.id === question.id ? 'Thu gọn câu hỏi' : 'Bấm để mở và sửa câu hỏi'}
                 >
                   <span>
                     <span className="lesson-media-title">{question.question}</span>
@@ -274,7 +379,7 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                       {question.answers.filter((answer) => answer.isCorrect).length} đáp án đúng
                     </span>
                   </span>
-                  <i className={`bi bi-chevron-down lesson-question-chevron${draft?.id === question.id ? ' is-open' : ''}`} />
+                  <i className={`bi bi-chevron-down lesson-question-chevron${editingDraft?.id === question.id ? ' is-open' : ''}`} />
                 </button>
                 <button
                   type="button"
@@ -286,108 +391,14 @@ const LessonQuestionList: React.FC<LessonQuestionListProps> = ({
                 >
                   Xóa
                 </button>
+                {editingDraft?.id === question.id && renderDraft(editingDraft)}
               </li>
             );
           })}
         </ol>
       )}
 
-      {draft && (
-        <div className="question-draft">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Nội dung câu hỏi"
-            value={draft.question}
-            onChange={(e) => updateDraft({ question: e.target.value })}
-            maxLength={1000}
-            disabled={busy}
-          />
-
-          <ul className="question-draft-answers">
-            {draft.answers.map((answer, index) => (
-
-              <li className="question-draft-answer" key={answer.clientId}>
-                <label className="question-draft-correct" title="Đánh dấu đáp án đúng">
-                  <input
-                    type="checkbox"
-                    checked={answer.isCorrect}
-                    onChange={(e) => updateAnswer(index, { isCorrect: e.target.checked })}
-                    disabled={busy}
-                  />
-                </label>
-
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder={`Đáp án ${index + 1}`}
-                  value={answer.answer}
-                  onChange={(e) => updateAnswer(index, { answer: e.target.value })}
-                  maxLength={500}
-                  disabled={busy}
-                />
-
-                {draft.answers.length > MIN_ANSWERS && (
-                  <button
-                    type="button"
-                    className="btn-lesson-icon btn-lesson-icon-danger"
-                    onClick={() =>
-                      updateDraft({ answers: draft.answers.filter((_, i) => i !== index) })
-                    }
-                    disabled={busy}
-                    aria-label={`Xóa đáp án ${index + 1}`}
-                  >
-                    Xóa
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <div className="question-draft-actions">
-            <button
-              type="button"
-              className="btn-lesson-add-inline"
-              onClick={() =>
-                updateDraft({ answers: [...draft.answers, newDraftAnswer()] })
-              }
-              disabled={busy || draft.answers.length >= MAX_ANSWERS}
-              title={
-                draft.answers.length >= MAX_ANSWERS
-                  ? `Tối đa ${MAX_ANSWERS} đáp án`
-                  : undefined
-              }
-            >
-              <i className="bi bi-plus-lg"></i>
-              Thêm đáp án
-            </button>
-
-            <div className="question-draft-actions-right">
-              <button
-                type="button"
-                className="btn-lesson-ghost"
-                onClick={() => {
-                  const wasCreating = draft.id === null;
-                  setError(null);
-                  setDraft(null);
-                  if (wasCreating) onAddFinished();
-                }}
-                disabled={busy}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="btn-lesson-add"
-                onClick={handleSave}
-                disabled={busy}
-              >
-                {saving ? 'Đang lưu...' : 'Lưu câu hỏi'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {isAdding && newQuestionDraft && renderDraft(newQuestionDraft)}
 
       {error && <span className="lesson-media-error">{error}</span>}
 
