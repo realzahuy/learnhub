@@ -126,6 +126,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler({ExternalServiceException.class, PaymentGatewayException.class})
     public ResponseEntity<ProblemDetail> handleExternalServiceFailure(
             RuntimeException ex, HttpServletRequest request) {
+        logger.error("HTTP 502: " + request.getMethod() + " " + request.getRequestURI(), ex);
         return response(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
     }
 
@@ -138,6 +139,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGenericException(
             Exception ex, HttpServletRequest request) {
+        logger.error("HTTP 500: " + request.getMethod() + " " + request.getRequestURI(), ex);
         return response(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Đã xảy ra lỗi hệ thống",

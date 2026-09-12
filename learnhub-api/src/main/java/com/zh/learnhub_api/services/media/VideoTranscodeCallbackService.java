@@ -8,6 +8,7 @@ import com.zh.learnhub_api.pojo.Video;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.cache.ApplicationCacheInvalidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class VideoTranscodeCallbackService {
 
     private final VideoRepository videoRepository;
@@ -25,7 +27,9 @@ public class VideoTranscodeCallbackService {
     private final ApplicationCacheInvalidator cacheInvalidator;
 
     @Transactional
-    public void handleJobStateChange(String jobId, String status, Integer durationSeconds, Integer progress) {
+    public void handleJobStateChange(
+            String jobId, String status, Integer durationSeconds, Integer progress,
+            String errorCode, String errorMessage) {
         Video video = videoRepository.findByMediaconvertJobId(jobId).orElse(null);
         if (video == null) {
             return;
@@ -49,6 +53,8 @@ public class VideoTranscodeCallbackService {
         }
 
         if ("ERROR".equals(status) || "CANCELED".equals(status)) {
+            log.warn("Transcode failed: videoId={} jobId={} status={} code={} message={}",
+                    video.getId(), jobId, status, errorCode, errorMessage);
             videoLifecycle.markFailed(video, LocalDateTime.now());
             evictPublishedCourseDetail(video);
             videoProgressSseService.publishAfterCommit(courseId, video.getId(), VideoStatus.FAILED, progress);

@@ -4,6 +4,7 @@ import com.zh.learnhub_api.enums.VideoStatus;
 import com.zh.learnhub_api.repositories.media.VideoRepository;
 import com.zh.learnhub_api.services.media.mediaconvert.MediaConvertTranscoder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MediaCleanupService {
 
     private final VideoRepository videoRepository;
@@ -25,13 +27,16 @@ public class MediaCleanupService {
         List<String> runningJobs = videoRepository.findJobIdsByCourseIdAndStatus(courseId, VideoStatus.PROCESSING);
 
         afterCommit(() -> {
-            runningJobs.forEach(jobId -> runBestEffort(() -> mediaConvertService.cancelJob(jobId)));
+            runningJobs.forEach(jobId -> runBestEffort(
+                    "cancel job " + jobId, () -> mediaConvertService.cancelJob(jobId)));
 
             if (deleteThumbnail) {
-                runBestEffort(() -> imageStorageService.deleteCourseThumbnail(courseId));
+                runBestEffort("delete thumbnail courseId=" + courseId,
+                        () -> imageStorageService.deleteCourseThumbnail(courseId));
             }
 
-            runBestEffort(() -> videoStorageService.deleteCourseVideos(courseId));
+            runBestEffort("delete videos courseId=" + courseId,
+                    () -> videoStorageService.deleteCourseVideos(courseId));
         });
     }
 
@@ -39,8 +44,10 @@ public class MediaCleanupService {
         List<String> runningJobs = videoRepository.findJobIdsByLessonIdAndStatus(lessonId, VideoStatus.PROCESSING);
 
         afterCommit(() -> {
-            runningJobs.forEach(jobId -> runBestEffort(() -> mediaConvertService.cancelJob(jobId)));
-            runBestEffort(() -> videoStorageService.deleteLessonVideos(courseId, lessonId));
+            runningJobs.forEach(jobId -> runBestEffort(
+                    "cancel job " + jobId, () -> mediaConvertService.cancelJob(jobId)));
+            runBestEffort("delete videos courseId=" + courseId + " lessonId=" + lessonId,
+                    () -> videoStorageService.deleteLessonVideos(courseId, lessonId));
         });
     }
 
@@ -50,13 +57,14 @@ public class MediaCleanupService {
         }
 
         afterCommit(() -> {
-            runBestEffort(() -> videoStorageService.deleteVideo(rawObjectKey));
-            runBestEffort(() -> videoStorageService.deleteHlsOutputOf(rawObjectKey));
+            runBestEffort("delete raw " + rawObjectKey, () -> videoStorageService.deleteVideo(rawObjectKey));
+            runBestEffort("delete HLS " + rawObjectKey, () -> videoStorageService.deleteHlsOutputOf(rawObjectKey));
         });
     }
 
     public void scheduleRawVideoCleanup(String rawObjectKey) {
-        afterCommit(() -> runBestEffort(() -> videoStorageService.deleteVideo(rawObjectKey)));
+        afterCommit(() -> runBestEffort(
+                "delete raw " + rawObjectKey, () -> videoStorageService.deleteVideo(rawObjectKey)));
     }
 
     private void afterCommit(Runnable task) {
@@ -70,10 +78,11 @@ public class MediaCleanupService {
 
     public record CleanupRequested(Runnable task) {}
 
-    private void runBestEffort(Runnable task) {
+    private void runBestEffort(String operation, Runnable task) {
         try {
             task.run();
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ex) {
+            log.warn("Media cleanup failed: {}", operation, ex);
         }
     }
 }

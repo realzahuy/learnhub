@@ -5,7 +5,9 @@ import com.zh.learnhub_api.dtos.course.RecommendationCardDTO;
 import com.zh.learnhub_api.services.vector.CourseVectorStore;
 import com.zh.learnhub_api.services.vector.CourseVectorStore.Match;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,6 +16,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LearningRecommendationService {
 
     private final CourseVectorStore courseVectorStore;
@@ -31,8 +34,14 @@ public class LearningRecommendationService {
         qdrantExcludedIds.add(currentCourseId);
 
         int resultLimit = recommendationProperties.resultLimit();
-        List<Match> matches = courseVectorStore.findSimilar(
-                currentCourseId, resultLimit, qdrantExcludedIds, recommendationProperties.minimumVectorScore());
+        List<Match> matches;
+        try {
+            matches = courseVectorStore.findSimilar(
+                    currentCourseId, resultLimit, qdrantExcludedIds, recommendationProperties.minimumVectorScore());
+        } catch (RestClientException ex) {
+            log.warn("Course recommendations unavailable: courseId={}", currentCourseId, ex);
+            return List.of();
+        }
         if (matches.isEmpty()) {
             return List.of();
         }

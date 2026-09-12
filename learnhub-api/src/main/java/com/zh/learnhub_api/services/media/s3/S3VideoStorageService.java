@@ -3,6 +3,7 @@ package com.zh.learnhub_api.services.media.s3;
 import com.zh.learnhub_api.configs.AppProperties;
 import com.zh.learnhub_api.services.media.VideoStorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -19,6 +20,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class S3VideoStorageService implements VideoStorageService {
 
     private static final DateTimeFormatter AMZ_DATE_FORMAT =
@@ -190,10 +192,14 @@ public class S3VideoStorageService implements VideoStorageService {
                 continue;
             }
 
-            s3Client.deleteObjects(DeleteObjectsRequest.builder()
+            DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder()
                 .bucket(bucket)
                 .delete(Delete.builder().objects(keys).quiet(true).build())
                 .build());
+            for (S3Error error : response.errors()) {
+                log.warn("S3 delete failed: bucket={} key={} code={} message={}",
+                        bucket, error.key(), error.code(), error.message());
+            }
         }
     }
 }

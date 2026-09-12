@@ -60,7 +60,8 @@ public class VideoEventConsumer {
         }
 
         videoTranscodeCallbackService.handleJobStateChange(
-                jobId, status, extractDurationSeconds(detail), extractProgress(detail));
+                jobId, status, extractDurationSeconds(detail), extractProgress(detail),
+                textOrNull(detail, "errorCode"), textOrNull(detail, "errorMessage"));
     }
 
     private Integer extractDurationSeconds(JsonNode detail) {
