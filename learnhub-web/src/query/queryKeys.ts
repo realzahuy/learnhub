@@ -71,6 +71,7 @@ export const queryKeys = {
   adminCourses: {
     all: ['admin-courses'] as const,
     list: (filters: AdminCourseFilters) => [...queryKeys.adminCourses.all, filters] as const,
+    content: (courseId: number) => [...queryKeys.adminCourses.all, 'content', courseId] as const,
   },
   publicInstructors: {
     all: ['public-instructors'] as const,

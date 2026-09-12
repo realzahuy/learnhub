@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '../../query/queryKeys';
 import { HlsPlayer, PageSkeleton } from '../../components/common';
 import { adminService } from '../../services/api/admin.service';
 import { AdminCourseContent, AdminLessonContent } from '../../types/admin.types';
@@ -120,43 +122,32 @@ const LessonBlock: React.FC<{ lesson: AdminLessonContent }> = ({ lesson }) => {
 };
 
 const AdminCourseContentPanel: React.FC<AdminCourseContentPanelProps> = ({ courseId }) => {
-  const [content, setContent] = useState<AdminCourseContent | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-
-    adminService
-      .getCourseContent(courseId, controller.signal)
-      .then((data) => {
-        if (!controller.signal.aborted) setContent(data);
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        setError(getApiErrorMessage(err, 'Không tải được nội dung khóa học.'));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [courseId]);
+  const contentQuery = useQuery<AdminCourseContent>({
+    queryKey: queryKeys.adminCourses.content(courseId),
+    queryFn: ({ signal }) => adminService.getCourseContent(courseId, signal),
+  });
+  const content = contentQuery.data;
+  const loading = contentQuery.isPending;
+  const error = contentQuery.error
+    ? getApiErrorMessage(contentQuery.error, 'Không tải được nội dung khóa học.')
+    : null;
 
   if (loading) {
-    return <PageSkeleton variant="list" count={4} />;
+    return <PageSkeleton variant="lessons" count={3} />;
   }
 
-  if (error) {
+  if (error && !content) {
     return <div className="alert alert-warning py-2 mb-0">{error}</div>;
   }
 
   if (!content) return null;
 
   return (
-    <div className="admin-content-panel">
+    <div className="admin-content-panel" aria-busy={contentQuery.isFetching}>
+      <div className="list-loading-status" role="status">
+        {contentQuery.isFetching ? 'Đang cập nhật…' : ''}
+      </div>
+      {error && <div className="alert alert-warning py-2 mb-0">{error}</div>}
       <p className="admin-content-summary">{content.lessons.length} bài giảng</p>
 
       <ul className="admin-content-lessons">

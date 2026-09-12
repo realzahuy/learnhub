@@ -77,7 +77,7 @@ const AdminCourseDialogs = ({
               )}
               <div className="admin-detail-section">
                 <h6>Nội dung khóa học</h6>
-                <Suspense fallback={<PageSkeleton variant="list" count={4} />}>
+                <Suspense fallback={<PageSkeleton variant="lessons" count={3} />}>
                   <AdminCourseContentPanel courseId={detailCourse.id} />
                 </Suspense>
               </div>

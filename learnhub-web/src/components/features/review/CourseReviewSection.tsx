@@ -129,28 +129,33 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
         </form>
       )}
 
-      {isLoading ? (
-        <PageSkeleton variant="list" count={3} />
-      ) : (
-        reviews.map((review) => (
-          <div className="review-item" key={review.id}>
-            <UserAvatar avatar={review.userAvatar} fullName={review.userFullName} size="md" />
+      <div className="list-loading-status" role="status">
+        {isLoading && reviewPage ? 'Đang cập nhật…' : ''}
+      </div>
+      <div aria-busy={isLoading}>
+        {isLoading && !reviewPage ? (
+          <PageSkeleton variant="list" count={3} />
+        ) : (
+          reviews.map((review) => (
+            <div className="review-item" key={review.id}>
+              <UserAvatar avatar={review.userAvatar} fullName={review.userFullName} size="md" />
 
-            <div className="review-item__body">
-              <div className="review-item__name">{review.userFullName}</div>
-              <div className="d-flex align-items-center gap-2 flex-wrap">
-                <StarRating value={review.rating} size="sm" />
-                <span className="review-item__meta">
-                  {formatRelativeDate(review.createdAt)}
-                  {review.updatedAt !== review.createdAt && ' · đã chỉnh sửa'}
-                </span>
+              <div className="review-item__body">
+                <div className="review-item__name">{review.userFullName}</div>
+                <div className="d-flex align-items-center gap-2 flex-wrap">
+                  <StarRating value={review.rating} size="sm" />
+                  <span className="review-item__meta">
+                    {formatRelativeDate(review.createdAt)}
+                    {review.updatedAt !== review.createdAt && ' · đã chỉnh sửa'}
+                  </span>
+                </div>
+
+                {review.comment && <p className="review-item__comment">{review.comment}</p>}
               </div>
-
-              {review.comment && <p className="review-item__comment">{review.comment}</p>}
             </div>
-          </div>
-        ))
-      )}
+          ))
+        )}
+      </div>
 
       {!isLoading && reviews.length === 0 && total > 0 && (
         <p className="review-empty mb-0">Không có đánh giá nào ở trang này.</p>

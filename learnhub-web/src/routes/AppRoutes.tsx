@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import LoadingScreen from '../components/common/LoadingScreen';
+import RouteLoading from '../components/layouts/RouteLoading';
 import { ROLE_ADMIN, ROLE_INSTRUCTOR } from '../types/auth.types';
 import RequireRole from './RequireRole';
 import { PROFILE_ROUTE_SEGMENTS, ROUTE_PATHS } from './paths';
@@ -47,7 +47,7 @@ const LearnerChatbotLayout = () => (
 
 const AppRoutes = () => {
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense fallback={<RouteLoading />}>
       <Routes>
       <Route element={<LearnerChatbotLayout />}>
         <Route element={<PublicLayout />}>

@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { ConfirmDialog, DropdownOption, LoadingScreen, Stepper } from '../../components/common';
+import { ConfirmDialog, DropdownOption, Stepper } from '../../components/common';
+import CourseStepSkeleton from '../../components/features/instructor/CourseStepSkeleton';
 import { useInstructorCourseDraft } from '../../components/features/instructor/useInstructorCourseDraft';
 import { useCategories } from '../../hooks/useCategories';
 import { generateSlug } from '../../utils';
@@ -80,7 +81,19 @@ const InstructorCourseCreatePage: React.FC = () => {
   }
 
   if (loading || categoriesLoading) {
-    return <LoadingScreen variant="form" count={5} />;
+    return (
+      <div className="course-create-page">
+        <main className="course-create-main">
+          <div className="container py-4">
+            <div className="course-create-heading">
+              <h1 className="course-create-title">{isReopening ? 'Soạn tiếp khóa học' : 'Tạo khóa học mới'}</h1>
+            </div>
+            <Stepper steps={STEPS} current={step} />
+            <CourseStepSkeleton step={step === STEP_INFO ? 'info' : 'lessons'} />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   if (isReadOnlyContent && courseId !== null) {
@@ -100,7 +113,7 @@ const InstructorCourseCreatePage: React.FC = () => {
                   Khóa học đang ở trạng thái không cho phép sửa nội dung. Bạn vẫn có thể xem lại
                   các bài giảng đã tạo bên dưới.
                 </div>
-                <Suspense fallback={<LoadingScreen variant="form" count={5} />}>
+                <Suspense fallback={<CourseStepSkeleton step="lessons" />}>
                   <InstructorCourseContentViewer
                     lessons={lessons}
                     videos={videos}
@@ -165,80 +178,82 @@ const InstructorCourseCreatePage: React.FC = () => {
 
           {error && <div className="alert alert-danger">{error}</div>}
 
-          {step === STEP_INFO && (
-            <Suspense fallback={<LoadingScreen variant="form" count={5} />}>
-              <CourseInfoForm
-                id={COURSE_INFO_FORM_ID}
-                variant="create"
-                form={form}
-                categoryOptions={categoryOptions}
-                currentThumbnail={currentThumbnail}
-                fileInputRef={fileInputRef}
-                onThumbnailChange={handlePickThumbnail}
-                onChange={handleChange}
-                onSubmit={saveInfoAndContinue}
-                disabled={saving}
-                slugPlaceholder={conflictingSlug ?? slugPreview}
-                slugHint={
-                  slugSuggestions.length > 0 ? (
-                    <div className="course-slug-alternatives">
-                      <small>Gợi ý:</small>
-                      {slugSuggestions.map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onClick={() => handleChange('slug', suggestion)}
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <small className="text-muted">
-                      {slugPreview
-                        ? 'Để trống sẽ dùng đường dẫn gợi ý ở trên.'
-                        : 'Để trống sẽ tự sinh từ tiêu đề.'}
-                    </small>
-                  )
-                }
-              />
-            </Suspense>
-          )}
-
-          {step === STEP_LESSONS && courseId !== null && (
-            <div className="course-create-card">
-              <Suspense fallback={<LoadingScreen variant="form" count={5} />}>
-                <CourseLessonsEditor
-                  courseId={courseId}
-                  lessons={lessons}
-                  videos={videos}
-                  processingProgressByVideoId={processingProgressByVideoId}
-                  questions={questions}
-                  onLessonAdd={handleLessonAdd}
-                  onLessonUpdate={handleLessonUpdate}
-                  onLessonsReorder={setLessons}
-                  onLessonRemove={handleLessonRemove}
-                  onVideosChange={handleVideosChange}
-                  onQuestionsChange={handleQuestionsChange}
-                  onBusyChange={setContentBusy}
+          <div className="course-step-content">
+            {step === STEP_INFO && (
+              <Suspense fallback={<CourseStepSkeleton step="info" />}>
+                <CourseInfoForm
+                  id={COURSE_INFO_FORM_ID}
+                  variant="create"
+                  form={form}
+                  categoryOptions={categoryOptions}
+                  currentThumbnail={currentThumbnail}
+                  fileInputRef={fileInputRef}
+                  onThumbnailChange={handlePickThumbnail}
+                  onChange={handleChange}
+                  onSubmit={saveInfoAndContinue}
+                  disabled={saving}
+                  slugPlaceholder={conflictingSlug ?? slugPreview}
+                  slugHint={
+                    slugSuggestions.length > 0 ? (
+                      <div className="course-slug-alternatives">
+                        <small>Gợi ý:</small>
+                        {slugSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => handleChange('slug', suggestion)}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <small className="text-muted">
+                        {slugPreview
+                          ? 'Để trống sẽ dùng đường dẫn gợi ý ở trên.'
+                          : 'Để trống sẽ tự sinh từ tiêu đề.'}
+                      </small>
+                    )
+                  }
                 />
               </Suspense>
-            </div>
-          )}
+            )}
 
-          {step === STEP_REVIEW && (
-            <Suspense fallback={<LoadingScreen variant="form" count={5} />}>
-              <CourseReviewStep
-                form={form}
-                categoryName={categories.find((category) => String(category.id) === form.categoryId)?.name}
-                currentThumbnail={currentThumbnail}
-                lessons={lessons}
-                videos={videos}
-                questions={questions}
-              />
-            </Suspense>
-          )}
+            {step === STEP_LESSONS && courseId !== null && (
+              <div className="course-create-card">
+                <Suspense fallback={<CourseStepSkeleton step="lessons" />}>
+                  <CourseLessonsEditor
+                    courseId={courseId}
+                    lessons={lessons}
+                    videos={videos}
+                    processingProgressByVideoId={processingProgressByVideoId}
+                    questions={questions}
+                    onLessonAdd={handleLessonAdd}
+                    onLessonUpdate={handleLessonUpdate}
+                    onLessonsReorder={setLessons}
+                    onLessonRemove={handleLessonRemove}
+                    onVideosChange={handleVideosChange}
+                    onQuestionsChange={handleQuestionsChange}
+                    onBusyChange={setContentBusy}
+                  />
+                </Suspense>
+              </div>
+            )}
 
+            {step === STEP_REVIEW && (
+              <Suspense fallback={<CourseStepSkeleton step="review" />}>
+                <CourseReviewStep
+                  form={form}
+                  categoryName={categories.find((category) => String(category.id) === form.categoryId)?.name}
+                  currentThumbnail={currentThumbnail}
+                  lessons={lessons}
+                  videos={videos}
+                  questions={questions}
+                />
+              </Suspense>
+            )}
+
+          </div>
           <div className="course-create-nav">
             <button
               type="button"

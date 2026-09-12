@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { HlsPlayer } from '../../common';
 import { Video } from '../../../types/lesson.types';
+import './VideoPreviewModal.css';
 
 interface VideoPreviewModalProps {
   video: Video;
@@ -26,6 +27,7 @@ const VideoPreviewModal: React.FC<VideoPreviewModalProps> = ({ video, onClose })
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
+      aria-label={video.title}
       style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -33,18 +35,15 @@ const VideoPreviewModal: React.FC<VideoPreviewModalProps> = ({ video, onClose })
     >
       <div className="modal-dialog modal-lg modal-dialog-centered">
         <div className="modal-content video-preview-content">
-          <div className="video-preview-head">
-            <h2 className="video-preview-title">{video.title}</h2>
-            <button
-              type="button"
-              className="btn-lesson-icon"
-              onClick={onClose}
-              aria-label="Đóng"
-              title="Đóng"
-            >
-              <i className="bi bi-x-lg"></i>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="video-preview-close"
+            onClick={onClose}
+            aria-label="Đóng"
+            title="Đóng"
+          >
+            <i className="bi bi-x-lg"></i>
+          </button>
 
           <div className="video-preview-frame">
             <HlsPlayer

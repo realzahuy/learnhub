@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import React, { Suspense, useEffect, useState } from 'react';
+import RouteLoading from '../../components/layouts/RouteLoading';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogoutConfirmDialog, UserAvatar } from '../../components/common';
 import Footer from '../../components/layouts/Footer';
@@ -26,6 +27,7 @@ const NAV_ITEMS: AdminNavItem[] = [
 const DESKTOP_NAV_QUERY = '(min-width: 992px)';
 
 const AdminLayout: React.FC = () => {
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -129,7 +131,11 @@ const AdminLayout: React.FC = () => {
         </nav>
 
         <main className="admin-content">
-          <div className="admin-content-body"><Outlet /></div>
+          <div className="admin-content-body">
+            <Suspense key={pathname} fallback={<RouteLoading />}>
+              <Outlet />
+            </Suspense>
+          </div>
         </main>
       </div>
 

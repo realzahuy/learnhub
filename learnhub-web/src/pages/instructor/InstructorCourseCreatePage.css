@@ -289,3 +289,11 @@
     flex: 0 0 auto;
   }
 }
+.course-step-content,
+.course-step-loading {
+  min-height: 26rem;
+}
+
+.course-step-loading .app-skeleton-form {
+  max-width: none;
+}

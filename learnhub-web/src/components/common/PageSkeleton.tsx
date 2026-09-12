@@ -1,6 +1,6 @@
 import './PageSkeleton.css';
 
-export type PageSkeletonVariant = 'cards' | 'table' | 'detail' | 'stats' | 'form' | 'list';
+export type PageSkeletonVariant = 'cards' | 'table' | 'detail' | 'stats' | 'form' | 'list' | 'lessons';
 
 interface PageSkeletonProps {
   variant?: PageSkeletonVariant;
@@ -96,6 +96,16 @@ const PageSkeleton = ({
             <div className="app-skeleton-field" key={index}>
               <span />
               <span />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {variant === 'lessons' && (
+        <div className="app-skeleton-lessons">
+          {Array.from({ length: itemCount }, (_, index) => (
+            <div key={index} className="app-skeleton-lesson">
+              <Lines shortLast />
             </div>
           ))}
         </div>
