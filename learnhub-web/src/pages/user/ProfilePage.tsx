@@ -1,7 +1,8 @@
 import React from 'react';
+import RouteLoading from '../../components/layouts/RouteLoading';
 import { Navigate } from 'react-router-dom';
 import { ProfileEditor } from '../../components/features/profile';
-import { BackButton, LoadingScreen } from '../../components/common';
+import { BackButton } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import { ROUTE_PATHS } from '../../routes/paths';
 import './ProfilePage.css';
@@ -10,7 +11,7 @@ const ProfilePage: React.FC = () => {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   if (isAuthLoading) {
-    return <LoadingScreen variant="form" count={4} />;
+    return <RouteLoading />;
   }
 
   if (!isAuthenticated) {

@@ -112,7 +112,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       )}
 
       {!profile ? (
-        <PageSkeleton variant="form" count={4} />
+        !error && <PageSkeleton variant="profile" count={4} />
       ) : (
         <form onSubmit={handleSave}>
           <div className="profile-card mb-4">

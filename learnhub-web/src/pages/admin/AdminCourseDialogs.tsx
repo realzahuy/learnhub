@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react';
+import PageSkeleton from '../../components/common/PageSkeleton';
 import { createPortal } from 'react-dom';
 import { InstructorCourse, COURSE_STATUS_LABELS } from '../../types/course.types';
 import { formatLongDate, formatPrice } from '../../utils';
-import PageSkeleton from '../../components/common/PageSkeleton';
 
 const AdminCourseContentPanel = lazy(() => import('./AdminCourseContentPanel'));
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import AdminCourseDialogs from './AdminCourseDialogs';
 import AdminCourseTable from './AdminCourseTable';
-import { Dropdown, DropdownOption, Pagination, LoadingScreen } from '../../components/common';
+import { Dropdown, DropdownOption, Pagination, PageSkeleton } from '../../components/common';
 import { useCourseRealtime } from '../../context/NotificationContext';
 import { useToast } from '../../context/ToastContext';
 import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigger';
@@ -207,7 +207,7 @@ const AdminCoursesPage: React.FC = () => {
           aria-busy={loading}
         >
           {loading && !pageData ? (
-            <LoadingScreen variant="table" count={6} />
+            <PageSkeleton variant="course-table" count={6} />
           ) : error && !pageData ? (
             <div className="alert alert-danger">{error}</div>
           ) : courses.length === 0 ? (

@@ -10,7 +10,7 @@ import {
   Dropdown,
   DropdownOption,
   Pagination,
-  LoadingScreen,
+  PageSkeleton,
 } from '../../components/common';
 import { useToast } from '../../context/ToastContext';
 import { usePagedSearchParams } from '../../hooks/usePagedSearchParams';
@@ -200,7 +200,7 @@ const AdminUsersPage: React.FC = () => {
           aria-busy={loading}
         >
           {loading && !pageData ? (
-            <LoadingScreen variant="table" count={6} />
+            <PageSkeleton variant="table" count={6} />
           ) : error && !pageData ? (
             <div className="alert alert-danger">{error}</div>
           ) : users.length === 0 ? (

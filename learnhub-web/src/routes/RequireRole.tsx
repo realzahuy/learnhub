@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import LoadingScreen from '../components/common/LoadingScreen';
 import { useAuth } from '../context/AuthContext';
+import RouteLoading from '../components/layouts/RouteLoading';
 
 interface RequireRoleProps {
   role: string;
@@ -11,7 +11,7 @@ const RequireRole = ({ role, redirectTo }: RequireRoleProps) => {
   const { isAuthenticated, isLoading, roles } = useAuth();
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <RouteLoading />;
   }
 
   if (!isAuthenticated || !roles.includes(role)) {

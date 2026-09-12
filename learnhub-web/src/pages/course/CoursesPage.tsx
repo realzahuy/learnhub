@@ -146,7 +146,7 @@ const CoursesPage = () => {
             aria-busy={loading}
           >
           {loading && !pageData ? (
-            <PageSkeleton variant="cards" count={6} />
+            <PageSkeleton variant="cards" count={8} cardColumnClassName="col-12 col-sm-6 col-md-4 col-lg-3" className="app-skeleton-catalog" />
           ) : error ? (
             <div className="alert alert-danger" role="alert">
               {error}

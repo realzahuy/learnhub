@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react';
+import RouteLoading from './RouteLoading';
 import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import { ROUTE_PATHS } from '../../routes/paths';
 import Header from './Header';
-import RouteLoading from './RouteLoading';
 import Footer from './Footer';
 import { InstructorNotificationProvider } from '../../context/InstructorNotificationContext';
 import './SiteLayout.css';

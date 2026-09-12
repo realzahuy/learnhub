@@ -8,7 +8,7 @@ import {
   InstructorCard,
 } from '../../components/features/course';
 import CourseReviewSection from '../../components/features/review/CourseReviewSection';
-import { LoadingScreen } from '../../components/common';
+import { PageSkeleton } from '../../components/common';
 import { courseService } from '../../services/api/course.service';
 import { CourseDetail, PublicLesson, PublicVideo } from '../../types/course.types';
 import { RatingSummary } from '../../types/review.types';
@@ -126,7 +126,7 @@ const CourseDetailPage = () => {
   };
 
   if (isLoading) {
-    return <LoadingScreen variant="detail" />;
+    return <PageSkeleton variant="detail" />;
   }
 
   if (error || !course) {

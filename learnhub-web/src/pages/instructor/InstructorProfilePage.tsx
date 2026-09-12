@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { uiConfig } from '../../config/uiConfig';
-import { BackButton, LoadingScreen, PageSkeleton, Pagination, StarRating } from '../../components/common';
+import { BackButton, PageSkeleton, Pagination, StarRating } from '../../components/common';
 import { instructorProfileService } from '../../services/api/instructorProfile.service';
 import { queryKeys } from '../../query/queryKeys';
 import { formatPrice, getApiErrorMessage } from '../../utils';
@@ -46,7 +46,12 @@ const InstructorProfilePage = () => {
   };
 
   if (isLoading) {
-    return <LoadingScreen variant="detail" />;
+    return (
+      <div className="instructor-profile">
+        <BackButton fallback={ROUTE_PATHS.courses} />
+        <div className="container"><PageSkeleton variant="instructor-profile" /></div>
+      </div>
+    );
   }
 
   if (error || !profile) {

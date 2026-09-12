@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import RouteLoading from '../components/layouts/RouteLoading';
 import { ROLE_ADMIN, ROLE_INSTRUCTOR } from '../types/auth.types';
 import RequireRole from './RequireRole';
+import RouteLoading from '../components/layouts/RouteLoading';
 import { PROFILE_ROUTE_SEGMENTS, ROUTE_PATHS } from './paths';
 
 const HomePage = lazy(() => import('../pages/home/HomePage'));

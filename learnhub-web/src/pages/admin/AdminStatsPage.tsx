@@ -1,5 +1,5 @@
 import React from 'react';
-import { DropdownOption, LoadingScreen } from '../../components/common';
+import { DropdownOption, PageSkeleton } from '../../components/common';
 import {
   StatsBarChart,
   StatsFilterBar,
@@ -95,7 +95,7 @@ const AdminStatsPage: React.FC = () => {
       <div className="admin-stats">
         {error && <div className="alert alert-danger">{error}</div>}
 
-        {loadingOverview && !overview && !error && <LoadingScreen variant="stats" />}
+        {loadingOverview && !overview && !error && <PageSkeleton variant="stats" count={5} />}
 
         {overview && (
           <>

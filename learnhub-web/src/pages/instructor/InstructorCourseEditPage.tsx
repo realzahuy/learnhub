@@ -196,7 +196,7 @@ const InstructorCourseEditPage: React.FC = () => {
           </div>
 
           {loading || categoriesLoading ? (
-            <PageSkeleton variant="form" count={5} />
+            <PageSkeleton variant="course-form" />
           ) : loadError || categoriesError ? (
             <div className="alert alert-danger">{loadError ?? categoriesError}</div>
           ) : (

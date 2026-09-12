@@ -1,9 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { HlsPlayer, LoadingScreen, PageSkeleton } from '../../components/common';
+import { HlsPlayer, PageSkeleton } from '../../components/common';
+import QuizSkeleton from '../../components/features/learn/QuizSkeleton';
 import LearnCourseSidebar from '../../components/features/learn/LearnCourseSidebar';
 import LearnCourseTabs from '../../components/features/learn/LearnCourseTabs';
-import QuizSkeleton from '../../components/features/learn/QuizSkeleton';
 import type { LearnTab } from '../../components/features/learn/learnView.types';
 import { useAuth } from '../../context/AuthContext';
 import { useLearningCourse } from '../../hooks/useLearningCourse';
@@ -123,7 +123,7 @@ const LearnPage = () => {
   }, [course, viewing, openVideo, openQuiz]);
 
   if (isAuthLoading) {
-    return <LoadingScreen variant="detail" />;
+    return <PageSkeleton variant="learning" />;
   }
 
   if (!slug) {
@@ -138,7 +138,7 @@ const LearnPage = () => {
     <div className="learn-page">
 
       {loading ? (
-        <PageSkeleton variant="detail" />
+        <PageSkeleton variant="learning" />
       ) : error ? (
         <div className="learn-center learn-error">
           <p>{error}</p>

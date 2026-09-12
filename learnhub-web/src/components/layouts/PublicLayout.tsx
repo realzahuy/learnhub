@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import RouteLoading from './RouteLoading';
+import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import PublicHeader from './PublicHeader';
 import { CartProvider } from '../../context/CartContext';
 import Footer from './Footer';

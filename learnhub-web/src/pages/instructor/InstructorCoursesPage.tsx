@@ -170,7 +170,7 @@ const InstructorCoursesPage: React.FC = () => {
             aria-busy={loading}
           >
           {loading && !pageData ? (
-            <PageSkeleton variant="cards" count={6} />
+            <PageSkeleton variant="cards" count={8} cardColumnClassName="col-12 col-md-6 col-xl-3" className="app-skeleton-instructor-courses" />
           ) : error ? (
             <div className="alert alert-danger" role="alert">
               {error}

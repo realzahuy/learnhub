@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ConfirmDialog, LoadingScreen } from '../../components/common';
+import { ConfirmDialog, PageSkeleton } from '../../components/common';
 import { useToast } from '../../context/ToastContext';
 import { useCategories } from '../../hooks/useCategories';
 import { queryKeys } from '../../query/queryKeys';
@@ -88,7 +88,7 @@ const AdminCategoriesPage: React.FC = () => {
         </form>
 
         {loading ? (
-          <LoadingScreen variant="list" count={6} />
+          <PageSkeleton variant="categories" count={6} />
         ) : error ? (
           <div className="alert alert-danger">{error}</div>
         ) : categories.length === 0 ? (

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import RouteLoading from '../../components/layouts/RouteLoading';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { uiConfig } from '../../config/uiConfig';
@@ -6,7 +7,6 @@ import {
   CourseThumbnail,
   Dropdown,
   DropdownOption,
-  LoadingScreen,
   PageSkeleton,
   Pagination,
 } from '../../components/common';
@@ -70,7 +70,7 @@ const MyCoursesPage = () => {
     : null;
 
   if (isAuthLoading) {
-    return <LoadingScreen variant="cards" count={6} />;
+    return <RouteLoading />;
   }
 
   if (!isAuthenticated) {
@@ -115,7 +115,7 @@ const MyCoursesPage = () => {
             aria-busy={loading}
           >
           {loading && !pageData ? (
-            <PageSkeleton variant="cards" count={6} />
+            <PageSkeleton variant="cards" count={8} cardColumnClassName="col-12 col-sm-6 col-lg-4 col-xl-3" />
           ) : error ? (
             <div className="alert alert-danger">{error}</div>
           ) : enrollments.length === 0 ? (
