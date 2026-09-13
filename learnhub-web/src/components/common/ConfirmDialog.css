@@ -6,11 +6,11 @@
   animation: confirm-dialog-pop 180ms ease-out;
 }
 
-.confirm-dialog-panel {
+.confirm-dialog .confirm-dialog-panel {
   max-width: 420px;
 }
 
-.confirm-dialog-content {
+.confirm-dialog .confirm-dialog-content {
   border: none;
   border-radius: 14px;
   padding: 1.5rem 1.5rem 1.25rem;
