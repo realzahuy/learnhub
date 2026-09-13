@@ -18,7 +18,3 @@ export interface PaymentResponse {
   paidCourseIds: number[];
   message: string | null;
 }
-
-export interface PayPalCaptureRequest {
-  orderId: string;
-}
