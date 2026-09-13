@@ -1,3 +1,4 @@
+import { useContentReady } from '../../hooks/useContentReady';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import AdminCourseDialogs from './AdminCourseDialogs';
@@ -78,6 +79,7 @@ const AdminCoursesPage: React.FC = () => {
   });
   const pageData = courseQuery.data ?? null;
   const loading = courseQuery.isFetching;
+  const contentRef = useContentReady(loading && !pageData);
   const error = courseQuery.error
     ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
     : null;
@@ -204,6 +206,7 @@ const AdminCoursesPage: React.FC = () => {
         </div>
         <div
           className="motion-loading-region"
+            ref={contentRef}
           aria-busy={loading}
         >
           {loading && !pageData ? (

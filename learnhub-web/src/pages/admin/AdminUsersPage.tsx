@@ -1,3 +1,4 @@
+import { useContentReady } from '../../hooks/useContentReady';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   keepPreviousData,
@@ -64,6 +65,7 @@ const AdminUsersPage: React.FC = () => {
   });
   const pageData = userQuery.data ?? null;
   const loading = userQuery.isFetching;
+  const contentRef = useContentReady(loading && !pageData);
   const error = userQuery.error
     ? 'Không thể tải danh sách người dùng. Vui lòng thử lại sau.'
     : null;
@@ -197,6 +199,7 @@ const AdminUsersPage: React.FC = () => {
         </div>
         <div
           className="motion-loading-region"
+            ref={contentRef}
           aria-busy={loading}
         >
           {loading && !pageData ? (

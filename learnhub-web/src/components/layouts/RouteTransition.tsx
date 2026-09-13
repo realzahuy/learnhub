@@ -21,6 +21,13 @@ const RouteTransition = ({ children }: RouteTransitionProps) => {
       ROUTE_PATHS.adminCourses,
       ROUTE_PATHS.adminUsers,
       ROUTE_PATHS.adminCategories,
+      ROUTE_PATHS.courseDetail,
+      ROUTE_PATHS.instructorCourseCreate,
+      ROUTE_PATHS.instructorCourseBuild,
+      ROUTE_PATHS.instructorCourseEdit,
+      ROUTE_PATHS.instructorStats,
+      ROUTE_PATHS.adminStats,
+      ROUTE_PATHS.profileInstructor,
     ].some((pattern) => matchPath(pattern, pathname));
     if (showContentImmediately) return;
 
@@ -28,14 +35,14 @@ const RouteTransition = ({ children }: RouteTransitionProps) => {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (!root || reduceMotion) return;
 
-    const target = root.querySelector<HTMLElement>('main, [role="main"]') ?? root;
-    if (typeof target.animate !== 'function') return;
+    const target = root.querySelector<HTMLElement>('main, [role="main"]');
+    if (!target || target.querySelector('.app-skeleton') || typeof target.animate !== 'function') return;
 
     animationRef.current?.cancel();
     const animation = target.animate(
       [
-        { opacity: 0.78, transform: 'translateY(6px)' },
-        { opacity: 1, transform: 'translateY(0)' },
+        { opacity: 0.85 },
+        { opacity: 1 },
       ],
       {
         duration: uiConfig.timing.routeTransitionMs,

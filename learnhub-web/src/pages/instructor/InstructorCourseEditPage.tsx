@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { useCourseRealtime } from '../../context/NotificationContext';
 import { useCategories } from '../../hooks/useCategories';
-import { useCoalescedRefreshTrigger } from '../../hooks/useCoalescedRefreshTrigger';
+import { useContentReady } from '../../hooks/useContentReady';
 import { useCourseThumbnail } from '../../hooks/useCourseThumbnail';
 import CourseInfoForm from '../../components/features/instructor/CourseInfoForm';
 import { DropdownOption, PageSkeleton } from '../../components/common';
@@ -10,7 +10,6 @@ import { instructorService } from '../../services/api/instructor.service';
 import { queryClient } from '../../query/queryClient';
 import { queryKeys } from '../../query/queryKeys';
 import {
-  InstructorCourse,
   CourseStatus,
   COURSE_STATUS_LABELS,
 } from '../../types/course.types';
@@ -31,14 +30,8 @@ const InstructorCourseEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { lastCourseStatusEvent, realtimeReconnectVersion } = useCourseRealtime();
 
-  const [course, setCourse] = useState<InstructorCourse | null>(null);
-
-  const [form, setForm] = useState<CourseFormState>(EMPTY_COURSE_FORM);
-
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [formDraft, setFormDraft] = useState<CourseFormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -51,30 +44,23 @@ const InstructorCourseEditPage: React.FC = () => {
 
   const courseId = Number(id);
   const isValidId = Number.isInteger(courseId) && courseId > 0;
-  const { refreshVersion, scheduleRefresh } = useCoalescedRefreshTrigger();
-  const courseIdRef = useRef(courseId);
-  const seenReconnectVersion = useRef(realtimeReconnectVersion);
-  const seenCourseStatusEvent = useRef(lastCourseStatusEvent);
-  courseIdRef.current = courseId;
-
-  useEffect(() => {
-    if (lastCourseStatusEvent === seenCourseStatusEvent.current) return;
-    seenCourseStatusEvent.current = lastCourseStatusEvent;
-    if (lastCourseStatusEvent?.courseId === courseIdRef.current) {
-      scheduleRefresh();
-    }
-  }, [lastCourseStatusEvent, scheduleRefresh]);
-
-  useEffect(() => {
-    if (realtimeReconnectVersion === seenReconnectVersion.current) return;
-    seenReconnectVersion.current = realtimeReconnectVersion;
-    if (course?.status === 'PENDING') scheduleRefresh();
-  }, [course?.status, realtimeReconnectVersion, scheduleRefresh]);
+  const courseQuery = useQuery({
+    queryKey: queryKeys.instructorCourses.detail(courseId),
+    queryFn: ({ signal }) => instructorService.getCourseDetail(courseId, signal),
+    enabled: isValidId,
+  });
+  const course = courseQuery.data;
+  const form = formDraft ?? (course ? toCourseForm(course) : EMPTY_COURSE_FORM);
+  const loading = courseQuery.isPending;
+  const loadError = courseQuery.error && !course
+    ? 'Không thể tải thông tin khóa học. Vui lòng thử lại sau.'
+    : null;
   const {
     categories,
     loading: categoriesLoading,
     error: categoriesError,
   } = useCategories(isValidId);
+  const contentRef = useContentReady(loading || categoriesLoading);
 
   const backTo =
     (location.state as { from?: string } | null)?.from ?? ROUTE_PATHS.instructorCourses;
@@ -87,46 +73,16 @@ const InstructorCourseEditPage: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!isValidId) return;
-
-    const controller = new AbortController();
-
-    const load = async () => {
-      try {
-        setLoading(true);
-        setLoadError(null);
-
-        const detail = await instructorService.getCourseDetail(courseId, controller.signal);
-        if (controller.signal.aborted) return;
-
-        setCourse(detail);
-        setForm(toCourseForm(detail));
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setLoadError('Không thể tải thông tin khóa học. Vui lòng thử lại sau.');
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      controller.abort();
-    };
-  }, [
-    isValidId,
-    courseId,
-    refreshVersion,
-  ]);
-
-  useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [courseId]);
 
   const handleChange = useCallback((field: keyof CourseFormState, value: string) => {
     setSaveError(null);
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
+    setFormDraft((prev) => ({
+      ...(prev ?? (course ? toCourseForm(course) : EMPTY_COURSE_FORM)),
+      [field]: value,
+    }));
+  }, [course]);
 
   const save = async (destination = backTo) => {
     if (!course) return;
@@ -142,7 +98,7 @@ const InstructorCourseEditPage: React.FC = () => {
     setSaveError(null);
 
     try {
-      await instructorService.updateCourse(
+      const updated = await instructorService.updateCourse(
         course.id,
         toCourseUpdatePayload(form, {
           slug: '',
@@ -151,7 +107,9 @@ const InstructorCourseEditPage: React.FC = () => {
         })
       );
 
-      void queryClient.invalidateQueries({ queryKey: queryKeys.instructorCourses.all });
+      await queryClient.cancelQueries({ queryKey: queryKeys.instructorCourses.detail(course.id), exact: true });
+      queryClient.setQueryData(queryKeys.instructorCourses.detail(course.id), updated);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.instructorCourses.lists() });
       void queryClient.invalidateQueries({ queryKey: queryKeys.courseDetails.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.publishedCourses.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.publicInstructors.all });
@@ -200,7 +158,7 @@ const InstructorCourseEditPage: React.FC = () => {
           ) : loadError || categoriesError ? (
             <div className="alert alert-danger">{loadError ?? categoriesError}</div>
           ) : (
-            <>
+            <div ref={contentRef}>
               {isReadOnly && (
                 <div className="alert alert-warning">
                   Khóa học đang chờ admin duyệt nên không thể chỉnh sửa. Bạn có thể xem lại nội dung
@@ -272,7 +230,7 @@ const InstructorCourseEditPage: React.FC = () => {
                   Tiếp tục
                 </button>
               </div>
-            </>
+            </div>
           )}
         </div>
       </main>

@@ -1,3 +1,4 @@
+import { useContentReady } from '../../hooks/useContentReady';
 import React from 'react';
 import { DropdownOption, PageSkeleton } from '../../components/common';
 import {
@@ -55,6 +56,8 @@ const InstructorStatsPage: React.FC = () => {
     queryScope: 'instructor',
   });
 
+  const contentRef = useContentReady(loadingOverview && !overview);
+
   const periodLabel = overview ? `${overview.periodDays} ngày qua` : '';
 
   const activeMetric = applied?.metric ?? '';
@@ -72,7 +75,7 @@ const InstructorStatsPage: React.FC = () => {
           )}
 
           {overview && (
-            <div className="stats-content">
+            <div className="stats-content" ref={contentRef}>
               <div className="stats-tiles">
                 <StatTile
                   label="Tổng học viên"
@@ -131,11 +134,12 @@ const InstructorStatsPage: React.FC = () => {
                 loading={loadingSeries}
               />
 
-              <div className={`stats-result${loadingSeries ? ' is-refetching' : ''}`}>
+              <div className="list-loading-status" role="status">{loadingSeries && series ? 'Đang cập nhật…' : ''}</div>
+              <div className={`stats-result${loadingSeries ? ' is-refetching' : ''}`} aria-busy={loadingSeries}>
                 {activeMetric === '' || !series ? (
 
                   <div className="stats-placeholder">
-                    <p>Chọn loại thống kê rồi bấm “Lọc” để xem số liệu</p>
+                    <p role="status">{loadingSeries ? 'Đang tải số liệu…' : 'Chọn loại thống kê rồi bấm “Lọc” để xem số liệu'}</p>
                   </div>
                 ) : applied?.view === 'table' ? (
 

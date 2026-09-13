@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useContentReady } from '../../hooks/useContentReady';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { uiConfig } from '../../config/uiConfig';
 import { BackButton, PageSkeleton, Pagination, StarRating } from '../../components/common';
@@ -29,6 +30,7 @@ const InstructorProfilePage = () => {
   const profile = profileQuery.data ?? null;
   const coursePage = coursesQuery.data ?? null;
   const isLoading = enabled && profileQuery.isPending;
+  const contentRef = useContentReady(isLoading);
   const coursesLoading = coursesQuery.isFetching;
   const error = profileQuery.error
     ? getApiErrorMessage(profileQuery.error, 'Không tìm thấy giảng viên')
@@ -74,7 +76,7 @@ const InstructorProfilePage = () => {
     : `Tham gia từ tháng ${joined.getMonth() + 1}/${joined.getFullYear()}`;
 
   return (
-    <div className="instructor-profile">
+    <div className="instructor-profile" ref={contentRef}>
         <BackButton fallback={ROUTE_PATHS.courses} />
         <div className="container">
           <div className="instructor-hero">

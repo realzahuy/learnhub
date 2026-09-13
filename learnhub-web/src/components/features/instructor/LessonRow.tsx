@@ -73,8 +73,8 @@ const LessonRow: React.FC<LessonRowProps> = ({
   }, [editing]);
 
   useEffect(() => {
-    setTitleDraft(lesson.title);
-  }, [lesson.title]);
+    if (!editing) setTitleDraft(lesson.title);
+  }, [editing, lesson.title]);
 
   const finishEditing = async () => {
     if (disabled || savingTitle) return;

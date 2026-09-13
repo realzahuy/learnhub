@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ConfirmDialog, DropdownOption, Stepper } from '../../components/common';
 import CourseStepSkeleton from '../../components/features/instructor/CourseStepSkeleton';
+import CourseBuilderSkeleton, { COURSE_BUILD_STEPS } from '../../components/features/instructor/CourseBuilderSkeleton';
+import { useContentReady } from '../../hooks/useContentReady';
 import { useInstructorCourseDraft } from '../../components/features/instructor/useInstructorCourseDraft';
 import { useCategories } from '../../hooks/useCategories';
 import { generateSlug } from '../../utils';
@@ -13,7 +15,7 @@ const CourseReviewStep = lazy(() => import('../../components/features/instructor
 const CourseLessonsEditor = lazy(() => import('../../components/features/instructor/CourseLessonsEditor'));
 const InstructorCourseContentViewer = lazy(() => import('../../components/features/instructor/InstructorCourseContentViewer'));
 
-const STEPS = ['Tạo khóa học', 'Tạo bài giảng', 'Xem lại'];
+const STEPS = COURSE_BUILD_STEPS;
 
 const COURSE_INFO_FORM_ID = 'course-info-form';
 
@@ -21,7 +23,7 @@ const STEP_INFO = 0;
 const STEP_LESSONS = 1;
 const STEP_REVIEW = 2;
 
-const InstructorCourseCreatePage: React.FC = () => {
+const CourseBuilderPage: React.FC = () => {
   const navigate = useNavigate();
 
   const { id } = useParams<{ id: string }>();
@@ -42,7 +44,7 @@ const InstructorCourseCreatePage: React.FC = () => {
   const {
     courseId, loading, loadError, rejectComment, form, currentThumbnail,
     fileInputRef, handlePickThumbnail, saving, error, slugSuggestions, conflictingSlug,
-    deletingCourse, contentBusy, setContentBusy, handleChange, saveInfo: saveInfoAndContinue,
+    deletingCourse, contentBusy, setContentBusy, status, handleChange, saveInfo: saveInfoAndContinue,
     deleteCourse, submitForReview, content, isReadOnlyContent,
   } = useInstructorCourseDraft({ reopenId, isValidId, onInfoSaved, onCourseCreated, onFinished });
   const {
@@ -56,6 +58,7 @@ const InstructorCourseCreatePage: React.FC = () => {
     loading: categoriesLoading,
     error: categoriesError,
   } = useCategories();
+  const contentRef = useContentReady(loading || categoriesLoading);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -82,23 +85,13 @@ const InstructorCourseCreatePage: React.FC = () => {
 
   if (loading || categoriesLoading) {
     return (
-      <div className="course-create-page">
-        <main className="course-create-main">
-          <div className="container py-4">
-            <div className="course-create-heading">
-              <h1 className="course-create-title">{isReopening ? 'Soạn tiếp khóa học' : 'Tạo khóa học mới'}</h1>
-            </div>
-            <Stepper steps={STEPS} current={step} />
-            <CourseStepSkeleton step={step === STEP_INFO ? 'info' : 'lessons'} />
-          </div>
-        </main>
-      </div>
+      <CourseBuilderSkeleton reopening={isReopening} step={step} status={status} />
     );
   }
 
   if (isReadOnlyContent && courseId !== null) {
     return (
-      <div className="course-create-page">
+      <div className="course-create-page" ref={contentRef}>
         <main className="course-create-main">
           <div className="container py-4">
             <div className="course-create-heading">
@@ -139,7 +132,7 @@ const InstructorCourseCreatePage: React.FC = () => {
   }
 
   return (
-    <div className="course-create-page">
+    <div className="course-create-page" ref={contentRef}>
 
       <main className="course-create-main">
         <div className="container py-4">
@@ -178,7 +171,7 @@ const InstructorCourseCreatePage: React.FC = () => {
 
           {error && <div className="alert alert-danger">{error}</div>}
 
-          <div className="course-step-content">
+          <div className="course-step-content motion-step-enter" key={step}>
             {step === STEP_INFO && (
               <Suspense fallback={<CourseStepSkeleton step="info" />}>
                 <CourseInfoForm
@@ -335,6 +328,11 @@ const InstructorCourseCreatePage: React.FC = () => {
 
     </div>
   );
+};
+
+const InstructorCourseCreatePage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <CourseBuilderPage key={id ?? 'new'} />;
 };
 
 export default InstructorCourseCreatePage;

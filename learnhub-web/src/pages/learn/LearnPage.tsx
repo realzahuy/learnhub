@@ -7,6 +7,7 @@ import LearnCourseTabs from '../../components/features/learn/LearnCourseTabs';
 import type { LearnTab } from '../../components/features/learn/learnView.types';
 import { useAuth } from '../../context/AuthContext';
 import { useLearningCourse } from '../../hooks/useLearningCourse';
+import { useContentReady } from '../../hooks/useContentReady';
 import { learningService } from '../../services/api/learning.service';
 import { RecommendationCard } from '../../types/course.types';
 import { LearnVideo } from '../../types/learn.types';
@@ -31,6 +32,7 @@ const LearnPage = () => {
     quizLessonId
   );
   const [activeTab, setActiveTab] = useState<LearnTab>('overview');
+  const contentRef = useContentReady(isAuthLoading || loading);
   const [recommendations, setRecommendations] = useState<RecommendationCard[]>([]);
   const [recommendationsActivated, setRecommendationsActivated] = useState(false);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
@@ -135,7 +137,7 @@ const LearnPage = () => {
   }
 
   return (
-    <div className="learn-page">
+    <div className="learn-page" ref={contentRef}>
 
       {loading ? (
         <PageSkeleton variant="learning" />

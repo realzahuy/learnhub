@@ -1,3 +1,4 @@
+import { useContentReady } from '../../hooks/useContentReady';
 import { useCallback, useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -104,6 +105,7 @@ const CoursesPage = () => {
   const pageData = courseQuery.data ?? null;
   const courses: Course[] = pageData?.content ?? [];
   const loading = courseQuery.isFetching;
+  const contentRef = useContentReady(loading && !pageData);
   const error = courseQuery.error
     ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
     : null;
@@ -143,10 +145,11 @@ const CoursesPage = () => {
           </div>
           <div
             className="motion-loading-region"
+            ref={contentRef}
             aria-busy={loading}
           >
           {loading && !pageData ? (
-            <PageSkeleton variant="cards" count={8} cardColumnClassName="col-12 col-sm-6 col-md-4 col-lg-3" className="app-skeleton-catalog" />
+            <PageSkeleton variant="cards" count={uiConfig.pagination.coursePageSize} cardColumnClassName="col-12 col-sm-6 col-md-4 col-lg-3" className="app-skeleton-catalog" />
           ) : error ? (
             <div className="alert alert-danger" role="alert">
               {error}

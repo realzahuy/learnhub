@@ -1,53 +1,85 @@
-import { useCallback, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { instructorService } from '../services/api/instructor.service';
+import { queryClient } from '../query/queryClient';
+import { queryKeys } from '../query/queryKeys';
 import { InstructorCourseContent, Lesson, Video } from '../types/lesson.types';
 import { Question } from '../types/question.types';
 import { useVideoProgress } from './useVideoProgress';
 
 export const useCourseBuilder = (courseId: number | null, trackVideoProgress = true) => {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [videos, setVideos] = useState<Record<number, Video[]>>({});
-  const [questions, setQuestions] = useState<Record<number, Question[]>>({});
+  const [draft, setDraft] = useState<InstructorCourseContent | null>(null);
+  const contentQuery = useQuery({
+    queryKey: queryKeys.instructorCourses.content(courseId),
+    queryFn: ({ signal }) => instructorService.getCourseContent(courseId!, signal),
+    enabled: courseId !== null && draft === null,
+  });
+  const content = draft ?? contentQuery.data;
+  const lessons = useMemo(() => content?.lessons ?? [], [content]);
+  const videos = useMemo(() => Object.fromEntries(
+    lessons.map((lesson) => [lesson.id, lesson.videos])
+  ), [lessons]);
+  const questions = useMemo(() => Object.fromEntries(
+    lessons.map((lesson) => [lesson.id, lesson.questions])
+  ), [lessons]);
+
+  const updateContent = useCallback((updater: (previous: InstructorCourseContent) => InstructorCourseContent) => {
+    const queryKey = queryKeys.instructorCourses.content(courseId);
+    const current = queryClient.getQueryData<InstructorCourseContent>(queryKey);
+    if (!current) return;
+    const next = updater(current);
+    if (next === current) return;
+    void queryClient.cancelQueries({ queryKey, exact: true }, { revert: false });
+    queryClient.setQueryData(queryKey, next);
+    setDraft(next);
+  }, [courseId]);
+
+  const setVideos = useCallback<Dispatch<SetStateAction<Record<number, Video[]>>>>((updater) => {
+    updateContent((previous) => {
+      const current = Object.fromEntries(previous.lessons.map((lesson) => [lesson.id, lesson.videos]));
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      if (next === current) return previous;
+      return {
+        ...previous,
+        lessons: previous.lessons.map((lesson) => lesson.videos === next[lesson.id]
+          ? lesson
+          : { ...lesson, videos: next[lesson.id] ?? [] }),
+      };
+    });
+  }, [updateContent]);
+
+  const setLessons = useCallback<Dispatch<SetStateAction<Lesson[]>>>((updater) => {
+    updateContent((previous) => {
+      const next = typeof updater === 'function' ? updater(previous.lessons) : updater;
+      return {
+        ...previous,
+        lessons: next.map((lesson) => {
+          const existing = previous.lessons.find((item) => item.id === lesson.id);
+          if (lesson === existing) return existing;
+          return { ...lesson, videos: existing?.videos ?? [], questions: existing?.questions ?? [] };
+        }),
+      };
+    });
+  }, [updateContent]);
   const processingProgressByVideoId = useVideoProgress(
     trackVideoProgress ? courseId : null,
     videos,
     setVideos
   );
 
-  const hydrate = useCallback((content: InstructorCourseContent) => {
-    const nextVideos: Record<number, Video[]> = {};
-    const nextQuestions: Record<number, Question[]> = {};
-
-    content.lessons.forEach((lesson) => {
-      nextVideos[lesson.id] = lesson.videos;
-      nextQuestions[lesson.id] = lesson.questions;
-    });
-
-    setLessons(content.lessons);
-    setVideos(nextVideos);
-    setQuestions(nextQuestions);
-  }, []);
-
   const addLesson = useCallback((lesson: Lesson) => {
     setLessons((previous) => [...previous, lesson]);
-    setVideos((previous) => ({ ...previous, [lesson.id]: [] }));
-    setQuestions((previous) => ({ ...previous, [lesson.id]: [] }));
-  }, []);
+  }, [setLessons]);
 
   const updateLesson = useCallback((updated: Lesson) => {
     setLessons((previous) => previous.map((lesson) => (
       lesson.id === updated.id ? updated : lesson
     )));
-  }, []);
+  }, [setLessons]);
 
   const removeLesson = useCallback((lessonId: number) => {
     setLessons((previous) => previous.filter((lesson) => lesson.id !== lessonId));
-    const omit = <T,>(map: Record<number, T>) => {
-      const { [lessonId]: _removed, ...rest } = map;
-      return rest;
-    };
-    setVideos(omit);
-    setQuestions(omit);
-  }, []);
+  }, [setLessons]);
 
   const changeVideos = useCallback(
     (lessonId: number, updater: (previous: Video[]) => Video[]) => {
@@ -56,17 +88,19 @@ export const useCourseBuilder = (courseId: number | null, trackVideoProgress = t
         [lessonId]: updater(previous[lessonId] ?? []),
       }));
     },
-    []
+    [setVideos]
   );
 
   const changeQuestions = useCallback(
     (lessonId: number, updater: (previous: Question[]) => Question[]) => {
-      setQuestions((previous) => ({
+      updateContent((previous) => ({
         ...previous,
-        [lessonId]: updater(previous[lessonId] ?? []),
+        lessons: previous.lessons.map((lesson) => lesson.id === lessonId
+          ? { ...lesson, questions: updater(lesson.questions) }
+          : lesson),
       }));
     },
-    []
+    [updateContent]
   );
 
   return {
@@ -75,7 +109,8 @@ export const useCourseBuilder = (courseId: number | null, trackVideoProgress = t
     questions,
     processingProgressByVideoId,
     setLessons,
-    hydrate,
+    loading: courseId !== null && !content && contentQuery.isPending,
+    error: !content ? contentQuery.error : null,
     addLesson,
     updateLesson,
     removeLesson,

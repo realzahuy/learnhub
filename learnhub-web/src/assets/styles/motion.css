@@ -8,6 +8,15 @@
   animation: motion-content-enter var(--motion-normal) var(--motion-ease-out);
 }
 
+.motion-step-enter:not(:has(.app-skeleton)) {
+  animation: motion-step-enter 160ms var(--motion-ease-out);
+}
+
+@keyframes motion-step-enter {
+  from { opacity: 0.8; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .motion-stagger > * {
   animation: motion-content-enter var(--motion-normal) var(--motion-ease-out) backwards;
 }
@@ -56,6 +65,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .motion-content-enter,
+  .motion-step-enter,
   .motion-stagger > *,
   .loading-screen,
   .learn-tab-panel,

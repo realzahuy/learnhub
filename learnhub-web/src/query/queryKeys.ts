@@ -65,8 +65,15 @@ export const queryKeys = {
   },
   instructorCourses: {
     all: ['instructor-courses'] as const,
+    lists: () => [...queryKeys.instructorCourses.all, 'list'] as const,
+    detail: (courseId: number | null) =>
+      [...queryKeys.instructorCourses.all, 'detail', courseId] as const,
+    content: (courseId: number | null) =>
+      [...queryKeys.instructorCourses.all, 'content', courseId] as const,
+    rejectReason: (courseId: number | null) =>
+      [...queryKeys.instructorCourses.all, 'reject-reason', courseId] as const,
     list: (filters: InstructorCourseFilters) =>
-      [...queryKeys.instructorCourses.all, filters] as const,
+      [...queryKeys.instructorCourses.lists(), filters] as const,
   },
   adminCourses: {
     all: ['admin-courses'] as const,

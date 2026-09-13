@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useContentReady } from '../../hooks/useContentReady';
 import {
   CourseCurriculum,
   CourseHero,
@@ -43,6 +44,7 @@ const CourseDetailPage = () => {
     initialData: course?.ratingSummary,
   });
   const isLoading = courseQuery.isPending;
+  const contentRef = useContentReady(isLoading);
   const error = courseQuery.error
     ? getApiErrorMessage(
         courseQuery.error,
@@ -147,7 +149,7 @@ const CourseDetailPage = () => {
   }
 
   return (
-    <div className="course-detail-page">
+    <div className="course-detail-page" ref={contentRef}>
 
       <main className="course-detail-main">
       <CourseHero

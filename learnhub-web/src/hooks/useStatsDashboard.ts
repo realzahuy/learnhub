@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { StatsFilterValue, StatsGranularity } from '../types/stats.types';
 import { getApiErrorMessage } from '../utils';
 import { queryKeys } from '../query/queryKeys';
@@ -41,6 +41,7 @@ export const useStatsDashboard = <
   const seriesQuery = useQuery<TimeSeries>({
     queryKey: queryKeys.stats.timeSeries(queryScope, groupBy, from, to),
     enabled: hasAppliedFilter,
+    placeholderData: keepPreviousData,
     queryFn: ({ signal }) => dataSource.getTimeSeries(groupBy, from, to, signal),
   });
 

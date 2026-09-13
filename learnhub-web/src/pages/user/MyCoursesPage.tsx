@@ -1,3 +1,4 @@
+import { useContentReady } from '../../hooks/useContentReady';
 import { useMemo } from 'react';
 import RouteLoading from '../../components/layouts/RouteLoading';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -62,6 +63,7 @@ const MyCoursesPage = () => {
   });
   const pageData = enrollmentQuery.data ?? null;
   const loading = enrollmentQuery.isFetching;
+  const contentRef = useContentReady(loading && !pageData);
   const error = enrollmentQuery.error
     ? getApiErrorMessage(
         enrollmentQuery.error,
@@ -112,10 +114,11 @@ const MyCoursesPage = () => {
           </div>
           <div
             className="motion-loading-region"
+            ref={contentRef}
             aria-busy={loading}
           >
           {loading && !pageData ? (
-            <PageSkeleton variant="cards" count={8} cardColumnClassName="col-12 col-sm-6 col-lg-4 col-xl-3" />
+            <PageSkeleton variant="cards" count={uiConfig.pagination.coursePageSize} cardColumnClassName="col-12 col-sm-6 col-lg-4 col-xl-3" className="app-skeleton-my-courses" />
           ) : error ? (
             <div className="alert alert-danger">{error}</div>
           ) : enrollments.length === 0 ? (

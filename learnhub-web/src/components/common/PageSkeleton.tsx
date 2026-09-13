@@ -102,6 +102,15 @@ const PageSkeleton = ({
               </div>
             ))}
           </div>
+          {(count ?? 4) === 4 && <div className="app-skeleton-stats-courses"><span /></div>}
+          <div className="app-skeleton-stats-controls">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div className="app-skeleton-field" key={index}><span /><span /></div>
+            ))}
+            <span className="app-skeleton-stats-button" />
+          </div>
+          <div className="list-loading-status" aria-hidden="true" />
+          <div className="app-skeleton-stats-result"><Lines shortLast /></div>
         </>
       )}
 

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ConfirmDialog, PageSkeleton } from '../../components/common';
 import { useToast } from '../../context/ToastContext';
 import { useCategories } from '../../hooks/useCategories';
+import { useContentReady } from '../../hooks/useContentReady';
 import { queryKeys } from '../../query/queryKeys';
 import { categoryService } from '../../services/api/category.service';
 import { Category } from '../../types/course.types';
@@ -15,6 +16,7 @@ const AdminCategoriesPage: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { categories, loading, error } = useCategories();
+  const contentRef = useContentReady(loading);
 
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -71,7 +73,7 @@ const AdminCategoriesPage: React.FC = () => {
 
   return (
     <>
-      <div className="admin-categories">
+      <div className="admin-categories" ref={contentRef}>
         <form className="admin-category-create" onSubmit={handleCreate}>
           <input
             type="text"

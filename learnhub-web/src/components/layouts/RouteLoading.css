@@ -1,0 +1,23 @@
+.route-skeleton-control {
+  display: block;
+  width: 100%;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.route-skeleton-create {
+  display: block;
+  flex: 0 0 170px;
+  height: 48px;
+  border-radius: 10px;
+}
+
+.admin-category-create > .route-skeleton-control { flex: 1; }
+
+.route-loading-status {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  padding: 2rem;
+  color: var(--bs-secondary-color);
+}

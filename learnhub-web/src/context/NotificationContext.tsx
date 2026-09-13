@@ -4,6 +4,9 @@ import { notificationService } from '../services/api/notification.service';
 import { AppNotification } from '../types/notification.types';
 import { CourseStatusChangedEvent } from '../types/realtime.types';
 import { useAuth } from './AuthContext';
+import { queryClient } from '../query/queryClient';
+import { queryKeys } from '../query/queryKeys';
+import { InstructorCourse } from '../types/course.types';
 
 interface NotificationHistoryHandlers {
   onNotification: (notification: AppNotification) => void;
@@ -51,11 +54,23 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                 if (!reconnectPending.current) return;
                 reconnectPending.current = false;
                 setRealtimeReconnectVersion((version) => version + 1);
+                void queryClient.invalidateQueries({ queryKey: [...queryKeys.instructorCourses.all, 'detail'] });
+                void queryClient.invalidateQueries({ queryKey: [...queryKeys.instructorCourses.all, 'content'] });
               },
               onNotification: (notification) => {
                 historyHandlers.current?.onNotification(notification);
               },
-              onCourseStatusChanged: setLastCourseStatusEvent,
+              onCourseStatusChanged: (event) => {
+                const queryKey = queryKeys.instructorCourses.detail(event.courseId);
+                void queryClient.cancelQueries({ queryKey, exact: true });
+                queryClient.setQueryData<InstructorCourse>(queryKey, (previous) => previous
+                  ? { ...previous, status: event.status }
+                  : undefined);
+                void queryClient.invalidateQueries({ queryKey, exact: true });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.instructorCourses.content(event.courseId), exact: true });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.instructorCourses.rejectReason(event.courseId), exact: true });
+                setLastCourseStatusEvent(event);
+              },
             },
             controller.signal
           );

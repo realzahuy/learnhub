@@ -1,8 +1,15 @@
 
-.stats-result.is-refetching {
-  opacity: 0.55;
-  pointer-events: none;
+.stats-result {
   transition: opacity var(--transition-fast);
+}
+
+.stats-result.is-refetching {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-result { transition: none; }
 }
 
 .stats-tiles {

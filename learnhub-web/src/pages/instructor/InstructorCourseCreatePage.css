@@ -13,6 +13,7 @@
 
 .course-create-heading {
   display: flex;
+  min-height: 40px;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
