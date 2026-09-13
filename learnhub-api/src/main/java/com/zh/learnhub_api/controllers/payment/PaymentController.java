@@ -8,9 +8,11 @@ import com.zh.learnhub_api.services.payment.PaymentFactory;
 import com.zh.learnhub_api.services.payment.PaymentStatusService;
 import com.zh.learnhub_api.services.payment.momo.MoMoPaymentService;
 import com.zh.learnhub_api.services.payment.paypal.PayPalPaymentService;
+import com.zh.learnhub_api.services.payment.paypal.PayPalWebhookService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +26,7 @@ public class PaymentController {
     private final PaymentFactory paymentFactory;
     private final MoMoPaymentService moMoPaymentService;
     private final PayPalPaymentService payPalPaymentService;
+    private final PayPalWebhookService payPalWebhookService;
     private final PaymentStatusService paymentStatusService;
 
     @PostMapping
@@ -38,6 +41,12 @@ public class PaymentController {
     @PostMapping("/momo/notify")
     public ResponseEntity<Void> momoNotify(@RequestBody Map<String, Object> data) {
         moMoPaymentService.handleNotify(data);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/paypal/webhook")
+    public ResponseEntity<Void> paypalWebhook(@RequestBody String body, @RequestHeader HttpHeaders headers) {
+        payPalWebhookService.handleNotify(body, headers);
         return ResponseEntity.noContent().build();
     }
 

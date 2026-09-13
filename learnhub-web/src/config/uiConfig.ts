@@ -23,8 +23,8 @@ export const uiConfig = {
     maxQuarterBuckets: 40,
   },
   payment: {
-    momoPollMs: 2_000,
-    momoMaxPollAttempts: 12,
+    pollMs: 2_000,
+    maxPollAttempts: 12,
   },
   query: {
     retryCount: 1,

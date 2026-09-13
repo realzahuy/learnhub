@@ -22,11 +22,7 @@ const parsePaymentId = (rawValue: string | null): number | null => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-interface PaymentResultPageContentProps {
-  attemptedCaptures: Set<string>;
-}
-
-const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageContentProps) => {
+const PaymentResultPageContent = () => {
   const [searchParams] = useSearchParams();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { removeManyFromCart } = useCart();
@@ -55,7 +51,6 @@ const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageConten
   const [isChecking, setIsChecking] = useState(false);
 
   const clearedPaymentsRef = useRef(new Set<number>());
-  const attemptedActionsRef = useRef(new Set<string>());
   const activeRef = useRef(true);
 
   useEffect(() => {
@@ -91,79 +86,35 @@ const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageConten
     [handleSuccess, paymentId]
   );
 
-  const checkPaymentStatus = useCallback(async () => {
+  const checkPaymentStatus = useCallback(async (background = false) => {
     if (!isAuthenticated || paymentId === null) return;
 
-    setIsChecking(true);
-    setHasError(false);
+    if (!background) {
+      setIsChecking(true);
+      setHasError(false);
+    }
     const requestGeneration = getAuthGeneration();
     try {
       const payment = await paymentService.getStatus(paymentId);
-      if (activeRef.current && getAuthGeneration() === requestGeneration) applyPayment(payment);
+      if (activeRef.current && getAuthGeneration() === requestGeneration) {
+        setHasError(false);
+        applyPayment(payment);
+      }
     } catch {
       if (activeRef.current && getAuthGeneration() === requestGeneration) setHasError(true);
     } finally {
-      if (activeRef.current && getAuthGeneration() === requestGeneration) setIsChecking(false);
+      if (!background && activeRef.current && getAuthGeneration() === requestGeneration) setIsChecking(false);
     }
   }, [applyPayment, isAuthenticated, paymentId]);
 
-  const processPayPalReturn = useCallback(async () => {
-    if (!isAuthenticated || paymentId === null) return;
-    if (paypalCancelled) {
-      setStatus('CANCELLED');
-      return;
-    }
-    if (!paypalOrderId) return;
-
-    setIsChecking(true);
-    setHasError(false);
-    const requestGeneration = getAuthGeneration();
-    try {
-      const payment = await paymentService.capturePayPal(paymentId, paypalOrderId);
-      if (activeRef.current && getAuthGeneration() === requestGeneration) applyPayment(payment);
-    } catch {
-      if (activeRef.current && getAuthGeneration() === requestGeneration) setHasError(true);
-    } finally {
-      if (activeRef.current && getAuthGeneration() === requestGeneration) setIsChecking(false);
-    }
-  }, [applyPayment, isAuthenticated, paymentId, paypalCancelled, paypalOrderId]);
-
   useEffect(() => {
-    if (!isAuthenticated || paymentId === null) return;
-
-    const actionKey = isPayPal
-      ? `${paypalCancelled ? 'cancel' : 'capture'}:${paymentId}:${paypalOrderId ?? ''}`
-      : `status:${paymentId}`;
-    if (isPayPal && paypalOrderId && !paypalCancelled) {
-      if (attemptedCaptures.has(actionKey)) {
-        void checkPaymentStatus();
-        return;
-      }
-      attemptedCaptures.add(actionKey);
-    }
-    if (attemptedActionsRef.current.has(actionKey)) return;
-    attemptedActionsRef.current.add(actionKey);
-
-    if (isPayPal && (paypalCancelled || paypalOrderId)) {
-      void processPayPalReturn();
-    } else {
-      void checkPaymentStatus();
-    }
-  }, [
-    checkPaymentStatus,
-    attemptedCaptures,
-    isAuthenticated,
-    isPayPal,
-    paymentId,
-    paypalCancelled,
-    paypalOrderId,
-    processPayPalReturn,
-  ]);
+    void checkPaymentStatus();
+  }, [checkPaymentStatus]);
 
   useEffect(() => {
     if (
       !isAuthenticated
-      || isPayPal
+      || paypalCancelled
       || paymentId === null
       || status !== 'PENDING'
       || momoFailed
@@ -179,11 +130,11 @@ const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageConten
       timeoutId = window.setTimeout(async () => {
         if (cancelled) return;
         attempts += 1;
-        await checkPaymentStatus();
-        if (!cancelled && attempts < uiConfig.payment.momoMaxPollAttempts) {
+        await checkPaymentStatus(true);
+        if (!cancelled && attempts < uiConfig.payment.maxPollAttempts) {
           poll();
         }
-      }, uiConfig.payment.momoPollMs);
+      }, uiConfig.payment.pollMs);
     };
 
     poll();
@@ -191,11 +142,9 @@ const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageConten
       cancelled = true;
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
     };
-  }, [checkPaymentStatus, isAuthenticated, isPayPal, momoFailed, paymentId, status]);
+  }, [checkPaymentStatus, isAuthenticated, paypalCancelled, momoFailed, paymentId, status]);
 
-  const retry = isPayPal && paypalOrderId && !paypalCancelled
-    ? processPayPalReturn
-    : checkPaymentStatus;
+  const retry = checkPaymentStatus;
   const providerLabel = paymentMethod === 'PAYPAL' || isPayPal ? 'PayPal' : 'MoMo';
   const renderBody = () => {
     if (isAuthLoading) {
@@ -251,8 +200,8 @@ const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageConten
       );
     }
 
-    if (status === 'FAILED' || status === 'EXPIRED' || status === 'CANCELLED' || momoFailed) {
-      const failureMessage = status === 'CANCELLED'
+    if (status === 'FAILED' || status === 'EXPIRED' || status === 'CANCELLED' || momoFailed || paypalCancelled) {
+      const failureMessage = status === 'CANCELLED' || paypalCancelled
         ? 'Bạn đã hủy giao dịch. Các khóa học vẫn được giữ nguyên trong giỏ hàng.'
         : momoMessage
           || 'Giao dịch chưa được xác nhận thành công. Các khóa học vẫn được giữ nguyên trong giỏ hàng.';
@@ -322,7 +271,7 @@ const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageConten
       <>
         <h1 className="payment-result-title">Đang xác nhận thanh toán...</h1>
         <p className="payment-result-text">
-          Vui lòng đợi trong giây lát, đừng đóng trang này.
+          Vui lòng đợi trong giây lát để cập nhật trạng thái giao dịch.
         </p>
       </>
     );
@@ -342,11 +291,9 @@ const PaymentResultPageContent = ({ attemptedCaptures }: PaymentResultPageConten
 const PaymentResultPage = () => {
   const location = useLocation();
   const { userId } = useAuth();
-  const attemptedCaptures = useRef(new Set<string>()).current;
   return (
     <PaymentResultPageContent
       key={`${userId ?? 'anonymous'}:${location.search}`}
-      attemptedCaptures={attemptedCaptures}
     />
   );
 };

@@ -111,7 +111,8 @@ public final class AppProperties {
             @NotNull Environment environment,
             @NotBlank String returnUrl,
             @NotBlank String cancelUrl,
-            @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency) {
+            @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency,
+            @NotBlank String webhookId) {
     }
 
     @Validated

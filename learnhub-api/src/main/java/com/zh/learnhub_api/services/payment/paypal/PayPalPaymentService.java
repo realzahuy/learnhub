@@ -135,6 +135,54 @@ public class PayPalPaymentService extends PaymentService {
             return toPaymentResponse(payment);
         }
 
+        return capturePayment(payment, orderId);
+    }
+
+    @Transactional
+    public void handleWebhook(String eventType, String orderId) {
+        Order order;
+        try {
+            order = paypalClient.getOrdersController()
+                    .getOrder(new GetOrderInput.Builder(orderId).build()).getResult();
+        } catch (ApiException | IOException exception) {
+            throw new PaymentGatewayException("Lỗi đọc đơn PayPal", exception);
+        }
+        PurchaseUnit unit = order.getPurchaseUnits().getFirst();
+        Long paymentId = Long.valueOf(unit.getCustomId());
+        Payment payment = paymentRepository.findByIdForUpdate(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thanh toán"));
+        if (payment.getMethod() != PaymentMethod.PAYPAL
+                || !(paymentProperties.brand() + "-" + paymentId).equals(unit.getInvoiceId())) {
+            throw new SecurityException("Sai đơn PayPal");
+        }
+        if (payment.getStatus() == PaymentStatus.SUCCESS) return;
+
+        List<OrdersCapture> captures = unit.getPayments() == null
+                || unit.getPayments().getCaptures() == null
+                ? List.of() : unit.getPayments().getCaptures();
+        OrdersCapture completed = captures.stream()
+                .filter(capture -> capture.getStatus() == CaptureStatus.COMPLETED)
+                .findFirst().orElse(null);
+        if (completed != null) {
+            completePayment(payment, completed.getId());
+            return;
+        }
+        if ("PAYMENT.CAPTURE.COMPLETED".equals(eventType)) {
+            throw new PaymentGatewayException("Chưa xác nhận được capture PayPal");
+        }
+        if ("PAYMENT.CAPTURE.DENIED".equals(eventType)
+                || "PAYMENT.CAPTURE.DECLINED".equals(eventType)) {
+            failPayment(payment);
+            return;
+        }
+        if (payment.getStatus() == PaymentStatus.PENDING && captures.isEmpty()) {
+            capturePayment(payment, orderId);
+        }
+    }
+
+    private PaymentResponseDTO capturePayment(Payment payment, String orderId) {
+        Long paymentId = payment.getId();
+
         CaptureOrderInput input = new CaptureOrderInput.Builder(
                 orderId, MediaType.APPLICATION_JSON_VALUE)
                 .paypalRequestId("learnhub-capture-" + paymentId)
@@ -145,7 +193,6 @@ public class PayPalPaymentService extends PaymentService {
         try {
             response = paypalClient.getOrdersController().captureOrder(input).getResult();
         } catch (ApiException | IOException exception) {
-            failPayment(payment);
             throw new PaymentGatewayException("Lỗi xác nhận PayPal", exception);
         }
         PurchaseUnit purchaseUnit = response.getPurchaseUnits().stream()
@@ -156,15 +203,19 @@ public class PayPalPaymentService extends PaymentService {
             failPayment(payment);
             throw new PaymentGatewayException("Sai đơn PayPal");
         }
-        OrdersCapture capture = purchaseUnit.getPayments()
-                .getCaptures()
-                .stream()
+        List<OrdersCapture> captures = purchaseUnit.getPayments() == null
+                || purchaseUnit.getPayments().getCaptures() == null
+                ? List.of() : purchaseUnit.getPayments().getCaptures();
+        OrdersCapture capture = captures.stream()
                 .filter(item -> item.getStatus() == CaptureStatus.COMPLETED)
                 .findFirst()
                 .orElse(null);
         if (capture == null) {
-            failPayment(payment);
-            throw new PaymentGatewayException("Capture PayPal chưa hoàn tất");
+            if (captures.stream().anyMatch(item -> item.getStatus() == CaptureStatus.DECLINED
+                    || item.getStatus() == CaptureStatus.FAILED)) {
+                failPayment(payment);
+            }
+            return toPaymentResponse(payment);
         }
         List<PaymentItem> items = completePayment(payment, capture.getId());
         return PaymentMapper.toDTO(payment, items);

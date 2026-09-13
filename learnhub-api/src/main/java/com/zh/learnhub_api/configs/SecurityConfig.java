@@ -53,6 +53,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/payments/momo/notify")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payments/paypal/webhook")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/categories/**")
