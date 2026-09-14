@@ -65,7 +65,7 @@ const AdminUsersPage: React.FC = () => {
   });
   const pageData = userQuery.data ?? null;
   const loading = userQuery.isFetching;
-  const contentRef = useContentReady(loading && !pageData);
+  const contentRef = useContentReady(loading);
   const error = userQuery.error
     ? 'Không thể tải danh sách người dùng. Vui lòng thử lại sau.'
     : null;
@@ -194,15 +194,12 @@ const AdminUsersPage: React.FC = () => {
         </div>
 
         {error && pageData && <div className="alert alert-danger">{error}</div>}
-        <div className="list-loading-status" role="status">
-          {loading && pageData ? 'Đang cập nhật…' : ''}
-        </div>
         <div
           className="motion-loading-region"
             ref={contentRef}
           aria-busy={loading}
         >
-          {loading && !pageData ? (
+          {loading ? (
             <PageSkeleton variant="table" count={6} />
           ) : error && !pageData ? (
             <div className="alert alert-danger">{error}</div>

@@ -106,7 +106,7 @@ const CoursesPage = () => {
   const pageData = courseQuery.data ?? null;
   const courses: Course[] = pageData?.content ?? [];
   const loading = courseQuery.isFetching;
-  const contentRef = useContentReady(loading && !pageData);
+  const contentRef = useContentReady(loading);
   const error = courseQuery.error
     ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
     : null;
@@ -141,15 +141,12 @@ const CoursesPage = () => {
             </div>
           </div>
 
-          <div className="list-loading-status" role="status">
-            {loading && pageData ? 'Đang cập nhật…' : ''}
-          </div>
           <div
             className="motion-loading-region"
             ref={contentRef}
             aria-busy={loading}
           >
-          {loading && !pageData ? (
+          {loading ? (
             <PageSkeleton variant="cards" count={uiConfig.pagination.coursePageSize} cardColumnClassName="col-12 col-sm-6 col-md-4 col-lg-3" className="app-skeleton-catalog" />
           ) : error ? (
             <div className="alert alert-danger" role="alert">

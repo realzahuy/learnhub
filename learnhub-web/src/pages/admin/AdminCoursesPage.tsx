@@ -79,7 +79,7 @@ const AdminCoursesPage: React.FC = () => {
   });
   const pageData = courseQuery.data ?? null;
   const loading = courseQuery.isFetching;
-  const contentRef = useContentReady(loading && !pageData);
+  const contentRef = useContentReady(loading);
   const error = courseQuery.error
     ? 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.'
     : null;
@@ -201,15 +201,12 @@ const AdminCoursesPage: React.FC = () => {
         </div>
 
         {error && pageData && <div className="alert alert-danger">{error}</div>}
-        <div className="list-loading-status" role="status">
-          {loading && pageData ? 'Đang cập nhật…' : ''}
-        </div>
         <div
           className="motion-loading-region"
             ref={contentRef}
           aria-busy={loading}
         >
-          {loading && !pageData ? (
+          {loading ? (
             <PageSkeleton variant="course-table" count={6} />
           ) : error && !pageData ? (
             <div className="alert alert-danger">{error}</div>

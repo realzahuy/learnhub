@@ -127,7 +127,7 @@ const AdminCourseContentPanel: React.FC<AdminCourseContentPanelProps> = ({ cours
     queryFn: ({ signal }) => adminService.getCourseContent(courseId, signal),
   });
   const content = contentQuery.data;
-  const loading = contentQuery.isPending;
+  const loading = contentQuery.isPending || contentQuery.isFetching;
   const error = contentQuery.error
     ? getApiErrorMessage(contentQuery.error, 'Không tải được nội dung khóa học.')
     : null;
@@ -144,9 +144,6 @@ const AdminCourseContentPanel: React.FC<AdminCourseContentPanelProps> = ({ cours
 
   return (
     <div className="admin-content-panel" aria-busy={contentQuery.isFetching}>
-      <div className="list-loading-status" role="status">
-        {contentQuery.isFetching ? 'Đang cập nhật…' : ''}
-      </div>
       {error && <div className="alert alert-warning py-2 mb-0">{error}</div>}
       <p className="admin-content-summary">{content.lessons.length} bài giảng</p>
 

@@ -129,11 +129,8 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
         </form>
       )}
 
-      <div className="list-loading-status" role="status">
-        {isLoading && reviewPage ? 'Đang cập nhật…' : ''}
-      </div>
       <div aria-busy={isLoading}>
-        {isLoading && !reviewPage ? (
+        {isLoading ? (
           <PageSkeleton variant="list" count={3} />
         ) : (
           reviews.map((review) => (
@@ -161,13 +158,15 @@ const CourseReviewSection: React.FC<CourseReviewSectionProps> = ({
         <p className="review-empty mb-0">Không có đánh giá nào ở trang này.</p>
       )}
 
-      <Pagination
-        currentPage={page}
-        totalPages={reviewPage?.totalPages ?? 0}
-        isFirst={reviewPage?.first ?? true}
-        isLast={reviewPage?.last ?? true}
-        onPageChange={setPage}
-      />
+      {!isLoading && (
+        <Pagination
+          currentPage={page}
+          totalPages={reviewPage?.totalPages ?? 0}
+          isFirst={reviewPage?.first ?? true}
+          isLast={reviewPage?.last ?? true}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 };

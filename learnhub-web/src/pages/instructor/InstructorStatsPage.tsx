@@ -134,12 +134,13 @@ const InstructorStatsPage: React.FC = () => {
                 loading={loadingSeries}
               />
 
-              <div className="list-loading-status" role="status">{loadingSeries && series ? 'Đang cập nhật…' : ''}</div>
-              <div className={`stats-result${loadingSeries ? ' is-refetching' : ''}`} aria-busy={loadingSeries}>
-                {activeMetric === '' || !series ? (
+              <div className="stats-result" aria-busy={loadingSeries}>
+                {loadingSeries ? (
+                  <PageSkeleton variant="stats-result" />
+                ) : activeMetric === '' || !series ? (
 
                   <div className="stats-placeholder">
-                    <p role="status">{loadingSeries ? 'Đang tải số liệu…' : 'Chọn loại thống kê rồi bấm “Lọc” để xem số liệu'}</p>
+                    <p role="status">Chọn loại thống kê rồi bấm “Lọc” để xem số liệu</p>
                   </div>
                 ) : applied?.view === 'table' ? (
 

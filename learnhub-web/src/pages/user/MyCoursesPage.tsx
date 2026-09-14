@@ -63,7 +63,7 @@ const MyCoursesPage = () => {
   });
   const pageData = enrollmentQuery.data ?? null;
   const loading = enrollmentQuery.isFetching;
-  const contentRef = useContentReady(loading && !pageData);
+  const contentRef = useContentReady(loading);
   const error = enrollmentQuery.error
     ? getApiErrorMessage(
         enrollmentQuery.error,
@@ -86,8 +86,6 @@ const MyCoursesPage = () => {
 
       <main className="my-courses-main">
         <div className="container py-4">
-          <h1 className="my-courses-title">Khóa học của tôi</h1>
-
           <div className="my-courses-toolbar">
             <Dropdown
               className="my-courses-category"
@@ -109,22 +107,19 @@ const MyCoursesPage = () => {
             </div>
           </div>
 
-          <div className="list-loading-status" role="status">
-            {loading && pageData ? 'Đang cập nhật…' : ''}
-          </div>
           <div
             className="motion-loading-region"
             ref={contentRef}
             aria-busy={loading}
           >
-          {loading && !pageData ? (
+          {loading ? (
             <PageSkeleton variant="cards" count={uiConfig.pagination.coursePageSize} cardColumnClassName="col-12 col-sm-6 col-lg-4 col-xl-3" className="app-skeleton-my-courses" />
           ) : error ? (
             <div className="alert alert-danger">{error}</div>
           ) : enrollments.length === 0 ? (
-            <div className="my-courses-empty">
+            <div className={categoryFilter || searchQuery ? 'text-center py-5' : 'my-courses-empty'}>
               {categoryFilter || searchQuery ? (
-                <p className="mb-0">Không tìm thấy khóa học nào phù hợp.</p>
+                <p className="text-muted fs-4">Không tìm thấy khóa học nào.</p>
               ) : (
                 <>
                   <p className="mb-3">Bạn chưa ghi danh khóa học nào.</p>

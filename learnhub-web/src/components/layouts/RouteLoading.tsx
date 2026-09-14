@@ -93,13 +93,10 @@ const RouteLoading = () => {
       <div className="courses-filter"><label>Sắp xếp</label><Control /></div>
     </div>
   ) : matches(ROUTE_PATHS.myCourses) ? (
-    <>
-      <h1 className="my-courses-title">Khóa học của tôi</h1>
-      <div className="my-courses-toolbar app-skeleton" aria-hidden="true">
-        <div className="my-courses-category"><Control /></div>
-        <div className="my-courses-search"><Control /></div>
-      </div>
-    </>
+    <div className="my-courses-toolbar app-skeleton" aria-hidden="true">
+      <div className="my-courses-category"><Control /></div>
+      <div className="my-courses-search"><Control /></div>
+    </div>
   ) : matches(ROUTE_PATHS.instructorCourses) ? (
     <div className="instructor-toolbar mb-4 app-skeleton" aria-hidden="true">
       <span className="route-skeleton-create" />

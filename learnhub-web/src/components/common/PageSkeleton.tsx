@@ -1,6 +1,6 @@
 import './PageSkeleton.css';
 
-export type PageSkeletonVariant = 'cards' | 'table' | 'course-table' | 'detail' | 'stats' | 'form' | 'list' | 'lessons' | 'learning' | 'profile' | 'instructor-profile' | 'course-form' | 'categories';
+export type PageSkeletonVariant = 'cards' | 'table' | 'course-table' | 'detail' | 'stats' | 'stats-result' | 'form' | 'list' | 'lessons' | 'learning' | 'profile' | 'instructor-profile' | 'course-form' | 'categories';
 
 interface PageSkeletonProps {
   variant?: PageSkeletonVariant;
@@ -113,6 +113,8 @@ const PageSkeleton = ({
           <div className="app-skeleton-stats-result"><Lines shortLast /></div>
         </>
       )}
+
+      {variant === 'stats-result' && <Lines shortLast />}
 
       {variant === 'form' && (
         <div className="app-skeleton-form">
