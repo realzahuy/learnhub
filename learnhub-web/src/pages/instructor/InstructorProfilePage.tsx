@@ -9,6 +9,25 @@ import { formatPrice, getApiErrorMessage } from '../../utils';
 import { ROUTE_PATHS, routeTo } from '../../routes/paths';
 import './InstructorProfilePage.css';
 
+const CATEGORY_COLORS = [
+  { bg: '#E3F2FD', text: '#1565C0' },
+  { bg: '#F3E5F5', text: '#6A1B9A' },
+  { bg: '#E8F5E9', text: '#2E7D32' },
+  { bg: '#FFF3E0', text: '#E65100' },
+  { bg: '#FCE4EC', text: '#C2185B' },
+  { bg: '#E0F2F1', text: '#00695C' },
+  { bg: '#FFF9C4', text: '#F57F17' },
+  { bg: '#FFEBEE', text: '#C62828' },
+];
+
+const getCategoryColor = (categoryName: string) => {
+  let hash = 0;
+  for (let i = 0; i < categoryName.length; i++) {
+    hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return CATEGORY_COLORS[Math.abs(hash) % CATEGORY_COLORS.length];
+};
+
 const InstructorProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -147,7 +166,7 @@ const InstructorProfilePage = () => {
             </h2>
 
             {coursesLoading ? (
-              <PageSkeleton variant="cards" count={3} />
+              <PageSkeleton variant="cards" count={4} cardColumnClassName="col-12 col-sm-6 col-md-4 col-lg-3" />
             ) : coursesError ? (
               <p className="text-danger">{coursesError}</p>
             ) : profile.totalCourses === 0 ? (
@@ -155,8 +174,9 @@ const InstructorProfilePage = () => {
             ) : (
               <>
                 <div className="row g-4">
-                  {(coursePage?.content ?? []).map((course) => (
-                    <div key={course.id} className="col-12 col-sm-6 col-lg-4">
+                  {(coursePage?.content ?? []).map((course) => {
+                    const categoryColor = getCategoryColor(course.categoryName);
+                    return <div key={course.id} className="col-12 col-sm-6 col-md-4 col-lg-3">
                       <Link to={routeTo.courseDetail(course.slug)} className="instructor-course-card">
                         {course.thumbnail ? (
                           <img
@@ -184,13 +204,25 @@ const InstructorProfilePage = () => {
                             </div>
                           )}
 
-                          <div className="instructor-course-card__price">
-                            {formatPrice(course.price)}
+                          <div className="instructor-course-card__footer">
+                            <span
+                              className="badge instructor-course-card__category"
+                              style={{
+                                backgroundColor: categoryColor.bg,
+                                color: categoryColor.text,
+                              }}
+                            >
+                              <i className="bi bi-tag me-1" />
+                              {course.categoryName}
+                            </span>
+                            <span className="instructor-course-card__price">
+                              {formatPrice(course.price)}
+                            </span>
                           </div>
                         </div>
                       </Link>
-                    </div>
-                  ))}
+                    </div>;
+                  })}
                 </div>
 
                 {coursePage && (
