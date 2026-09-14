@@ -48,7 +48,7 @@ public class PayPalWebhookService {
                 .retrieve().body(JsonNode.class);
 
         String metadata = objectMapper.writeValueAsString(verification);
-        // Preserve the original webhook JSON when sending it back for signature verification.
+
         String verificationBody = metadata.substring(0, metadata.length() - 1)
                 + ",\"webhook_event\":" + body + "}";
         JsonNode result = client.post().uri("/v1/notifications/verify-webhook-signature")
