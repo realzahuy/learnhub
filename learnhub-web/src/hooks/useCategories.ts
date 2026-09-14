@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { uiConfig } from '../config/uiConfig';
 import { queryKeys } from '../query/queryKeys';
 import { categoryService } from '../services/api/category.service';
 import { getApiErrorMessage } from '../utils';
@@ -8,8 +9,8 @@ export function useCategories(enabled = true) {
     queryKey: queryKeys.categories.all,
     queryFn: ({ signal }) => categoryService.getAll(signal),
     enabled,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: 'always',
+    staleTime: uiConfig.query.categoriesStaleMs,
+    gcTime: uiConfig.query.categoriesGcMs,
   });
 
   return {

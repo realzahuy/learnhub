@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { uiConfig } from '../../config/uiConfig';
 import { useContentReady } from '../../hooks/useContentReady';
 import {
   CourseCurriculum,
@@ -33,6 +34,7 @@ const CourseDetailPage = () => {
   const [isEnrolling, setIsEnrolling] = useState(false);
   const courseQuery = useQuery<CourseDetail>({
     queryKey: queryKeys.courseDetails.detail(slug),
+    staleTime: uiConfig.query.courseDetailStaleMs,
     enabled: Boolean(slug),
     queryFn: ({ signal }) => courseService.getCourseBySlug(slug!, signal),
   });

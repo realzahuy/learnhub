@@ -96,6 +96,7 @@ const CoursesPage = () => {
   };
   const courseQuery = useQuery({
     queryKey: queryKeys.publishedCourses.list(courseFilters),
+    staleTime: uiConfig.query.courseListStaleMs,
     queryFn: ({ signal }) => courseService.getPublishedCourses(
       { ...courseFilters, size: uiConfig.pagination.coursePageSize },
       signal

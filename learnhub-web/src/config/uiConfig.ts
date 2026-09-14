@@ -30,6 +30,10 @@ export const uiConfig = {
     retryCount: 1,
     staleMs: 30_000,
     gcMs: 300_000,
+    courseDetailStaleMs: 300_000,
+    categoriesStaleMs: 900_000,
+    categoriesGcMs: 1_800_000,
+    courseListStaleMs: 120_000,
     refetchOnWindowFocus: false,
   },
   timing: {
